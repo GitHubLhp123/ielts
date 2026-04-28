@@ -7,8 +7,9 @@ const http = require("http");
 const https = require("https");
 
 const SCRIPT_DIR = __dirname;
-const DEFAULT_SOURCE = path.resolve(SCRIPT_DIR, "..", "王璐语料库_源码.html");
-const DEFAULT_OUTPUT = path.resolve(SCRIPT_DIR, "audio");
+const PROJECT_ROOT = path.resolve(SCRIPT_DIR, "..");
+const DEFAULT_SOURCE = path.resolve(PROJECT_ROOT, "王璐语料库_源码.html");
+const DEFAULT_OUTPUT = path.resolve(PROJECT_ROOT, "assets", "audio");
 const DEFAULT_CONCURRENCY = 6;
 const DEFAULT_RETRY = 3;
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -105,7 +106,7 @@ function printHelp() {
 
 参数:
   --source <path>        语料 HTML 源文件，默认 ../王璐语料库_源码.html
-  --output <path>        音频输出目录，默认 ./audio
+  --output <path>        音频输出目录，默认 ../assets/audio
   --chapter <id>         仅下载指定章节，例如 31
   --concurrency <n>      并发下载数，默认 6
   --retry <n>            单文件失败重试次数，默认 3

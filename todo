@@ -1,0 +1,28 @@
+1 daily-status/学习状态跟踪.html 核心数据表格 把明日计划关联到todo list
+2 daily-status/学习状态跟踪.html  核心数据表格的表格 可以自己调间距 且数据持久化，不需要引入到 导入导出里
+3 daily-status/学习状态跟踪.html  核心数据表格的表格 为什么 总结 / 复盘栏 左边的线不能调整间距
+4 daily-status/学习状态跟踪.html  引入 todo项优先级：高 中 低 长期 ，然后这个数据也持久化 且关联到导入导出
+
+
+5 /Users/lhp/Desktop/codeProject/ielts-tool/words/study_words.html 的难词项 还是很丑。例如，章节名比中文意思的字体还大 ，▶图表和单词距离太近
+
+6 /Users/lhp/Desktop/codeProject/ielts-tool/words/study_words.html  总览功能损坏 打不开，且和我的学习情况关联较少
+
+6 /Users/lhp/Desktop/codeProject/ielts-tool/words/study_words.html ★ 核心词汇 ★ 阅读538词汇 听力179词汇 放在音标后面
+
+
+
+
+提示词
+
+1 生成这个html涉及到的功能
+导出一份版本信息到 version.md
+2 根据这个version.md 去审查相关功能是否正确，是否关联功能正确，是否联系正确
+3 全文审查 细节优化 交互优化
+4 全文审查是否有bug 漏洞
+5 导出一份release.md
+
+
+
+1 生成下载音频脚本
+2 把文件下载到此html同级目录的mp3里

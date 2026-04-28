@@ -29,31 +29,31 @@ WHITESPACE_RE = re.compile(r"\s+")
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="下载 output_word_groups 中每个单词的英式发音 mp3 到本地项目目录。"
+        description="下载单词分组数据中的英式发音 mp3 到项目 assets/audio 目录。"
     )
     parser.add_argument(
         "--source-dir",
         type=Path,
         default=SOURCE_DIR,
-        help="单词分组 JSON 所在目录，默认 output_word_groups",
+        help="单词分组 JSON 所在目录，默认 data/generated/word_groups",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=DEFAULT_OUTPUT_DIR,
-        help="原始音频名输出目录，默认 word_audio/eng",
+        help="原始音频名输出目录，默认 assets/audio/eng",
     )
     parser.add_argument(
         "--word-output-dir",
         type=Path,
         default=DEFAULT_WORD_OUTPUT_DIR,
-        help="按单词名导出的音频目录，默认 word_audio/eng_by_word",
+        help="按单词名导出的音频目录，默认 assets/audio/eng_by_word",
     )
     parser.add_argument(
         "--manifest-file",
         type=Path,
         default=DEFAULT_MANIFEST_FILE,
-        help="下载清单输出文件，默认 word_audio/manifest.json",
+        help="下载清单输出文件，默认 assets/audio/manifest.json",
     )
     parser.add_argument(
         "--workers",

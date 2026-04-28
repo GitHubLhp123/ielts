@@ -9,8 +9,9 @@ require "thread"
 require "time"
 
 SCRIPT_DIR = __dir__
-DEFAULT_SOURCE = File.expand_path("../王璐语料库_源码.html", SCRIPT_DIR)
-DEFAULT_OUTPUT = File.expand_path("audio", SCRIPT_DIR)
+PROJECT_ROOT = File.expand_path("..", SCRIPT_DIR)
+DEFAULT_SOURCE = File.expand_path("王璐语料库_源码.html", PROJECT_ROOT)
+DEFAULT_OUTPUT = File.expand_path("assets/audio", PROJECT_ROOT)
 DEFAULT_BASE_URL = "http://www.1kao.com.cn/iSpell/Spell/audio"
 
 def parse_options
