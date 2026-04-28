@@ -269,6 +269,18 @@
 			margin-top: 16px;
 		}
 
+		.todo-priority-select {
+			width: 120px;
+		}
+
+		.todo-priority-group {
+			display: inline-flex;
+		}
+
+		.todo-priority-group .el-radio-button__inner {
+			padding: 7px 10px;
+		}
+
 		.todo-input-row .el-input {
 			flex: 1;
 			min-width: 220px;
@@ -334,6 +346,10 @@
 
 		.todo-actions {
 			justify-content: flex-end;
+		}
+
+		.todo-priority-tag {
+			margin-left: 8px;
 		}
 
 		.todo-empty,
@@ -789,6 +805,45 @@
 			padding-right: 8px;
 		}
 
+		.core-table-wrapper {
+			--core-table-cell-padding-x: 8px;
+			--core-table-cell-padding-y: 8px;
+		}
+
+		.core-table-wrapper .el-table th,
+		.core-table-wrapper .el-table td {
+			padding-top: var(--core-table-cell-padding-y);
+			padding-bottom: var(--core-table-cell-padding-y);
+		}
+
+		.core-table-wrapper .el-table .cell {
+			padding-left: var(--core-table-cell-padding-x);
+			padding-right: var(--core-table-cell-padding-x);
+		}
+
+		.table-spacing-controls {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			flex-wrap: wrap;
+			margin-left: auto;
+		}
+
+		.table-spacing-label {
+			font-size: 12px;
+			color: var(--text-secondary);
+		}
+
+		.table-spacing-value {
+			font-size: 12px;
+			color: var(--text-secondary);
+			white-space: nowrap;
+		}
+
+		.table-spacing-slider {
+			width: 110px;
+		}
+
 		.el-table .study-row-today > td {
 			background: rgba(0, 113, 227, 0.06) !important;
 		}
@@ -1018,6 +1073,9 @@
 				</div>
 				<div class="todo-input-row">
 					<el-input v-model.trim="newTodoText" placeholder="直接填写待办内容，按回车或点击新增" @keyup.enter.native="addTodo"></el-input>
+					<el-select v-model="newTodoPriority" class="todo-priority-select" placeholder="优先级">
+						<el-option v-for="priority in todoPriorityOptions" :key="priority" :label="priority" :value="priority"></el-option>
+					</el-select>
 					<el-button type="primary" @click="addTodo">新增待办</el-button>
 				</div>
 				<div class="todo-summary">共 {{ todoItems.length }} 条，已完成 {{ completedTodoCount }} 条，未完成 {{ pendingTodoCount }} 条。</div>
@@ -1036,12 +1094,17 @@
 								></el-input>
 								<div v-else class="todo-text">{{ item.text }}</div>
 								<div class="todo-meta">
+									<el-tag size="mini" :type="getTodoPriorityType(item.priority)" effect="plain">{{ normalizeTodoPriority(item.priority) }}</el-tag>
+									<span class="todo-priority-tag">优先级</span>
 									创建于 {{ formatDateTime(item.createdAt) }}
 									<span v-if="item.completedAt"> · 完成于 {{ formatDateTime(item.completedAt) }}</span>
 								</div>
 							</div>
 						</div>
 						<div class="todo-actions">
+							<el-radio-group v-if="todoEditingId === item.id" v-model="todoEditingPriority" size="mini" class="todo-priority-group">
+								<el-radio-button v-for="priority in todoPriorityOptions" :key="priority" :label="priority"></el-radio-button>
+							</el-radio-group>
 							<el-button v-if="todoEditingId === item.id" size="mini" type="primary" plain @click="saveTodoEdit(item.id)">保存</el-button>
 							<el-button v-if="todoEditingId === item.id" size="mini" @click="cancelTodoEdit">取消</el-button>
 							<el-button v-else size="mini" plain icon="el-icon-edit" @click="startTodoEdit(item)">编辑</el-button>
@@ -1063,6 +1126,8 @@
 										<div class="todo-content">
 											<div class="todo-text">{{ item.text }}</div>
 											<div class="todo-meta">
+												<el-tag size="mini" :type="getTodoPriorityType(item.priority)" effect="plain">{{ normalizeTodoPriority(item.priority) }}</el-tag>
+												<span class="todo-priority-tag">优先级</span>
 												创建于 {{ formatDateTime(item.createdAt) }}
 												<span v-if="item.completedAt"> · 完成于 {{ formatDateTime(item.completedAt) }}</span>
 											</div>
@@ -1206,6 +1271,7 @@
 									<div class="toolbar-actions">
 										<el-button type="primary" plain icon="el-icon-menu" @click="openGroupConfigDialog">配置分组与组项目</el-button>
 										<el-button icon="el-icon-edit-outline" @click="openNoteFieldsDialog">配置最后栏位</el-button>
+										<el-button icon="el-icon-connection" @click="syncTodayPlanToTodos">明日计划同步 Todo</el-button>
 										<el-button :icon="notesCollapsed ? 'el-icon-view' : 'el-icon-hide'" @click="toggleNotesCollapsed">
 											{{ notesCollapsed ? '展开复盘栏' : '折叠复盘栏' }}
 										</el-button>
@@ -1214,7 +1280,7 @@
 							</el-card>
 
 							<div class="table-guideline">
-								日期行会自动按升序排列；项目格支持整数、1 位小数或 /；历史日期会锁定；复盘内容统一在表格中填写，需要集中回看时可进入“复盘信息展览表”。
+								日期行会自动按升序排列；项目格支持整数、1 位小数或 /；历史日期会锁定；复盘内容统一在表格中填写，需要集中回看时可进入“复盘信息展览表”。表头分隔线可直接拖拽调列宽，列宽会在本地记忆，不进入导入导出文件。表格横向/纵向间距也可在筛选区微调，同样仅本地保存。
 							</div>
 
 							<el-card shadow="never" class="section-card filter-toolbar-card">
@@ -1249,6 +1315,14 @@
 										<el-option label="未补齐优先" value="incomplete-desc"></el-option>
 									</el-select>
 									<el-button size="mini" @click="resetFilters">重置筛选</el-button>
+									<div class="table-spacing-controls">
+										<span class="table-spacing-label">表格间距</span>
+										<span class="table-spacing-value">横向 {{ tableLayout.cellPaddingX }}</span>
+										<el-slider v-model="tableLayout.cellPaddingX" class="table-spacing-slider" :min="4" :max="24" :step="1" :show-tooltip="false"></el-slider>
+										<span class="table-spacing-value">纵向 {{ tableLayout.cellPaddingY }}</span>
+										<el-slider v-model="tableLayout.cellPaddingY" class="table-spacing-slider" :min="2" :max="18" :step="1" :show-tooltip="false"></el-slider>
+										<el-button size="mini" @click="resetTableSpacing">重置间距</el-button>
+									</div>
 								</div>
 								<div class="filter-row">
 									<el-button size="mini" icon="el-icon-position" @click="scrollToTodayRow">定位今天</el-button>
@@ -1270,9 +1344,9 @@
 								></el-alert>
 							</div>
 
-							<div class="table-wrapper">
-								<el-table :data="filteredTableData" :row-class-name="getTableRowClassName" border stripe size="mini" style="width: 100%">
-									<el-table-column label="日期" fixed="left" width="170">
+							<div class="table-wrapper core-table-wrapper" :style="coreTableSpacingStyle">
+								<el-table :data="filteredTableData" :row-class-name="getTableRowClassName" border stripe size="mini" style="width: 100%" @header-dragend="handleTableHeaderDragEnd">
+									<el-table-column label="日期" fixed="left" :width="tableLayout.dateWidth" column-key="date">
 										<template slot-scope="scope">
 											<div class="date-cell">
 												<el-date-picker
@@ -1292,7 +1366,7 @@
 										</template>
 									</el-table-column>
 
-									<el-table-column label="时长" width="100">
+									<el-table-column label="时长" :width="tableLayout.durationWidth" column-key="duration">
 										<template slot-scope="scope">
 											<el-input-number
 												:value="scope.row.durationMinutes"
@@ -1314,7 +1388,8 @@
 										<el-table-column
 											v-for="column in group.columns"
 											:key="column.id"
-											:min-width="column.width || 96"
+											:width="getColumnWidth(column.id)"
+											:column-key="'metric:' + column.id"
 										>
 											<template slot="header">
 												<div class="dynamic-header">
@@ -1336,7 +1411,7 @@
 										</el-table-column>
 									</el-table-column>
 
-									<el-table-column :min-width="notesCollapsed ? 180 : 420" fixed="right">
+									<el-table-column :width="tableLayout.notesWidth" fixed="right" column-key="notes">
 										<template slot="header">
 											<div class="dynamic-header">
 												<strong>{{ notesCollapsed ? '总结复盘栏（已折叠）' : noteColumnTitle }}</strong>
@@ -1363,7 +1438,7 @@
 										</template>
 									</el-table-column>
 
-									<el-table-column label="操作" fixed="right" width="116">
+									<el-table-column label="操作" fixed="right" :width="tableLayout.actionWidth" column-key="actions">
 										<template slot-scope="scope">
 											<div class="row-action-buttons">
 												<span v-if="isPastDate(scope.row.date)" class="row-lock-indicator" title="历史日期已锁定">🔒</span>
@@ -1780,6 +1855,7 @@
 		(function () {
 			var STORAGE_KEY = 'daily-learning-tracker-state-v4';
 			var STORAGE_META_KEY = 'daily-learning-tracker-state-meta-v1';
+			var TABLE_LAYOUT_STORAGE_KEY = 'daily-learning-tracker-table-layout-v1';
 			var LOW_SCORE_THRESHOLD = 60;
 			var MAX_EMPTY_DATE_ROWS = 3;
 			var MAX_ALERTS = 5;
@@ -1787,6 +1863,8 @@
 			var BACKUP_REMINDER_SNOOZE_HOURS = 24;
 			var DEFAULT_BOOKKEEPING_CATEGORIES = ['餐饮', '早餐', '午餐', '晚餐', '咖啡茶饮', '水果零食', '交通', '打车', '地铁公交', '共享单车', '加油停车', '学习', '书籍', '课程', '订阅', '办公文具', '房租水电', '物业宽带', '日用品', '家居维修', '医疗', '药品保健', '护肤美妆', '服饰', '数码', '宠物', '礼物', '社交', '旅行', '酒店住宿', '娱乐', '运动健身', '家庭', '人情往来', '保险', '通讯', '其他'];
 			var PLAN_FIELD_KEYWORDS = ['计划', 'plan', 'next'];
+			var TODO_PRIORITY_OPTIONS = ['高', '中', '低', '长期'];
+			var TODO_PRIORITY_RANK = { '高': 0, '中': 1, '低': 2, '长期': 3 };
 
 			var getMonthText = function (dateValue) {
 				var date = dateValue instanceof Date ? dateValue : new Date(dateValue || Date.now());
@@ -1794,6 +1872,18 @@
 					date = new Date();
 				}
 				return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+			};
+
+			var createDefaultTableLayout = function () {
+				return {
+					dateWidth: 170,
+					durationWidth: 100,
+					notesWidth: 420,
+					actionWidth: 116,
+					cellPaddingX: 8,
+					cellPaddingY: 8,
+					projectColumnWidths: {}
+				};
 			};
 
 			var createInitialState = function () {
@@ -1804,13 +1894,16 @@
 					bookkeepingChartInstances: [],
 					extraChartInstances: [],
 					persistTimer: null,
+					tableLayoutPersistTimer: null,
 					reminderTimer: null,
 					chartDisplayMode: 'grouped',
 					heatmapMonth: getMonthText(),
 					notesCollapsed: true,
 					newTodoText: '',
+					newTodoPriority: '中',
 					todoEditingId: '',
 					todoEditingText: '',
+					todoEditingPriority: '中',
 					todoCompletedCollapseActive: [],
 					groupConfigVisible: false,
 					noteFieldsVisible: false,
@@ -1826,6 +1919,7 @@
 						onlyIncomplete: false,
 						sortMode: 'date-asc'
 					},
+					tableLayout: createDefaultTableLayout(),
 					reviewFilter: {
 						dateRange: [],
 						keyword: ''
@@ -1928,6 +2022,9 @@
 					return createInitialState();
 				},
 				computed: {
+					todoPriorityOptions: function () {
+						return TODO_PRIORITY_OPTIONS.slice();
+					},
 					studyRows: function () {
 						return this.getSortedRows(this.tableData).filter(function (row) { return !!row.date; });
 					},
@@ -2087,6 +2184,17 @@
 					stats: function () {
 						return { visibleDays: this.filteredTableData.length };
 					},
+					coreTableSpacingStyle: function () {
+						var layout = this.tableLayout || {};
+						var paddingX = Number(layout.cellPaddingX);
+						var paddingY = Number(layout.cellPaddingY);
+						if (isNaN(paddingX)) { paddingX = 8; }
+						if (isNaN(paddingY)) { paddingY = 8; }
+						return {
+							'--core-table-cell-padding-x': paddingX + 'px',
+							'--core-table-cell-padding-y': paddingY + 'px'
+						};
+					},
 					completedTodoCount: function () {
 						return this.todoItems.filter(function (item) { return !!item.done; }).length;
 					},
@@ -2098,13 +2206,19 @@
 							if (!!left.done !== !!right.done) {
 								return left.done ? 1 : -1;
 							}
+							if (!left.done && !right.done) {
+								var priorityDiff = this.getTodoPriorityRank(left.priority) - this.getTodoPriorityRank(right.priority);
+								if (priorityDiff !== 0) {
+									return priorityDiff;
+								}
+							}
 							var leftTime = left.done ? (left.completedAt || left.createdAt || '') : (left.createdAt || '');
 							var rightTime = right.done ? (right.completedAt || right.createdAt || '') : (right.createdAt || '');
 							if (leftTime === rightTime) {
 								return 0;
 							}
 							return leftTime > rightTime ? -1 : 1;
-						});
+						}.bind(this));
 					},
 					pendingTodoItems: function () {
 						return this.sortedTodoItems.filter(function (item) { return !item.done; });
@@ -2275,6 +2389,8 @@
 				},
 				mounted: function () {
 					this.restoreState();
+					this.restoreTableLayout();
+					this.normalizeTableLayout();
 					this.ensureTodayRecord();
 					this.ensureRecurringDraftsForMonth(getMonthText());
 					this.ensureRecurringDraftsForMonth(this.selectedAccountingDateText.slice(0, 7));
@@ -2291,6 +2407,9 @@
 					if (this.persistTimer) {
 						window.clearTimeout(this.persistTimer);
 					}
+					if (this.tableLayoutPersistTimer) {
+						window.clearTimeout(this.tableLayoutPersistTimer);
+					}
 					if (this.reminderTimer) {
 						window.clearInterval(this.reminderTimer);
 					}
@@ -2301,7 +2420,7 @@
 				},
 				watch: {
 					tableData: { deep: true, handler: function () { this.schedulePersistState(); this.$nextTick(this.renderCharts); } },
-					projectColumns: { deep: true, handler: function () { this.schedulePersistState(); this.$nextTick(this.renderCharts); } },
+					projectColumns: { deep: true, handler: function () { this.normalizeTableLayout(); this.schedulePersistTableLayout(); this.schedulePersistState(); this.$nextTick(this.renderCharts); } },
 					groups: { deep: true, handler: function () { this.schedulePersistState(); this.$nextTick(this.renderCharts); } },
 					noteFields: { deep: true, handler: function () { this.schedulePersistState(); this.$nextTick(this.renderCharts); } },
 					chartDisplayMode: function () { this.schedulePersistState(); },
@@ -2316,9 +2435,202 @@
 					recurringRules: { deep: true, handler: function () { this.schedulePersistState(); this.ensureRecurringDraftsForMonth(this.selectedAccountingDateText.slice(0, 7)); this.$nextTick(this.renderCharts); } },
 					selectedAccountingDate: function () { this.ensureRecurringDraftsForMonth(this.selectedAccountingDateText.slice(0, 7)); this.schedulePersistState(); },
 					todoItems: { deep: true, handler: function () { this.persistState(); } },
+					tableLayout: { deep: true, handler: function () { this.schedulePersistTableLayout(); } },
 					bookkeepingEntries: { deep: true, handler: function () { this.schedulePersistState(); this.$nextTick(this.renderCharts); } }
 				},
 				methods: {
+					normalizeTodoPriority: function (priority) {
+						return TODO_PRIORITY_OPTIONS.indexOf(priority) === -1 ? '中' : priority;
+					},
+					getTodoPriorityRank: function (priority) {
+						var normalized = this.normalizeTodoPriority(priority);
+						return Object.prototype.hasOwnProperty.call(TODO_PRIORITY_RANK, normalized) ? TODO_PRIORITY_RANK[normalized] : TODO_PRIORITY_RANK['中'];
+					},
+					getTodoPriorityType: function (priority) {
+						var normalized = this.normalizeTodoPriority(priority);
+						if (normalized === '高') { return 'danger'; }
+						if (normalized === '中') { return 'warning'; }
+						if (normalized === '低') { return 'info'; }
+						return 'success';
+					},
+					normalizeTableLayoutWidth: function (value, min, max, fallback) {
+						var width = Number(value);
+						if (isNaN(width)) {
+							width = fallback;
+						}
+						width = Math.round(width);
+						if (width < min) { return min; }
+						if (width > max) { return max; }
+						return width;
+					},
+					normalizeTableLayout: function () {
+						if (!this.tableLayout || typeof this.tableLayout !== 'object' || Array.isArray(this.tableLayout)) {
+							this.tableLayout = createDefaultTableLayout();
+						}
+						this.tableLayout.dateWidth = this.normalizeTableLayoutWidth(this.tableLayout.dateWidth, 140, 320, 170);
+						this.tableLayout.durationWidth = this.normalizeTableLayoutWidth(this.tableLayout.durationWidth, 88, 220, 100);
+						this.tableLayout.notesWidth = this.normalizeTableLayoutWidth(this.tableLayout.notesWidth, 240, 760, 420);
+						this.tableLayout.actionWidth = this.normalizeTableLayoutWidth(this.tableLayout.actionWidth, 96, 220, 116);
+						this.tableLayout.cellPaddingX = this.normalizeTableLayoutWidth(this.tableLayout.cellPaddingX, 4, 24, 8);
+						this.tableLayout.cellPaddingY = this.normalizeTableLayoutWidth(this.tableLayout.cellPaddingY, 2, 18, 8);
+						if (!this.tableLayout.projectColumnWidths || typeof this.tableLayout.projectColumnWidths !== 'object' || Array.isArray(this.tableLayout.projectColumnWidths)) {
+							this.$set(this.tableLayout, 'projectColumnWidths', {});
+						}
+						var validMap = {};
+						this.projectColumns.forEach(function (column) {
+							var savedWidth = this.tableLayout.projectColumnWidths[column.id];
+							var fallback = Number(column && column.width);
+							if (isNaN(fallback) || fallback <= 0) {
+								fallback = 100;
+							}
+							validMap[column.id] = this.normalizeTableLayoutWidth(savedWidth, 88, 280, fallback);
+						}, this);
+						this.$set(this.tableLayout, 'projectColumnWidths', validMap);
+					},
+					persistTableLayout: function () {
+						this.normalizeTableLayout();
+						window.localStorage.setItem(TABLE_LAYOUT_STORAGE_KEY, JSON.stringify(this.tableLayout));
+					},
+					schedulePersistTableLayout: function () {
+						if (this.tableLayoutPersistTimer) {
+							window.clearTimeout(this.tableLayoutPersistTimer);
+						}
+						this.tableLayoutPersistTimer = window.setTimeout(function () {
+							this.persistTableLayout();
+							this.tableLayoutPersistTimer = null;
+						}.bind(this), 80);
+					},
+					restoreTableLayout: function () {
+						var savedText = window.localStorage.getItem(TABLE_LAYOUT_STORAGE_KEY);
+						if (!savedText) {
+							return;
+						}
+						try {
+							var saved = JSON.parse(savedText);
+							if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+								this.tableLayout = Object.assign(createDefaultTableLayout(), saved);
+							}
+						} catch (error) {
+							window.localStorage.removeItem(TABLE_LAYOUT_STORAGE_KEY);
+						}
+					},
+					getColumnWidth: function (columnId) {
+						if (!columnId) {
+							return 100;
+						}
+						var layout = this.tableLayout || {};
+						var widthMap = layout.projectColumnWidths && typeof layout.projectColumnWidths === 'object' ? layout.projectColumnWidths : {};
+						var savedWidth = Number(widthMap[columnId]);
+						if (!isNaN(savedWidth) && savedWidth > 0) {
+							return savedWidth;
+						}
+						var column = this.projectColumns.find(function (item) { return item.id === columnId; });
+						var fallback = Number(column && column.width);
+						if (isNaN(fallback) || fallback <= 0) {
+							fallback = 100;
+						}
+						return fallback;
+					},
+					handleTableHeaderDragEnd: function (newWidth, oldWidth, column) {
+						if (!column) {
+							return;
+						}
+						var columnKey = column.columnKey || '';
+						if (columnKey === 'date') {
+							this.tableLayout.dateWidth = this.normalizeTableLayoutWidth(newWidth, 140, 320, this.tableLayout.dateWidth);
+							return;
+						}
+						if (columnKey === 'duration') {
+							this.tableLayout.durationWidth = this.normalizeTableLayoutWidth(newWidth, 88, 220, this.tableLayout.durationWidth);
+							return;
+						}
+						if (columnKey === 'notes') {
+							this.tableLayout.notesWidth = this.normalizeTableLayoutWidth(newWidth, 240, 760, this.tableLayout.notesWidth);
+							return;
+						}
+						if (columnKey === 'actions') {
+							this.tableLayout.actionWidth = this.normalizeTableLayoutWidth(newWidth, 96, 220, this.tableLayout.actionWidth);
+							return;
+						}
+						if (columnKey.indexOf('metric:') === 0) {
+							var columnId = columnKey.slice('metric:'.length);
+							this.$set(this.tableLayout.projectColumnWidths, columnId, this.normalizeTableLayoutWidth(newWidth, 88, 280, this.getColumnWidth(columnId)));
+						}
+					},
+					resetTableSpacing: function () {
+						this.tableLayout.cellPaddingX = 8;
+						this.tableLayout.cellPaddingY = 8;
+						this.$message.success('表格间距已重置。');
+					},
+					normalizeTodoText: function (text) {
+						return String(text || '').trim().replace(/\s+/g, ' ').toLowerCase();
+					},
+					splitPlanTextToTodoItems: function (text) {
+						return String(text || '').split(/(?:\\n|\r?\n)+/).map(function (line) {
+							return String(line || '').replace(/^[\s\-•*\d.、)）]+/, '').trim();
+						}).filter(Boolean);
+					},
+					collectPlanTodoTextsFromRow: function (row) {
+						if (!row || !row.notes) {
+							return [];
+						}
+						var texts = [];
+						this.noteFields.forEach(function (field) {
+							if (!this.isPlanLikeField(field)) {
+								return;
+							}
+							texts = texts.concat(this.splitPlanTextToTodoItems(row.notes[field.id]));
+						}, this);
+						var seen = Object.create(null);
+						return texts.filter(function (text) {
+							var key = this.normalizeTodoText(text);
+							if (!key || seen[key]) {
+								return false;
+							}
+							seen[key] = true;
+							return true;
+						}, this);
+					},
+					appendPlanTodosToList: function (row, priority) {
+						var planTexts = this.collectPlanTodoTextsFromRow(row);
+						if (!planTexts.length) {
+							return 0;
+						}
+						var pendingTextMap = Object.create(null);
+						this.todoItems.forEach(function (item) {
+							if (item && !item.done) {
+								pendingTextMap[this.normalizeTodoText(item.text)] = true;
+							}
+						}, this);
+						var now = new Date().toISOString();
+						var addedCount = 0;
+						for (var index = planTexts.length - 1; index >= 0; index -= 1) {
+							var text = planTexts[index];
+							var key = this.normalizeTodoText(text);
+							if (!key || pendingTextMap[key]) {
+								continue;
+							}
+							pendingTextMap[key] = true;
+							this.todoItems.unshift({ id: this.createId('todo'), text: text, priority: this.normalizeTodoPriority(priority), done: false, createdAt: now, completedAt: '' });
+							addedCount += 1;
+						}
+						return addedCount;
+					},
+					syncTodayPlanToTodos: function () {
+						var todayText = this.getTodayText();
+						var todayRows = this.getSortedRows(this.tableData).filter(function (row) { return row.date === todayText; });
+						var sourceRow = todayRows.length ? todayRows[todayRows.length - 1] : this.getSortedRows(this.tableData).filter(function (row) { return !!row.date; }).slice(-1)[0];
+						if (!sourceRow) {
+							this.$message.warning('当前没有可同步的明日计划。');
+							return;
+						}
+						var addedCount = this.appendPlanTodosToList(sourceRow, '中');
+						if (!addedCount) {
+							this.$message.info('明日计划已同步过，或当前没有可拆分的计划内容。');
+							return;
+						}
+						this.$message.success('已从明日计划同步 ' + addedCount + ' 条 Todo。');
+					},
 					toggleNotesCollapsed: function () { this.notesCollapsed = !this.notesCollapsed; },
 					getTodayText: function () {
 						var today = new Date();
@@ -2461,6 +2773,13 @@
 							};
 						}, this);
 					},
+					createExportableProjectColumns: function (columns) {
+						return (columns || []).map(function (column) {
+							var copied = Object.assign({}, column || {});
+							delete copied.width;
+							return copied;
+						});
+					},
 					getGroupName: function (groupId) {
 						var target = this.groups.find(function (group) { return group.id === groupId; });
 						return target ? target.name : '未分组';
@@ -2503,7 +2822,7 @@
 							bookkeepingCategories: JSON.parse(JSON.stringify(this.bookkeepingCategoryOptions)),
 							recurringRules: JSON.parse(JSON.stringify(this.recurringRules)),
 							groups: JSON.parse(JSON.stringify(this.groups)),
-							projectColumns: JSON.parse(JSON.stringify(this.projectColumns)),
+							projectColumns: JSON.parse(JSON.stringify(this.createExportableProjectColumns(this.projectColumns))),
 							noteFields: JSON.parse(JSON.stringify(this.noteFields)),
 							tableData: JSON.parse(JSON.stringify(this.createSerializableRows(this.tableData))),
 							todoItems: JSON.parse(JSON.stringify(this.todoItems)),
@@ -2601,6 +2920,7 @@
 							return {
 								id: item && item.id ? item.id : this.createId('todo'),
 								text: String(item && item.text ? item.text : '').trim(),
+								priority: this.normalizeTodoPriority(item && item.priority),
 								done: !!(item && item.done),
 								createdAt: item && item.createdAt ? item.createdAt : new Date().toISOString(),
 								completedAt: item && item.completedAt ? item.completedAt : (item && item.done ? (item.createdAt || new Date().toISOString()) : '')
@@ -2608,6 +2928,7 @@
 						}, this).filter(function (item) {
 							return !!item.text;
 						});
+						this.newTodoPriority = this.normalizeTodoPriority(this.newTodoPriority);
 						if (!Array.isArray(this.todoCompletedCollapseActive)) {
 							this.todoCompletedCollapseActive = [];
 						}
@@ -3307,7 +3628,7 @@
 							return;
 						}
 						this.groups = snapshot.groups;
-						this.projectColumns = snapshot.projectColumns;
+						this.projectColumns = this.createExportableProjectColumns(snapshot.projectColumns);
 						this.noteFields = snapshot.noteFields;
 						this.tableData = snapshot.tableData;
 						this.todoItems = Array.isArray(snapshot.todoItems) ? snapshot.todoItems : [];
@@ -3545,8 +3866,9 @@
 					addTodo: function () {
 						var text = String(this.newTodoText || '').trim();
 						if (!text) { this.$message.warning('请先填写待办内容。'); return; }
-						this.todoItems.unshift({ id: this.createId('todo'), text: text, done: false, createdAt: new Date().toISOString(), completedAt: '' });
+						this.todoItems.unshift({ id: this.createId('todo'), text: text, priority: this.normalizeTodoPriority(this.newTodoPriority), done: false, createdAt: new Date().toISOString(), completedAt: '' });
 						this.newTodoText = '';
+						this.newTodoPriority = '中';
 						this.schedulePersistState();
 					},
 					handleTodoToggle: function (item) {
@@ -3559,10 +3881,12 @@
 					startTodoEdit: function (item) {
 						this.todoEditingId = item.id;
 						this.todoEditingText = item.text;
+						this.todoEditingPriority = this.normalizeTodoPriority(item.priority);
 					},
 					cancelTodoEdit: function () {
 						this.todoEditingId = '';
 						this.todoEditingText = '';
+						this.todoEditingPriority = '中';
 					},
 					saveTodoEdit: function (todoId) {
 						var text = String(this.todoEditingText || '').trim();
@@ -3570,8 +3894,9 @@
 						var target = this.todoItems.find(function (item) { return item.id === todoId; });
 						if (!target) { this.cancelTodoEdit(); return; }
 						target.text = text;
+						target.priority = this.normalizeTodoPriority(this.todoEditingPriority);
 						this.cancelTodoEdit();
-						this.$message.success('待办内容已更新。');
+						this.$message.success('待办内容和优先级已更新。');
 					},
 					removeTodo: function (todoId) {
 						var target = this.todoItems.find(function (item) { return item.id === todoId; });
@@ -3757,8 +4082,13 @@
 						copiedRow.notes = this.createTomorrowNotes(sourceRow);
 						this.tableData.push(copiedRow);
 						this.tableData = this.getNormalizedRows(this.tableData);
+						var planTodoCount = this.appendPlanTodosToList(sourceRow, '中');
 						this.scrollToDateRow(tomorrowText);
-						this.$message.success(todayRows.length ? '已按今天结构新增明天记录，分数和时长已清空，仅保留计划类字段。' : '今日无记录，已按最近一行结构生成明天记录。');
+						if (todayRows.length) {
+							this.$message.success('已按今天结构新增明天记录，分数和时长已清空，仅保留计划类字段。' + (planTodoCount ? ' 并同步 ' + planTodoCount + ' 条计划到 Todo。' : ''));
+							return;
+						}
+						this.$message.success('今日无记录，已按最近一行结构生成明天记录。' + (planTodoCount ? ' 并同步 ' + planTodoCount + ' 条计划到 Todo。' : ''));
 					},
 					toggleChartMode: function () {
 						this.chartDisplayMode = this.chartDisplayMode === 'grouped' ? 'single' : 'grouped';

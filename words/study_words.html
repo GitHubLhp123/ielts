@@ -1017,27 +1017,45 @@
     .difficulty-word-row {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 10px;
       max-width: 100%;
+      flex-wrap: wrap;
     }
 
     .difficulty-word-inline-action {
       flex: 0 0 auto;
-      margin-top: -1px;
+      margin-top: 0;
+      margin-left: 2px;
+    }
+
+    .difficulty-source {
+      margin-top: 3px;
+      font-size: 11px;
+      line-height: 1.3;
+      color: var(--subtle);
+    }
+
+    .difficulty-source-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+    }
+
+    .difficulty-source-inline .source-badge {
+      padding: 4px 8px;
+      font-size: 10px;
+      letter-spacing: 0.01em;
     }
 
     .difficulty-meta-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 6px;
-      align-items: flex-start;
-      flex-wrap: wrap;
+      display: block;
     }
 
     .difficulty-meaning {
-      font-size: 10px;
-      line-height: 1.25;
-      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--text);
     }
 
     .difficulty-note {
@@ -1116,7 +1134,7 @@
     }
 
     .daily-mini-card {
-      padding: 10px 11px;
+      padding: 8px 10px;
       border-radius: 14px;
       background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(245,249,255,0.84));
       border: 1px solid var(--line);
@@ -1126,13 +1144,13 @@
     .daily-mini-value {
       display: block;
       margin-top: 4px;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
       letter-spacing: -0.05em;
     }
 
     .daily-chart {
-      min-height: 220px;
+      min-height: 190px;
       border-radius: 16px;
       border: 1px solid rgba(20, 115, 255, 0.12);
       background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(243,248,255,0.82));
@@ -1140,7 +1158,7 @@
     }
 
     .daily-chart-empty {
-      min-height: 220px;
+      min-height: 190px;
       display: grid;
       place-items: center;
       color: var(--muted);
@@ -1149,17 +1167,18 @@
 
     .overview-card,
     .footprint-card,
-    .learning-footprint {
+    .learning-footprint,
+    .insight-card {
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
     .overview-card {
-      padding: 20px;
+      padding: 16px;
     }
 
     .footprint-card {
-      padding: 12px;
+      padding: 10px;
       border-radius: 16px;
       border: 1px solid rgba(20, 115, 255, 0.12);
       background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(243,248,255,0.82));
@@ -1180,6 +1199,39 @@
       align-items: center;
       justify-content: start;
       min-height: 134px;
+    }
+
+    .footprint-grid.compact-month {
+      grid-auto-flow: row;
+      grid-auto-columns: auto;
+      grid-template-columns: repeat(6, 16px);
+      grid-template-rows: repeat(5, 16px);
+      gap: 8px;
+      justify-content: center;
+      min-height: auto;
+      width: max-content;
+      margin: 0 auto;
+    }
+
+    .footprint-grid.compact-month .footprint-cell {
+      width: 16px;
+      height: 16px;
+      border-radius: 5px;
+    }
+
+    .queue-toolbar.clickable {
+      cursor: pointer;
+      user-select: none;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .queue-card.collapsed .queue-list {
+      display: none;
+    }
+
+    .queue-card.collapsed #queueHint {
+      opacity: 0.8;
     }
 
     .footprint-cell {
@@ -1218,6 +1270,11 @@
 
     .footprint-cell.level-4 {
       background: rgba(30, 64, 175, 0.96);
+    }
+
+    .footprint-cell.recent-window {
+      border-color: rgba(241, 181, 61, 0.7);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 0 0 1px rgba(241, 181, 61, 0.42);
     }
 
     .footprint-cell.outside-range {
@@ -2012,6 +2069,17 @@
             </div>
           </div>
         </section>
+        <section class="secondary-panel insight-card">
+          <div class="queue-toolbar">
+            <div>
+              <div class="section-label">Learning Pulse</div>
+              <div class="small-text">最近 7 天：学习过的词、手动标记为已学会的词、以及难词复习量。</div>
+            </div>
+            <span class="pill" id="dailyStatsRange">最近 7 天</span>
+          </div>
+          <div class="daily-stats-grid" id="dailyStatsSummary"></div>
+          <div class="daily-chart" id="dailyStatsChart"></div>
+        </section>
       </section>
     </section>
 
@@ -2138,9 +2206,6 @@
                   <span class="pill" id="studyCountBadge">学习 0 次</span>
                   <span class="pill" id="masteredBadge">未学会</span>
                   <span class="pill" id="difficultyBadge">未加入难词</span>
-                  <span class="pill gold-badge hidden-visual" id="coreVocabBadge">★ 核心词汇</span>
-                  <span class="pill gold-badge hidden-visual" id="reading538Badge">★ 阅读538词汇</span>
-                  <span class="pill gold-badge hidden-visual" id="listening179Badge">★ 听力179词汇</span>
                 </div>
               </div>
             </div>
@@ -2149,6 +2214,11 @@
               <p class="small-text" id="chapterLine">请先从上方章节选择一个分组</p>
               <h2 class="word-title" id="wordText">Ready</h2>
               <div class="phonetic" id="phoneticText">/ -- /</div>
+              <div class="pill-row">
+                <span class="pill gold-badge hidden-visual" id="coreVocabBadge">★ 核心词汇</span>
+                <span class="pill gold-badge hidden-visual" id="reading538Badge">★ 阅读538词汇</span>
+                <span class="pill gold-badge hidden-visual" id="listening179Badge">★ 听力179词汇</span>
+              </div>
             </div>
 
             <div class="meaning-box" id="meaningBox">
@@ -2217,57 +2287,20 @@
 
             <div class="compact-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));" id="currentStats"></div>
 
+          </div>
+
+          <aside class="practice-side">
+            <div class="metrics-grid" id="globalStats"></div>
             <section class="queue-card secondary-panel" id="groupOverviewPanel">
-              <div class="queue-toolbar">
+              <div class="queue-toolbar clickable" id="queueToggleTrigger" role="button" tabindex="0" aria-expanded="true" aria-controls="queueList">
                 <div>
                   <div class="section-label">队列预览</div>
                   <div class="small-text" id="queueHint" style="margin-top:6px;">会显示当前词和后续词。</div>
                 </div>
+                <button class="segment-btn" id="queueToggleButton" type="button">折叠</button>
               </div>
               <div class="queue-list" id="queueList"></div>
             </section>
-
-          </div>
-
-          <aside class="practice-side">
-            <section class="secondary-panel insight-card">
-              <div class="queue-toolbar">
-                <div>
-                  <div class="section-label">Learning Pulse</div>
-                  <div class="small-text">最近 7 天：学习过的词、手动标记为已学会的词、以及难词复习量。</div>
-                </div>
-                <span class="pill" id="dailyStatsRange">最近 7 天</span>
-              </div>
-              <div class="daily-stats-grid" id="dailyStatsSummary"></div>
-              <div class="daily-chart" id="dailyStatsChart"></div>
-              <section class="learning-footprint">
-                <div class="queue-toolbar">
-                  <div>
-                    <div class="section-label">Learning Footprint</div>
-                    <div class="small-text">最近 1 个月每天的学习次数热力图。</div>
-                  </div>
-                  <span class="pill">最近 1 个月</span>
-                </div>
-                <div class="footprint-card">
-                  <div class="footprint-grid-wrap">
-                    <div class="footprint-grid" id="learningHeatmap"></div>
-                  </div>
-                  <div class="daily-chart-empty hidden-visual" id="learningHeatmapEmpty">最近 1 个月还没有学习记录，从今天开始打卡吧！</div>
-                  <div class="footprint-legend" id="learningHeatmapLegend">
-                    <span>少</span>
-                    <span class="footprint-legend-scale" aria-hidden="true">
-                      <span class="footprint-cell level-0"></span>
-                      <span class="footprint-cell level-1"></span>
-                      <span class="footprint-cell level-2"></span>
-                      <span class="footprint-cell level-3"></span>
-                      <span class="footprint-cell level-4"></span>
-                    </span>
-                    <span>多</span>
-                  </div>
-                </div>
-              </section>
-            </section>
-            <div class="metrics-grid" id="globalStats"></div>
           </aside>
         </div>
       </section>
@@ -2378,6 +2411,7 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
     let statusTimer = null;
     let dailyStatsChart = null;
     let learningHeatmapTooltipTimer = null;
+    let queuePanelCollapsed = false;
     let synonymPopoverEntries = new Map();
     let synonymPopoverAnchor = null;
     let synonymPopoverHideTimer = null;
@@ -2468,6 +2502,8 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       queueHint: document.getElementById("queueHint"),
       queueList: document.getElementById("queueList"),
       groupOverviewPanel: document.getElementById("groupOverviewPanel"),
+      queueToggleTrigger: document.getElementById("queueToggleTrigger"),
+      queueToggleButton: document.getElementById("queueToggleButton"),
       sessionFocus: document.getElementById("sessionFocus"),
       sessionProgressText: document.getElementById("sessionProgressText"),
       sessionProgressBar: document.getElementById("sessionProgressBar"),
@@ -2786,6 +2822,22 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       elements.practiceDueDifficultButton.addEventListener("click", () => startDifficultPractice(elements.difficultyFilter.value === "all" ? null : elements.difficultyFilter.value, { onlyDue: true }));
       elements.practiceFilteredDifficultButton.addEventListener("click", () => startDifficultPractice(elements.difficultyFilter.value === "all" ? null : elements.difficultyFilter.value));
       elements.practiceAllDifficultButton.addEventListener("click", () => startDifficultPractice(null));
+
+      if (elements.queueToggleButton) {
+        elements.queueToggleButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleQueuePanel();
+        });
+      }
+      if (elements.queueToggleTrigger) {
+        elements.queueToggleTrigger.addEventListener("click", () => toggleQueuePanel());
+        elements.queueToggleTrigger.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            toggleQueuePanel();
+          }
+        });
+      }
 
       elements.backupExportButton.addEventListener("click", exportBackup);
       elements.inlineExportButton.addEventListener("click", exportBackup);
@@ -3486,24 +3538,50 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       renderBackupStatus();
       renderDailyInsights();
       renderGlobalStats();
+      renderOverviewInsights();
+      renderLearningFootprints();
       renderSearchResults();
       renderWord();
       renderSessionSummary();
       renderTransport();
       renderCurrentStats();
       renderQueue();
+      renderQueuePanelState();
       renderLibrary();
       renderDifficultyList();
       renderSettings();
       renderFooter();
     }
 
+    function toggleQueuePanel() {
+      queuePanelCollapsed = !queuePanelCollapsed;
+      renderQueuePanelState();
+    }
+
+    function renderQueuePanelState() {
+      if (!elements.groupOverviewPanel) {
+        return;
+      }
+      elements.groupOverviewPanel.classList.toggle("collapsed", queuePanelCollapsed);
+      if (elements.queueToggleButton) {
+        elements.queueToggleButton.textContent = queuePanelCollapsed ? "展开" : "折叠";
+      }
+      if (elements.queueToggleTrigger) {
+        elements.queueToggleTrigger.setAttribute("aria-expanded", String(!queuePanelCollapsed));
+      }
+    }
+
     function renderTabs() {
-      const isStudy = state.activeTab !== "difficult";
+      const activeTab = state.activeTab;
+      const isOverview = activeTab === "overview";
+      const isDifficult = activeTab === "difficult";
+      const isStudy = !isOverview && !isDifficult;
+      elements.overviewTab.classList.toggle("active", isOverview);
       elements.studyTab.classList.toggle("active", isStudy);
-      elements.difficultTab.classList.toggle("active", !isStudy);
+      elements.difficultTab.classList.toggle("active", isDifficult);
+      elements.overviewPage.classList.toggle("hidden-visual", !isOverview);
       elements.studyPage.classList.toggle("hidden-visual", !isStudy);
-      elements.difficultPage.classList.toggle("hidden-visual", isStudy);
+      elements.difficultPage.classList.toggle("hidden-visual", !isDifficult);
     }
 
     function renderHero() {
@@ -3541,6 +3619,152 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
           <strong class="metric-value mono">${escapeHtml(String(item.value))}</strong>
         </div>
       `).join("");
+    }
+
+    function renderOverviewInsights() {
+      const studiedWords = Object.values(state.wordStats);
+      const totalCount = studiedWords.reduce((sum, item) => sum + (item.count || 0), 0);
+      const uniqueCount = studiedWords.length;
+      const masteredCount = studiedWords.filter((item) => item.mastered).length;
+      const totalWords = library.totalWords || 0;
+      const difficultCount = Object.keys(state.difficultWords).length;
+      const dueDifficultCount = Object.values(state.difficultWords).filter((item) => isDifficultyDue(item)).length;
+      const masteryRate = totalWords ? Math.round((masteredCount / totalWords) * 100) : 0;
+      const coverageRate = totalWords ? Math.round((uniqueCount / totalWords) * 100) : 0;
+
+      const recent7Days = computeDailySeries(7);
+      const recent30Days = computeDailySeries(30);
+      const activeDays7 = recent7Days.filter((day) => (day.learned + day.mastered + day.reviewed) > 0).length;
+      const learned30 = recent30Days.reduce((sum, day) => sum + day.learned, 0);
+      const reviewed30 = recent30Days.reduce((sum, day) => sum + day.reviewed, 0);
+      const streakDays = computeCurrentStudyStreak();
+
+      const items = [
+        { label: "词库覆盖率", value: `${coverageRate}% (${uniqueCount}/${totalWords})` },
+        { label: "掌握率", value: `${masteryRate}% (${masteredCount}/${totalWords})` },
+        { label: "当前连续学习", value: `${streakDays} 天` },
+        { label: "最近7天活跃", value: `${activeDays7} / 7 天` },
+        { label: "最近30天学习词次", value: learned30 },
+        { label: "最近30天复习词次", value: reviewed30 },
+        { label: "当前难词", value: `${difficultCount}（到期 ${dueDifficultCount}）` },
+        { label: "累计学习次数", value: totalCount }
+      ];
+
+      elements.overviewGlobalStats.innerHTML = items.map((item) => `
+        <div class="metric-card">
+          <span class="metric-label">${escapeHtml(item.label)}</span>
+          <strong class="metric-value mono">${escapeHtml(String(item.value))}</strong>
+        </div>
+      `).join("");
+    }
+
+    function renderLearningFootprints() {
+      renderLearningHeatmap(
+        elements.learningHeatmap,
+        elements.learningHeatmapEmpty,
+        elements.learningHeatmapLegend,
+        30
+      );
+      renderLearningHeatmap(
+        elements.overviewLearningHeatmap,
+        elements.overviewLearningHeatmapEmpty,
+        elements.overviewLearningHeatmapLegend,
+        30
+      );
+    }
+
+    function renderLearningHeatmap(container, emptyState, legend, days = 30) {
+      if (!container || !emptyState || !legend) {
+        return;
+      }
+      container.classList.toggle("compact-month", days <= 30);
+      const series = computeDailySeries(days).map((day) => ({
+        ...day,
+        total: day.learned + day.mastered + day.reviewed
+      }));
+      const hasActivity = series.some((day) => day.total > 0);
+      emptyState.classList.toggle("hidden-visual", hasActivity);
+      legend.classList.toggle("hidden-visual", !hasActivity);
+
+      const maxTotal = Math.max(0, ...series.map((day) => day.total));
+      const recentWindowStart = Math.max(0, series.length - 7);
+      container.innerHTML = series.map((day, index) => {
+        const level = resolveHeatmapLevel(day.total, maxTotal);
+        const label = `${day.key}｜学习 ${day.learned}｜掌握 ${day.mastered}｜复习 ${day.reviewed}`;
+        const recentClass = index >= recentWindowStart ? " recent-window" : "";
+        return `<button class="footprint-cell in-range level-${level}${recentClass}" type="button" data-heatmap-label="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"></button>`;
+      }).join("");
+
+      container.querySelectorAll("[data-heatmap-label]").forEach((cell) => {
+        const show = () => showLearningHeatmapTooltip(cell, cell.dataset.heatmapLabel || "");
+        cell.addEventListener("mouseenter", show);
+        cell.addEventListener("focus", show);
+        cell.addEventListener("mouseleave", hideLearningHeatmapTooltip);
+        cell.addEventListener("blur", hideLearningHeatmapTooltip);
+      });
+    }
+
+    function resolveHeatmapLevel(value, maxValue) {
+      if (value <= 0 || maxValue <= 0) {
+        return 0;
+      }
+      const ratio = value / maxValue;
+      if (ratio <= 0.25) {
+        return 1;
+      }
+      if (ratio <= 0.5) {
+        return 2;
+      }
+      if (ratio <= 0.75) {
+        return 3;
+      }
+      return 4;
+    }
+
+    function computeCurrentStudyStreak() {
+      const daySet = new Set(
+        state.studyLog
+          .filter((entry) => ["study", "review", "mastered"].includes(entry.kind))
+          .map((entry) => formatDayKey(entry.at))
+          .filter(Boolean)
+      );
+      if (!daySet.size) {
+        return 0;
+      }
+      const cursor = new Date();
+      cursor.setHours(0, 0, 0, 0);
+      let streak = 0;
+      while (daySet.has(formatDayKey(cursor))) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+      return streak;
+    }
+
+    function showLearningHeatmapTooltip(target, text) {
+      if (!elements.learningHeatmapTooltip || !target) {
+        return;
+      }
+      window.clearTimeout(learningHeatmapTooltipTimer);
+      const tooltip = elements.learningHeatmapTooltip;
+      tooltip.textContent = text;
+      tooltip.classList.remove("hidden-visual");
+      const rect = target.getBoundingClientRect();
+      const top = rect.top + window.scrollY - 34;
+      const left = rect.left + window.scrollX + (rect.width / 2);
+      tooltip.style.top = `${Math.max(8, top)}px`;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.transform = "translate(-50%, -100%)";
+    }
+
+    function hideLearningHeatmapTooltip() {
+      if (!elements.learningHeatmapTooltip) {
+        return;
+      }
+      window.clearTimeout(learningHeatmapTooltipTimer);
+      learningHeatmapTooltipTimer = window.setTimeout(() => {
+        elements.learningHeatmapTooltip.classList.add("hidden-visual");
+      }, 60);
     }
 
     function renderSearchChapterFilterOptions() {
@@ -4270,19 +4494,22 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
                   <div class="difficulty-word-row">
                     <div class="difficulty-word">${escapeHtml(item.word)}</div>
                     <button class="icon-btn play difficulty-word-inline-action" data-action="play" data-word-key="${escapeHtml(item.key)}" type="button" title="发音" aria-label="发音">▶</button>
+                    ${renderWordSourceInlineTags(item)}
                   </div>
-                  <div class="small-text">${escapeHtml(item.chapter)} · ${escapeHtml(item.group)}</div>
-                  ${renderWordSourceTags(item)}
+                  <div class="small-text difficulty-source">${escapeHtml(item.chapter)} · ${escapeHtml(item.group)}</div>
                 </div>
               </label>
               <span class="pill ${due ? "active" : ""}">${due ? "今日到期" : formatReviewDueText(review)}</span>
             </div>
             <div class="difficulty-meta-line">
               <div class="difficulty-meaning">${escapeHtml(item.meaning || "暂无释义")}</div>
-              <span class="pill">已学 ${count} 次</span>
             </div>
             ${review.note ? `<div class="difficulty-note">${escapeHtml(review.note)}</div>` : ""}
             <div class="difficulty-review-row">
+              <div class="difficulty-stat">
+                <span class="compact-label">已学</span>
+                <strong>${count} 次</strong>
+              </div>
               <div class="difficulty-stat">
                 <span class="compact-label">阶段</span>
                 <strong>第 ${review.reviewStage + 1} 轮</strong>
@@ -4784,6 +5011,14 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
         return "";
       }
       return `<div class="pill-row">${labels.map((label) => `<span class="pill gold-badge source-badge">${escapeHtml(`★ ${label}`)}</span>`).join("")}</div>`;
+    }
+
+    function renderWordSourceInlineTags(word) {
+      const labels = buildWordSourceLabels(word);
+      if (!labels.length) {
+        return "";
+      }
+      return `<span class="difficulty-source-inline">${labels.map((label) => `<span class="pill gold-badge source-badge">${escapeHtml(`★ ${label}`)}</span>`).join("")}</span>`;
     }
 
     function updateWordSourceBadges(word) {
