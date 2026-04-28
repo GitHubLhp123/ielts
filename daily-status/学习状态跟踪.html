@@ -1856,6 +1856,7 @@
 			var STORAGE_KEY = 'daily-learning-tracker-state-v4';
 			var STORAGE_META_KEY = 'daily-learning-tracker-state-meta-v1';
 			var TABLE_LAYOUT_STORAGE_KEY = 'daily-learning-tracker-table-layout-v1';
+			var MAX_IMPORT_FILE_SIZE = 2 * 1024 * 1024;
 			var LOW_SCORE_THRESHOLD = 60;
 			var MAX_EMPTY_DATE_ROWS = 3;
 			var MAX_ALERTS = 5;
@@ -2439,6 +2440,21 @@
 					bookkeepingEntries: { deep: true, handler: function () { this.schedulePersistState(); this.$nextTick(this.renderCharts); } }
 				},
 				methods: {
+					normalizeReminderTime: function (timeValue) {
+						var text = String(timeValue || '').trim();
+						if (!/^\d{2}:\d{2}$/.test(text)) {
+							return '21:30';
+						}
+						var parts = text.split(':');
+						var hour = Number(parts[0]);
+						var minute = Number(parts[1]);
+						if (isNaN(hour) || isNaN(minute)) {
+							return '21:30';
+						}
+						hour = Math.min(23, Math.max(0, hour));
+						minute = Math.min(59, Math.max(0, minute));
+						return String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+					},
 					normalizeTodoPriority: function (priority) {
 						return TODO_PRIORITY_OPTIONS.indexOf(priority) === -1 ? '中' : priority;
 					},
@@ -2980,9 +2996,7 @@
 							this.reminderConfig = { enabled: false, time: '21:30', permission: typeof window.Notification === 'undefined' ? 'unsupported' : window.Notification.permission, lastSentDate: '' };
 						}
 						this.reminderConfig.permission = typeof window.Notification === 'undefined' ? 'unsupported' : window.Notification.permission;
-						if (!this.reminderConfig.time) {
-							this.reminderConfig.time = '21:30';
-						}
+						this.reminderConfig.time = this.normalizeReminderTime(this.reminderConfig.time);
 						if (!/^\d{4}-\d{2}$/.test(String(this.heatmapMonth || ''))) {
 							this.heatmapMonth = getMonthText();
 						}
@@ -3350,11 +3364,11 @@
 					},
 					requestNotificationPermission: function () {
 						if (typeof window.Notification === 'undefined') {
-								this.reminderConfig.permission = 'unsupported';
+							this.reminderConfig.permission = 'unsupported';
 							this.$message.warning('当前浏览器不支持 Notification API。');
-								return Promise.resolve('unsupported');
+							return Promise.resolve('unsupported');
 						}
-							return window.Notification.requestPermission().then(function (permission) {
+						return window.Notification.requestPermission().then(function (permission) {
 							this.reminderConfig.permission = permission;
 							if (permission === 'granted') {
 								this.$message.success('通知权限已开启。');
@@ -3362,10 +3376,14 @@
 							} else {
 								this.$message.warning('通知未开启，提醒只会保存在页面设置中。');
 							}
-								return permission;
+							return permission;
+						}.bind(this)).catch(function () {
+							this.reminderConfig.permission = typeof window.Notification === 'undefined' ? 'unsupported' : window.Notification.permission;
+							this.$message.error('通知权限请求失败，请检查浏览器设置后重试。');
+							return this.reminderConfig.permission;
 						}.bind(this));
 					},
-						handleReminderToggle: function (enabled) {
+					handleReminderToggle: function (enabled) {
 							if (!enabled) {
 								return;
 							}
@@ -3584,6 +3602,12 @@
 							if (column.groupId === groupId) { column.groupId = 'group-ungrouped'; }
 						});
 						this.groups = this.groups.filter(function (group) { return group.id !== groupId; });
+						if (this.tableFilter.groupId === groupId) {
+							this.tableFilter.groupId = 'all';
+						}
+						if (this.newColumnForm.groupId === groupId) {
+							this.newColumnForm.groupId = 'group-ungrouped';
+						}
 						this.$message.success('分组已删除，原项目已自动移动到“未分组”。');
 					},
 					openNoteFieldsDialog: function () { this.noteFieldsVisible = true; },
@@ -3607,6 +3631,10 @@
 					handleDataImport: function (event) {
 						var file = event.target.files && event.target.files[0];
 						if (!file) { return; }
+						if (file.size > MAX_IMPORT_FILE_SIZE) {
+							this.$message.error('导入文件过大，请控制在 2MB 以内。');
+							return;
+						}
 						var reader = new FileReader();
 						reader.onload = function (loadEvent) {
 							try {

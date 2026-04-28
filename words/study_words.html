@@ -2671,22 +2671,22 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
         return {
           ...clone(DEFAULT_STATE),
           ...parsed,
-          wordNotes: parsed.wordNotes || {},
-          progressByGroup: parsed.progressByGroup || {},
-          wordStats: parsed.wordStats || {},
+          wordNotes: isPlainObject(parsed.wordNotes) ? parsed.wordNotes : {},
+          progressByGroup: isPlainObject(parsed.progressByGroup) ? parsed.progressByGroup : {},
+          wordStats: isPlainObject(parsed.wordStats) ? parsed.wordStats : {},
           studyLog: Array.isArray(parsed.studyLog) ? parsed.studyLog : [],
-          difficultWords: parsed.difficultWords || {},
+          difficultWords: isPlainObject(parsed.difficultWords) ? parsed.difficultWords : {},
           backup: {
             ...DEFAULT_STATE.backup,
-            ...(parsed.backup || {})
+            ...(isPlainObject(parsed.backup) ? parsed.backup : {})
           },
           settings: {
             ...DEFAULT_STATE.settings,
-            ...(parsed.settings || {})
+            ...(isPlainObject(parsed.settings) ? parsed.settings : {})
           },
           practice: {
             ...DEFAULT_STATE.practice,
-            ...(parsed.practice || {})
+            ...(isPlainObject(parsed.practice) ? parsed.practice : {})
           }
         };
       } catch {
@@ -3104,7 +3104,7 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       }
       currentSession = {
         mode: "search",
-        label: `搜索：${state.searchQuery}`,
+        label: buildSearchSessionLabel(state.searchQuery, state.searchChapterFilter, state.searchAssistQuery),
         chapter: state.searchChapterFilter === "all" ? "搜索结果" : state.searchChapterFilter,
         items,
         currentIndex: 0
@@ -3804,6 +3804,8 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       const assistQuery = state.searchAssistQuery.trim();
       const hasFilters = hasSearchFilters(query, state.searchChapterFilter, assistQuery);
       if (!hasFilters) {
+        elements.searchPracticeButton.disabled = true;
+        elements.searchPracticeButton.title = "请先输入关键词或设置筛选条件";
         elements.searchResultMeta.textContent = "输入关键词开始搜索";
         elements.searchModeBadge.textContent = "按 Enter 可直接开始练习";
         elements.searchResults.innerHTML = `<div class="empty">支持英文单词、中文释义和章节筛选。当前词库没有拼音字段，所以辅助筛选会按音标处理。</div>`;
@@ -3814,9 +3816,14 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       elements.searchResultMeta.textContent = `匹配 ${results.length} 条，当前显示 ${visibleCount} 条`;
       elements.searchModeBadge.textContent = buildSearchSessionLabel(query, state.searchChapterFilter, assistQuery);
       if (!results.length) {
+        elements.searchPracticeButton.disabled = true;
+        elements.searchPracticeButton.title = "当前筛选条件下没有可练习结果";
         elements.searchResults.innerHTML = `<div class="empty">没有搜索到相关单词，请调整关键词、章节或音标筛选条件。</div>`;
         return;
       }
+
+      elements.searchPracticeButton.disabled = false;
+      elements.searchPracticeButton.title = "开始练习当前筛选结果";
 
       elements.searchResults.innerHTML = results.slice(0, 24).map((item) => `
         <article class="search-item">
@@ -4891,25 +4898,25 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       const nextState = {
         ...clone(DEFAULT_STATE),
         ...incoming,
-        wordNotes: incoming.wordNotes || {},
+        wordNotes: isPlainObject(incoming.wordNotes) ? incoming.wordNotes : {},
         difficultyQuery: typeof incoming.difficultyQuery === "string" ? incoming.difficultyQuery : "",
         difficultyVisibleCount: Number.isFinite(incoming.difficultyVisibleCount) ? incoming.difficultyVisibleCount : 24,
         selectedDifficultKeys: Array.isArray(incoming.selectedDifficultKeys) ? incoming.selectedDifficultKeys : [],
-        progressByGroup: incoming.progressByGroup || {},
-        wordStats: incoming.wordStats || {},
+        progressByGroup: isPlainObject(incoming.progressByGroup) ? incoming.progressByGroup : {},
+        wordStats: isPlainObject(incoming.wordStats) ? incoming.wordStats : {},
         studyLog: Array.isArray(incoming.studyLog) ? incoming.studyLog : [],
-        difficultWords: incoming.difficultWords || {},
+        difficultWords: isPlainObject(incoming.difficultWords) ? incoming.difficultWords : {},
         backup: {
           ...DEFAULT_STATE.backup,
-          ...(incoming.backup || {})
+          ...(isPlainObject(incoming.backup) ? incoming.backup : {})
         },
         settings: {
           ...DEFAULT_STATE.settings,
-          ...(incoming.settings || {})
+          ...(isPlainObject(incoming.settings) ? incoming.settings : {})
         },
         practice: {
           ...DEFAULT_STATE.practice,
-          ...(incoming.practice || {})
+          ...(isPlainObject(incoming.practice) ? incoming.practice : {})
         }
       };
       for (const key of Object.keys(state)) {
@@ -4927,7 +4934,13 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
     }
 
     function saveState(flashSaved = true) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (error) {
+        console.error(error);
+        setStatus("浏览器本地存储失败，请清理存储空间后重试。", true);
+        return;
+      }
       if (flashSaved) {
         elements.savedBadge.textContent = "已保存到浏览器";
       }

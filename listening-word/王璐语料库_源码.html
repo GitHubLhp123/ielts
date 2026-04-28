@@ -6862,7 +6862,7 @@ const CHAPTER_WORD_SETS = {
 			try {
 				const payload = JSON.parse(raw);
 				elements.chapterSelect.value = payload.chapter || "";
-				elements.intervalInput.value = payload.interval || "0";
+        elements.intervalInput.value = payload.interval || "2";
 				elements.speedInput.value = payload.speed || "1.0";
         elements.modeSelect.value = payload.mode || "dictation";
 				elements.listenOrderSelect.value = payload.listenOrder || "sequence";
@@ -6870,9 +6870,10 @@ const CHAPTER_WORD_SETS = {
 				elements.wordInput.value = payload.words || "";
 				state.showWords = Boolean(payload.showWords);
 				state.activeTab = payload.activeTab || "practice";
-        state.mistakeSortKey = payload.mistakeSortKey === "accuracy"
-          ? "errorRate"
-          : (payload.mistakeSortKey || "errorRate");
+        const normalizedSortKey = payload.mistakeSortKey === "accuracy" ? "errorRate" : payload.mistakeSortKey;
+        state.mistakeSortKey = normalizedSortKey === "wrongCount" || normalizedSortKey === "errorRate" || normalizedSortKey === "recent"
+          ? normalizedSortKey
+          : "errorRate";
         state.selectedStatsChapterId = payload.statsChapterId || "";
         state.practiceMode = payload.mode || "dictation";
 				state.listenOrder = payload.listenOrder || "sequence";
@@ -6974,7 +6975,7 @@ const CHAPTER_WORD_SETS = {
         words: typeof settings.words === "string" ? settings.words : "",
         showWords: Boolean(settings.showWords),
         activeTab: settings.activeTab === "mistakes" || settings.activeTab === "stats" ? settings.activeTab : "practice",
-        mistakeSortKey: settings.mistakeSortKey === "wrongCount" || settings.mistakeSortKey === "accuracy" || settings.mistakeSortKey === "errorRate"
+        mistakeSortKey: settings.mistakeSortKey === "wrongCount" || settings.mistakeSortKey === "accuracy" || settings.mistakeSortKey === "errorRate" || settings.mistakeSortKey === "recent"
           ? (settings.mistakeSortKey === "accuracy" ? "errorRate" : settings.mistakeSortKey)
           : "errorRate",
         statsChapterId: typeof settings.statsChapterId === "string" && CHAPTER_WORD_SETS[settings.statsChapterId] ? settings.statsChapterId : ""
@@ -7256,7 +7257,11 @@ const CHAPTER_WORD_SETS = {
       saveWordStats();
       saveChapterStats();
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedPayload.settings));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedPayload.settings));
+      } catch (error) {
+        throw new Error("导入设置写入失败，可能是浏览器存储空间不足。建议先导出当前记录并清理部分数据后重试。");
+      }
       loadSettings();
 
       hydrateWordStatsFromMistakeBook();
