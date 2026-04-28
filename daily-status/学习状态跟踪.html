@@ -364,6 +364,51 @@
 			text-align: center;
 		}
 
+		.notes-collapsed.notes-collapsed-hoverable {
+			cursor: help;
+		}
+
+		.review-detail-popover {
+			max-width: min(560px, 72vw);
+		}
+
+		.review-detail-popover-title {
+			font-size: 13px;
+			font-weight: 600;
+			margin-bottom: 10px;
+			color: var(--text-main);
+		}
+
+		.review-detail-popover-list {
+			display: grid;
+			gap: 10px;
+		}
+
+		.review-detail-popover-item {
+			padding: 10px 12px;
+			border-radius: 12px;
+			background: rgba(248, 250, 252, 0.82);
+			border: 1px solid rgba(148, 163, 184, 0.22);
+		}
+
+		.review-detail-popover-item strong {
+			display: block;
+			font-size: 12px;
+			font-weight: 600;
+			color: #334155;
+			margin-bottom: 6px;
+		}
+
+		.review-detail-popover-item p,
+		.review-detail-popover-empty {
+			margin: 0;
+			font-size: 12px;
+			line-height: 1.65;
+			color: #475569;
+			white-space: pre-wrap;
+			word-break: break-word;
+		}
+
 		.todo-completed-panel {
 			margin-top: 16px;
 			border: 1px solid rgba(148, 163, 184, 0.18);
@@ -1419,9 +1464,17 @@
 											</div>
 										</template>
 										<template slot-scope="scope">
-											<div v-if="notesCollapsed" class="notes-collapsed">
-												已折叠 {{ noteFields.length }} 个复盘字段，可在顶部展开查看或编辑。
-											</div>
+											<el-popover v-if="notesCollapsed" trigger="hover" placement="left-start" width="360" popper-class="review-detail-popover">
+												<div class="review-detail-popover-title">{{ (scope.row.date || '未填写日期') + ' · ' + noteColumnTitle }}</div>
+												<div v-if="!hasRowReviewDetail(scope.row)" class="review-detail-popover-empty">暂无复盘内容</div>
+												<div v-else class="review-detail-popover-list">
+													<div v-for="field in noteFields" :key="field.id" class="review-detail-popover-item">
+														<strong>{{ field.name }}</strong>
+														<p>{{ getRowNoteDetail(scope.row, field.id) }}</p>
+													</div>
+												</div>
+												<div slot="reference" class="notes-collapsed notes-collapsed-hoverable">已折叠 {{ noteFields.length }} 个复盘字段，鼠标悬停可查看详细内容。</div>
+											</el-popover>
 											<div v-else class="notes-editor">
 												<div v-for="field in noteFields" :key="field.id" class="notes-item">
 													<span class="notes-label">{{ field.name }}</span>
@@ -3134,6 +3187,21 @@
 							return row.notes && row.notes[field.id] ? row.notes[field.id] : '';
 						}).join(' ');
 						return [row.date || '', row.durationMinutes == null ? '' : row.durationMinutes, metricText, noteText].join(' ').toLowerCase();
+					},
+					hasRowReviewDetail: function (row) {
+						if (!row || !row.notes) {
+							return false;
+						}
+						return this.noteFields.some(function (field) {
+							return !!String(row.notes[field.id] == null ? '' : row.notes[field.id]).trim();
+						});
+					},
+					getRowNoteDetail: function (row, fieldId) {
+						if (!row || !row.notes) {
+							return '未填写';
+						}
+						var text = String(row.notes[fieldId] == null ? '' : row.notes[fieldId]).trim();
+						return text || '未填写';
 					},
 					compareTableRows: function (left, right) {
 						var sortMode = this.tableFilter.sortMode || 'date-asc';
