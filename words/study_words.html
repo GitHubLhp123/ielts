@@ -5319,9 +5319,11 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
 
     function getListeningCorpusWordLookup() {
       if (!(window.__listeningCorpusWordLookupCache instanceof Set)) {
-        window.__listeningCorpusWordLookupCache = new Set(
-          getListeningCorpusEntries().map((entry) => normalizeLexeme(entry.content)).filter(Boolean)
-        );
+        const lookup = new Set();
+        getListeningCorpusEntries().forEach((entry) => {
+          splitListeningCorpusTerms(entry.content).forEach((term) => lookup.add(term));
+        });
+        window.__listeningCorpusWordLookupCache = lookup;
       }
       return window.__listeningCorpusWordLookupCache;
     }
@@ -5379,12 +5381,19 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
     }
 
     function isListeningCorpusMatch(currentWord, corpusText) {
-      const looseCurrent = normalizeLooseLexeme(currentWord);
-      const looseCorpus = normalizeLooseLexeme(corpusText);
-      if (!looseCurrent || !looseCorpus) {
+      const currentTerms = splitListeningCorpusTerms(currentWord);
+      const corpusTerms = splitListeningCorpusTerms(corpusText);
+      if (!currentTerms.length || !corpusTerms.length) {
         return false;
       }
-      return looseCorpus.includes(looseCurrent) || looseCurrent.includes(looseCorpus);
+      const corpusLookup = new Set(corpusTerms);
+      return currentTerms.some((term) => corpusLookup.has(term));
+    }
+
+    function splitListeningCorpusTerms(value) {
+      return normalizeLooseLexeme(value)
+        .split(/[-\s]+/)
+        .filter(Boolean);
     }
 
     function normalizeLooseLexeme(value) {
