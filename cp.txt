@@ -2,3 +2,6 @@ cp  /Users/lhp/Desktop/codeProject/ielts-tool/daily-status/学习状态跟踪.ht
 cp /Users/lhp/Desktop/codeProject/ielts-tool/dictionary/发音和听写.html /Users/lhp/Desktop/
 cp /Users/lhp/Desktop/codeProject/ielts-tool/listening-word/王璐语料库_源码.html  /Users/lhp/Desktop/
 cp /Users/lhp/Desktop/codeProject/ielts-tool/words/study_words.html /Users/lhp/Desktop/
+
+1
+
