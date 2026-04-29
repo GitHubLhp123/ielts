@@ -14,6 +14,10 @@ DEFAULT_SOURCE = File.expand_path("王璐语料库_源码.html", PROJECT_ROOT)
 DEFAULT_OUTPUT = File.expand_path("assets/audio", PROJECT_ROOT)
 DEFAULT_BASE_URL = "http://www.1kao.com.cn/iSpell/Spell/audio"
 
+def normalize_word_file_name(word)
+  word.to_s.strip.gsub(/[\\\/:*?"<>|]/, "_").gsub(/\s+/, "_")
+end
+
 def parse_options
   options = {
     source: DEFAULT_SOURCE,
@@ -69,13 +73,16 @@ def build_tasks(chapter_word_sets, options)
   tasks = entries.flat_map do |chapter_id, chapter|
     chapter.fetch("words").map do |word|
       encoded_word = URI.encode_www_form_component(word)
+      word_file_name = "#{normalize_word_file_name(word)}.mp3"
       {
         chapter_id: chapter_id,
         chapter_title: chapter.fetch("title"),
         word: word,
         url: "#{options[:base_url]}/#{URI.encode_www_form_component(chapter_id)}/#{encoded_word}.mp3",
-        relative_path: File.join(chapter_id, "#{encoded_word}.mp3"),
-        output_path: File.join(options[:output], chapter_id, "#{encoded_word}.mp3")
+        original_relative_path: File.join(chapter_id, "#{encoded_word}.mp3"),
+        original_output_path: File.join(options[:output], chapter_id, "#{encoded_word}.mp3"),
+        word_relative_path: File.join("by-word", chapter_id, word_file_name),
+        word_output_path: File.join(options[:output], "by-word", chapter_id, word_file_name)
       }
     end
   end
@@ -94,7 +101,9 @@ def write_manifest(tasks, output_dir)
         chapterTitle: task[:chapter_title],
         word: task[:word],
         url: task[:url],
-        file: task[:relative_path]
+        file: task[:original_relative_path],
+        originalFile: task[:original_relative_path],
+        wordFile: task[:word_relative_path]
       }
     end
   }
@@ -145,7 +154,7 @@ def download_with_retry(task, options)
 
   1.upto(attempts) do |attempt|
     begin
-      fetch_to_file(task[:url], task[:output_path], options[:timeout])
+      fetch_to_file(task[:url], task[:original_output_path], options[:timeout])
       return [true, attempt, nil]
     rescue StandardError => error
       return [false, attempt, error] if attempt == attempts
@@ -153,6 +162,11 @@ def download_with_retry(task, options)
   end
 
   [false, attempts, RuntimeError.new("UNKNOWN")]
+end
+
+def copy_word_named_file(task)
+  FileUtils.mkdir_p(File.dirname(task[:word_output_path]))
+  FileUtils.cp(task[:original_output_path], task[:word_output_path])
 end
 
 options = parse_options
@@ -179,6 +193,7 @@ end
 
 downloaded = 0
 skipped = 0
+synced = 0
 failed = 0
 mutex = Mutex.new
 queue = Queue.new
@@ -191,19 +206,45 @@ workers = Array.new([options[:concurrency], tasks.length].min) do
       task, index = queue.pop(true)
       prefix = "[#{index + 1}/#{tasks.length}] #{task[:chapter_id]} #{task[:word]}"
 
-      if !options[:force] && file_ready?(task[:output_path])
-        mutex.synchronize do
-          skipped += 1
-          puts "#{prefix} -> 已存在，跳过"
+      has_original = file_ready?(task[:original_output_path])
+      has_word_named = file_ready?(task[:word_output_path])
+
+      if !options[:force] && has_original
+        if has_word_named
+          mutex.synchronize do
+            skipped += 1
+            puts "#{prefix} -> 两份文件已存在，跳过"
+          end
+          next
         end
-        next
+
+        begin
+          copy_word_named_file(task)
+          mutex.synchronize do
+            synced += 1
+            puts "#{prefix} -> 已补齐单词命名文件"
+          end
+          next
+        rescue StandardError => error
+          mutex.synchronize do
+            failed += 1
+            warn "#{prefix} -> 补齐单词命名文件失败: #{error.message}"
+          end
+          next
+        end
       end
 
       ok, attempts, error = download_with_retry(task, options)
       mutex.synchronize do
         if ok
-          downloaded += 1
-          puts "#{prefix} -> 下载完成 (尝试 #{attempts} 次)"
+          begin
+            copy_word_named_file(task)
+            downloaded += 1
+            puts "#{prefix} -> 下载完成并生成两份文件 (尝试 #{attempts} 次)"
+          rescue StandardError => copy_error
+            failed += 1
+            warn "#{prefix} -> 下载成功但生成单词命名文件失败: #{copy_error.message}"
+          end
         else
           failed += 1
           warn "#{prefix} -> 下载失败: #{error.message}"
@@ -218,5 +259,5 @@ end
 workers.each(&:join)
 
 duration = (Time.now - started_at).round(1)
-puts "完成: 下载 #{downloaded}，跳过 #{skipped}，失败 #{failed}，耗时 #{duration}s"
+puts "完成: 下载 #{downloaded}，补齐 #{synced}，跳过 #{skipped}，失败 #{failed}，耗时 #{duration}s"
 exit(1) if failed.positive?

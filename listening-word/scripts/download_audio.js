@@ -15,6 +15,13 @@ const DEFAULT_RETRY = 3;
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_BASE_URL = "http://www.1kao.com.cn/iSpell/Spell/audio";
 
+function normalizeWordFileName(word) {
+  return String(word)
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_");
+}
+
 function parseArgs(argv) {
   const options = {
     source: DEFAULT_SOURCE,
@@ -144,13 +151,16 @@ function buildTasks(chapterWordSets, options) {
   for (const [chapterId, chapter] of filteredEntries) {
     for (const word of chapter.words) {
       const encodedWord = encodeURIComponent(word);
+      const wordFileName = `${normalizeWordFileName(word)}.mp3`;
       tasks.push({
         chapterId,
         chapterTitle: chapter.title,
         word,
         url: `${options.baseUrl}/${encodeURIComponent(chapterId)}/${encodedWord}.mp3`,
-        outputPath: path.join(options.output, chapterId, `${encodedWord}.mp3`),
-        relativePath: path.join(chapterId, `${encodedWord}.mp3`),
+        originalOutputPath: path.join(options.output, chapterId, `${encodedWord}.mp3`),
+        originalRelativePath: path.join(chapterId, `${encodedWord}.mp3`),
+        wordOutputPath: path.join(options.output, "by-word", chapterId, wordFileName),
+        wordRelativePath: path.join("by-word", chapterId, wordFileName),
       });
     }
   }
@@ -233,7 +243,7 @@ async function downloadWithRetry(task, options) {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      await fetchToFile(task.url, task.outputPath, options.timeoutMs);
+      await fetchToFile(task.url, task.originalOutputPath, options.timeoutMs);
       return { ok: true, attempts: attempt };
     } catch (error) {
       if (attempt === maxAttempts) {
@@ -271,12 +281,19 @@ function writeManifest(tasks, outputDir) {
       chapterTitle: task.chapterTitle,
       word: task.word,
       url: task.url,
-      file: task.relativePath,
+      file: task.originalRelativePath,
+      originalFile: task.originalRelativePath,
+      wordFile: task.wordRelativePath,
     })),
   };
 
   ensureDir(outputDir);
   fs.writeFileSync(path.join(outputDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+}
+
+function copyWordNamedFile(task) {
+  ensureDir(path.dirname(task.wordOutputPath));
+  fs.copyFileSync(task.originalOutputPath, task.wordOutputPath);
 }
 
 async function main() {
@@ -305,6 +322,7 @@ async function main() {
 
   let downloaded = 0;
   let skipped = 0;
+  let synced = 0;
   let failed = 0;
 
   const startedAt = Date.now();
@@ -312,17 +330,40 @@ async function main() {
   await runPool(tasks, options.concurrency, async (task, index) => {
     const prefix = `[${index + 1}/${tasks.length}] ${task.chapterId} ${task.word}`;
 
-    if (!options.force && fileExists(task.outputPath)) {
-      skipped += 1;
-      console.log(`${prefix} -> 已存在，跳过`);
-      return;
+    const hasOriginal = fileExists(task.originalOutputPath);
+    const hasWordNamed = fileExists(task.wordOutputPath);
+
+    if (!options.force && hasOriginal) {
+      if (hasWordNamed) {
+        skipped += 1;
+        console.log(`${prefix} -> 两份文件已存在，跳过`);
+        return;
+      }
+
+      try {
+        copyWordNamedFile(task);
+        synced += 1;
+        console.log(`${prefix} -> 已补齐单词命名文件`);
+        return;
+      } catch (error) {
+        failed += 1;
+        console.error(`${prefix} -> 补齐单词命名文件失败: ${error.message || "UNKNOWN"}`);
+        return;
+      }
     }
 
     const result = await downloadWithRetry(task, options);
     if (result.ok) {
-      downloaded += 1;
-      console.log(`${prefix} -> 下载完成 (尝试 ${result.attempts} 次)`);
-      return;
+      try {
+        copyWordNamedFile(task);
+        downloaded += 1;
+        console.log(`${prefix} -> 下载完成并生成两份文件 (尝试 ${result.attempts} 次)`);
+        return;
+      } catch (error) {
+        failed += 1;
+        console.error(`${prefix} -> 下载成功但生成单词命名文件失败: ${error.message || "UNKNOWN"}`);
+        return;
+      }
     }
 
     failed += 1;
@@ -330,7 +371,7 @@ async function main() {
   });
 
   const durationSeconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-  console.log(`完成: 下载 ${downloaded}，跳过 ${skipped}，失败 ${failed}，耗时 ${durationSeconds}s`);
+  console.log(`完成: 下载 ${downloaded}，补齐 ${synced}，跳过 ${skipped}，失败 ${failed}，耗时 ${durationSeconds}s`);
 
   if (failed > 0) {
     process.exitCode = 1;
