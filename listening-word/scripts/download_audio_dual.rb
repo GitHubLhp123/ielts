@@ -7,7 +7,6 @@ require "uri"
 require "optparse"
 require "thread"
 require "time"
-require "cgi"
 
 SCRIPT_DIR = __dir__
 PROJECT_ROOT = File.expand_path("..", SCRIPT_DIR)
@@ -59,7 +58,17 @@ def encode_url_component(value)
 end
 
 def decode_html_entities(value)
-  CGI.unescapeHTML(value.to_s)
+  text = value.to_s.dup
+
+  # Known problematic entries contain broken entities that should behave like apostrophes.
+  text.gsub!(/&#\d+;/, "'")
+  text.gsub!("&amp;", "&")
+  text.gsub!("&apos;", "'")
+  text.gsub!("&quot;", '"')
+  text.gsub!("&lt;", "<")
+  text.gsub!("&gt;", ">")
+
+  text
 end
 
 def normalize_phrase_spaces(value)
@@ -68,12 +77,14 @@ end
 
 def sanitize_word_for_fallback(word)
   decoded = decode_html_entities(word)
-  basic = decoded
-    .tr("\u2018\u2019\u201A\u201B\u2032\u2035`", "'")
+  safe = decoded.encode("UTF-8", invalid: :replace, undef: :replace, replace: " ")
+
+  basic = safe
+    .tr("`", "'")
     .gsub(/[\uFFFD]/, " ")
 
   compact = basic
-    .gsub(/[^[:alnum:]\s\-']/u, " ")
+    .gsub(/[^A-Za-z0-9\s\-']/, " ")
     .gsub(/\s+/, " ")
     .strip
 
