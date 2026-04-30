@@ -26,7 +26,8 @@ words/study_words.html
 3 全文审查 细节优化 交互优化
 4 全文审查是否有bug 漏洞
 5 导出或补充或丰富信息到 words/release.md  
-6 
+
+
 
 listening-word/王璐语料库_源码.html
 1 生成这个html涉及到的功能
@@ -52,8 +53,6 @@ audio-playlist-player/音频顺序播放器.html
 
 
 
-
-1 生成下载音频脚本
-2 把文件下载到此html同级目录的mp3里
-
-
+在听写单词的时候
+增加一个按钮：标记已掌握
+如果这个词在 错题本里面，则展示这个按钮，用户点击后 该词从错题本移除

@@ -537,9 +537,10 @@
         container.innerHTML = filtered.map(function (group) {
             var selected = state.systemSelection.has(group.id);
             var libraryLabel = libraryType === 'listening' ? '听力库' : '真经词库';
+            var groupIdAttr = escapeHtml(group.id);
             return '<article class="system-card' + (selected ? ' selected' : '') + '">' +
                 '<label>' +
-                '<input type="checkbox" data-group-id="' + group.id + '"' + (selected ? ' checked' : '') + '>' +
+                '<input type="checkbox" data-group-id="' + groupIdAttr + '"' + (selected ? ' checked' : '') + '>' +
                 '<div>' +
                 '<strong>' + escapeHtml(group.title) + '</strong>' +
                 '<span>' + group.itemCount + ' 个单词音频，导入后作为 1 个播放项。</span>' +
@@ -584,8 +585,10 @@
         }
         var selectedGroups = Array.from(state.systemSelection).map(getSystemGroupById).filter(Boolean);
         if (system.systemSelectionSummary) {
+            var selectedTitles = selectedGroups.map(function (group) { return group.title; });
+            var visibleTitles = selectedTitles.slice(0, 6);
             system.systemSelectionSummary.textContent = selectedGroups.length
-                ? '已选择 ' + selectedGroups.length + ' 个章节：' + selectedGroups.map(function (group) { return group.title; }).join('；')
+                ? '已选择 ' + selectedGroups.length + ' 个章节：' + visibleTitles.join('；') + (selectedTitles.length > visibleTitles.length ? '；...' : '')
                 : '当前未选择任何章节。';
         }
         if (system.systemSelectionChips) {
@@ -595,7 +598,7 @@
                 system.systemSelectionChips.innerHTML = selectedGroups.map(function (group) {
                     return '<span class="system-selection-chip">'
                         + escapeHtml(group.title)
-                        + '<button type="button" data-remove-selected="' + group.id + '" aria-label="移除 ' + escapeHtml(group.title) + '">×</button>'
+                        + '<button type="button" data-remove-selected="' + escapeHtml(group.id) + '" aria-label="移除 ' + escapeHtml(group.title) + '">×</button>'
                         + '</span>';
                 }).join('');
             }
@@ -772,6 +775,8 @@
     function setSequenceProgress(fileItem) {
         if (!state.sequenceRuntime || !fileItem || !fileItem.segments.length) {
             elements.progressFill.style.width = '0%';
+            elements.currentTimeLabel.textContent = '00:00';
+            elements.durationLabel.textContent = '00:00';
             return;
         }
         var runtime = state.sequenceRuntime;
@@ -781,6 +786,10 @@
             : 0);
         var progress = Math.min(100, Math.max(0, (segmentBase + withinSegment) * 100));
         elements.progressFill.style.width = progress.toFixed(2) + '%';
+        elements.currentTimeLabel.textContent = formatTime(elements.audioPlayer.currentTime || 0);
+        elements.durationLabel.textContent = Number.isFinite(elements.audioPlayer.duration) && elements.audioPlayer.duration > 0
+            ? formatTime(elements.audioPlayer.duration)
+            : '00:00';
     }
 
     function startSequenceGap(item, fileItem) {
@@ -793,6 +802,8 @@
         }
         runtime.inGap = true;
         runtime.gapDeadline = Date.now() + runtime.gapRemainingMs;
+        elements.currentTimeLabel.textContent = '00:00';
+        elements.durationLabel.textContent = formatCountdown(runtime.gapRemainingMs);
         updateStatus('第 ' + (state.currentIndex + 1) + ' 项：' + fileItem.name + '，单词 ' + runtime.segmentIndex + '/' + fileItem.segments.length + ' 已完成，等待 ' + Math.max(1, Math.round(runtime.gapRemainingMs / 1000)) + ' 秒后继续。');
         runtime.gapTimeoutId = setTimeout(function () {
             runtime.gapTimeoutId = null;
