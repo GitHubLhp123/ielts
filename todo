@@ -38,6 +38,18 @@ listening-word/王璐语料库_源码.html
 
 
 
+1 默认倍速 配置0.6-2 每个梯度是0.2
+2 默认次数 最大10
+
+audio-playlist-player/音频顺序播放器.html
+1 生成这个html涉及到的功能
+导出或补充或丰富信息到 audio-playlist-player/version.md   
+2 根据这个version.md 去审查相关功能是否正确，是否关联功能正确，是否联系正确
+3 全文审查 细节优化 交互优化
+4 全文审查是否有bug 漏洞
+5 导出或补充或丰富信息到 audio-playlist-player/release.md  
+
+
 
 
 

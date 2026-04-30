@@ -3,5 +3,5 @@ cp /Users/lhp/Desktop/codeProject/ielts-tool/dictionary/发音和听写.html /Us
 cp /Users/lhp/Desktop/codeProject/ielts-tool/listening-word/王璐语料库_源码.html  /Users/lhp/Desktop/
 cp /Users/lhp/Desktop/codeProject/ielts-tool/words/study_words.html /Users/lhp/Desktop/
 
-1
+cp /Users/lhp/Desktop/codeProject/ielts-tool/audio-playlist-player/音频顺序播放器.html  /Users/lhp/Desktop/
 

@@ -1,14 +1,86 @@
 window.SYNONYM_SOURCE_MAP = window.SYNONYM_SOURCE_MAP || {};
-window.SYNONYM_SOURCE_MAP["同义词gpt.json"] = {
-  "source": "同义词gpt.json",
+window.SYNONYM_SOURCE_MAP["同义词google.json"] = {
+  "source": "同义词google.json",
   "groups": [
     [
-      "item",
-      "thing",
-      "stuff",
-      "object",
-      "goods",
-      "product"
+      "obtain",
+      "gain",
+      "acquire",
+      "attain",
+      "retrieve",
+      "earn"
+    ],
+    [
+      "arduous",
+      "tough",
+      "strenuous",
+      "painstaking"
+    ],
+    [
+      "expertise",
+      "aptitude",
+      "wisdom",
+      "intelligence",
+      "wit",
+      "knowledge"
+    ],
+    [
+      "summary",
+      "gist",
+      "outline",
+      "extract",
+      "sketch",
+      "abstract"
+    ],
+    [
+      "destitute",
+      "famine",
+      "starve",
+      "deprive",
+      "slum",
+      "impoverished"
+    ],
+    [
+      "regulation",
+      "norm",
+      "benchmark",
+      "criteria",
+      "standard",
+      "protocol",
+      "charter"
+    ],
+    [
+      "survey",
+      "research",
+      "inquire",
+      "investigate",
+      "explore",
+      "inspect",
+      "scrutinise"
+    ],
+    [
+      "collaborate",
+      "cooperate",
+      "unite",
+      "association",
+      "consortium",
+      "league"
+    ],
+    [
+      "commence",
+      "launch",
+      "outset",
+      "initially",
+      "opening",
+      "foundation"
+    ],
+    [
+      "evidence",
+      "proof",
+      "testify",
+      "verify",
+      "confirm",
+      "justify"
     ],
     [
       "garbage",
@@ -16,321 +88,390 @@ window.SYNONYM_SOURCE_MAP["同义词gpt.json"] = {
       "trash",
       "waste",
       "junk",
-      "litter"
+      "litter",
+      "debris"
     ],
     [
-      "reuse",
-      "recycle"
-    ],
-    [
-      "material",
-      "substance",
-      "fabric",
-      "textile"
-    ],
-    [
-      "fake",
       "counterfeit",
-      "false"
+      "fake",
+      "artificial",
+      "synthetic",
+      "false",
+      "mock"
     ],
     [
-      "fragile",
-      "delicate"
+      "affluent",
+      "sufficient",
+      "adequate",
+      "spare",
+      "redundant",
+      "surplus"
     ],
     [
-      "durable",
-      "robust",
-      "sturdy"
+      "unique",
+      "distinct",
+      "individual",
+      "sole",
+      "respective"
     ],
     [
-      "available",
-      "accessible"
+      "hazard",
+      "risk",
+      "peril",
+      "threat",
+      "jeopardise",
+      "endanger"
     ],
     [
-      "duplicate",
-      "copy"
+      "atmosphere",
+      "environment",
+      "surrounding",
+      "nature",
+      "ecosystem",
+      "ecology"
     ],
     [
-      "part",
-      "element",
-      "factor",
-      "component"
+      "regime",
+      "authority",
+      "bureaucracy",
+      "administration",
+      "hierarchy",
+      "government"
     ],
     [
-      "label",
-      "tag",
-      "badge"
+      "voyage",
+      "journey",
+      "safari",
+      "excursion",
+      "cruise",
+      "itinerary",
+      "travel"
     ],
     [
-      "edge",
-      "rim",
-      "border"
+      "architecture",
+      "structure",
+      "infrastructure",
+      "foundation",
+      "framework",
+      "erection"
     ],
     [
-      "fashion",
-      "trend",
-      "style",
-      "vogue"
+      "heritage",
+      "antique",
+      "archaeology",
+      "medieval",
+      "chronology",
+      "ancient"
     ],
     [
-      "popular",
-      "prevail",
-      "current"
-    ],
-    [
-      "beautiful",
-      "pretty",
-      "attractive",
-      "charming"
-    ],
-    [
-      "ugly",
-      "unattractive"
-    ],
-    [
-      "clothes",
       "garment",
       "outfit",
-      "dress"
+      "costume",
+      "robe",
+      "gown",
+      "uniform",
+      "clothe"
     ],
     [
-      "job",
-      "career",
-      "profession",
-      "occupation",
-      "vocation"
+      "exquisite",
+      "elegance",
+      "aesthetic",
+      "picturesque",
+      "splendid",
+      "magnificent",
+      "grand"
     ],
     [
-      "salary",
-      "income",
-      "wage",
-      "pay"
+      "transparent",
+      "manifest",
+      "discernible",
+      "distinct",
+      "visible",
+      "obvious"
     ],
     [
-      "buy",
-      "purchase"
-    ],
-    [
-      "sell",
-      "trade"
-    ],
-    [
-      "cheap",
-      "inexpensive"
-    ],
-    [
-      "expensive",
-      "costly",
-      "pricey"
-    ],
-    [
-      "increase",
-      "rise",
-      "grow",
-      "expand"
-    ],
-    [
-      "decrease",
-      "decline",
-      "reduce",
-      "diminish"
-    ],
-    [
-      "important",
-      "significant",
-      "crucial",
-      "vital"
-    ],
-    [
-      "help",
-      "assist",
-      "aid"
-    ],
-    [
-      "encourage",
-      "motivate",
-      "stimulate"
-    ],
-    [
-      "suggest",
-      "recommend",
-      "advise"
-    ],
-    [
-      "say",
-      "state",
-      "declare",
-      "announce",
-      "claim"
-    ],
-    [
-      "think",
-      "consider",
+      "contemplate",
+      "speculate",
+      "perceive",
+      "discern",
       "reckon",
-      "deem"
+      "deem",
+      "assume",
+      "presume"
     ],
     [
-      "show",
-      "demonstrate",
-      "illustrate",
-      "reveal"
+      "swift",
+      "velocity",
+      "speed",
+      "prompt",
+      "accelerate",
+      "hasten",
+      "hurry"
     ],
     [
-      "get",
-      "obtain",
-      "acquire",
-      "gain"
+      "constraint",
+      "restraint",
+      "restrict",
+      "boundary",
+      "hurdle",
+      "obstacle",
+      "obstruct"
     ],
     [
-      "use",
-      "utilise",
-      "apply"
+      "nutrient",
+      "diet",
+      "provision",
+      "edible",
+      "cuisine",
+      "refreshment",
+      "snack"
     ],
     [
-      "improve",
-      "enhance",
-      "upgrade"
+      "ethnic",
+      "racial",
+      "clan",
+      "folk",
+      "population",
+      "demographic"
     ],
     [
-      "problem",
-      "issue",
-      "difficulty"
+      "apparatus",
+      "instrument",
+      "equipment",
+      "facility",
+      "mechanism",
+      "tool",
+      "gear"
     ],
     [
-      "result",
-      "outcome",
-      "consequence"
+      "occupation",
+      "vocation",
+      "profession",
+      "career",
+      "labour",
+      "personnel",
+      "job"
     ],
     [
-      "idea",
-      "concept",
-      "notion"
+      "mentor",
+      "tutor",
+      "counsellor",
+      "consultant",
+      "advise",
+      "specialist"
     ],
     [
-      "environment",
-      "surroundings"
+      "proliferate",
+      "augment",
+      "magnify",
+      "amplify",
+      "escalate",
+      "expand",
+      "enlarge",
+      "increment"
     ],
     [
-      "pollution",
-      "contamination"
-    ],
-    [
-      "danger",
-      "risk",
-      "hazard"
-    ],
-    [
-      "big",
-      "large",
-      "huge",
-      "massive",
-      "enormous"
-    ],
-    [
-      "small",
-      "tiny",
-      "miniature"
-    ],
-    [
-      "good",
-      "excellent",
-      "outstanding",
-      "superb"
-    ],
-    [
-      "bad",
-      "poor",
-      "terrible",
-      "awful"
-    ],
-    [
-      "fast",
-      "quick",
-      "rapid",
-      "swift"
-    ],
-    [
-      "slow",
-      "gradual"
-    ],
-    [
-      "start",
-      "begin",
-      "commence",
-      "launch"
-    ],
-    [
-      "stop",
       "cease",
-      "halt"
+      "halt",
+      "pause",
+      "quit",
+      "abandon",
+      "forgo",
+      "discard"
     ],
     [
-      "build",
-      "construct",
-      "establish"
+      "affection",
+      "intimate",
+      "enthusiasm",
+      "zeal",
+      "fond",
+      "favour"
     ],
     [
-      "destroy",
-      "ruin",
-      "demolish"
+      "dispute",
+      "quarrel",
+      "contention",
+      "controversy",
+      "conflict",
+      "argument"
+    ],
+    [
+      "safeguard",
+      "preserve",
+      "conserve",
+      "protect",
+      "shield",
+      "defend"
+    ],
+    [
+      "innovate",
+      "breakthrough",
+      "patent",
+      "devise",
+      "invent",
+      "discover"
+    ],
+    [
+      "slight",
+      "slender",
+      "margin",
+      "negligible",
+      "miniature",
+      "minor"
+    ],
+    [
+      "exotic",
+      "alien",
+      "foreigner",
+      "stranger",
+      "weird",
+      "eccentric",
+      "abnormal"
+    ],
+    [
+      "deteriorate",
+      "aggravate",
+      "degrade",
+      "erode",
+      "decline"
+    ],
+    [
+      "flourish",
+      "thrive",
+      "prosperity",
+      "succeed",
+      "triumph",
+      "bloom",
+      "blossom"
+    ],
+    [
+      "praise",
+      "appreciate",
+      "reward",
+      "award",
+      "grant",
+      "honour",
+      "credit"
+    ],
+    [
+      "essential",
+      "necessity",
+      "require",
+      "prerequisite",
+      "compulsory",
+      "mandatory"
+    ],
+    [
+      "method",
+      "strategy",
+      "tactic",
+      "approach",
+      "scheme",
+      "procedure",
+      "routine"
+    ],
+    [
+      "predict",
+      "anticipate",
+      "foresee",
+      "forecast",
+      "prospect"
+    ],
+    [
+      "solve",
+      "tackle",
+      "handle",
+      "cope",
+      "dispose",
+      "resolve",
+      "rectify"
     ],
     [
       "change",
       "alter",
+      "shift",
       "modify",
-      "transform"
+      "transform",
+      "adjust",
+      "adapt"
     ],
     [
-      "keep",
-      "maintain",
-      "retain"
+      "increase",
+      "growth",
+      "expand",
+      "escalate",
+      "augment",
+      "increment"
     ],
     [
-      "control",
-      "regulate",
-      "govern"
+      "decrease",
+      "decline",
+      "diminish",
+      "reduce",
+      "dwindle",
+      "shrink"
     ],
     [
-      "develop",
-      "advance",
-      "progress"
+      "problem",
+      "issue",
+      "dilemma",
+      "plight",
+      "pitfall",
+      "setback",
+      "adversity"
     ],
     [
-      "research",
-      "study",
-      "investigate"
+      "fragile",
+      "delicate",
+      "feeble",
+      "vulnerable",
+      "weak"
     ],
     [
-      "explain",
-      "clarify",
-      "interpret"
+      "intensive",
+      "dense",
+      "compact",
+      "concentrated"
     ],
     [
-      "opinion",
-      "view",
-      "perspective",
-      "standpoint"
+      "anonymous",
+      "obscure",
+      "vague",
+      "invisible"
     ],
     [
-      "society",
-      "community"
+      "persistent",
+      "steady",
+      "ongoing",
+      "consistent",
+      "permanent"
     ],
     [
-      "government",
-      "authority",
-      "administration"
+      "optimistic",
+      "promising",
+      "favourable",
+      "positive"
     ],
     [
-      "global",
-      "worldwide",
-      "international"
+      "pessimistic",
+      "hopeless",
+      "desperate",
+      "negative"
     ],
     [
-      "important",
-      "essential",
-      "fundamental",
-      "key"
+      "diverse",
+      "varied",
+      "different",
+      "assort",
+      "distinguish"
+    ],
+    [
+      "impact",
+      "influence",
+      "affect",
+      "consequence",
+      "outcome"
     ]
   ],
-  "groupCount": 62
+  "groupCount": 58
 };

@@ -6,6 +6,7 @@
 2. 发音与听写练习
 3. 语料库听写训练（章节化）
 4. 词汇学习与难词复习（含同义词与统计）
+5. 本地音频顺序播放与变速复读
 
 本仓库的主要特点：
 
@@ -23,6 +24,7 @@
 - dictionary：发音和听写页面
 - listening-word：语料库听写页面、音频下载脚本、音频资源
 - words：词汇学习主页面、数据源、生成产物、音频资源、维护脚本
+- audio-playlist-player：本地音频顺序播放器，支持上传、逐项倍速/次数配置、定时自动暂停
 - data：共享或集中管理的数据目录（含 generated/source）
 
 你可以把仓库理解为“前端页面层 + 数据构建层 + 版本审查层”三层结构：
@@ -30,6 +32,8 @@
 1. 页面层：daily-status、dictionary、listening-word、words 下的 HTML
 2. 构建层：words/scripts、listening-word/scripts
 3. 审查层：各模块的 version.md / release.md / docs
+
+补充：audio-playlist-player 模块当前是纯页面入口，不依赖额外构建脚本。
 
 ---
 
@@ -136,6 +140,25 @@
 - words/release.md
 - words/docs/version.md
 - words/docs/release.md
+
+### 2.5 audio-playlist-player（音频顺序播放器）
+
+主页面：
+
+- audio-playlist-player/音频顺序播放器.html
+
+核心能力：
+
+- 上传本地 mp3 / m4a / wav / aac / ogg 文件
+- 自动生成播放清单，并支持手动新增、复制、上移下移、删除
+- 每个播放项单独配置倍速和播放次数
+- 全局默认倍速/次数，以及同步到全部条目的批量操作
+- 定时自动暂停，支持小数分钟配置
+
+适用场景：
+
+- 同一音频按不同倍速和次数反复播放
+- 多个本地音频按固定顺序连播
 
 ---
 
