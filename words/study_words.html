@@ -2421,7 +2421,7 @@
         </div>
         <div class="footer-toolbar">
           <button class="segment-btn" id="resetPositionButton">重置当前位置</button>
-          <button class="segment-btn" id="stopAudioButton">停止发音</button>
+          <button class="segment-btn" id="muteButton">静音</button>
         </div>
         <span class="status-line" id="statusText" aria-live="polite">准备就绪。</span>
       </section>
@@ -2659,7 +2659,8 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
         repeatCount: 1,
         showSynonym: true,
         showListeningCorpus: true,
-        enabledSynonymSources: null
+        enabledSynonymSources: null,
+        muted: false
       },
       practice: {
         mode: "standard",
@@ -2813,7 +2814,7 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       intervalValue: document.getElementById("intervalValue"),
       repeatValue: document.getElementById("repeatValue"),
       resetPositionButton: document.getElementById("resetPositionButton"),
-      stopAudioButton: document.getElementById("stopAudioButton"),
+      muteButton: document.getElementById("muteButton"),
       statusText: document.getElementById("statusText"),
       difficultyFilter: document.getElementById("difficultyFilter"),
       difficultySearchInput: document.getElementById("difficultySearchInput"),
@@ -3006,6 +3007,7 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       state.settings.repeatCount = clampNumber(state.settings.repeatCount, 1, 5, 1, 0);
       state.settings.showSynonym = state.settings.showSynonym !== false;
       state.settings.showListeningCorpus = state.settings.showListeningCorpus !== false;
+      state.settings.muted = state.settings.muted === true;
       state.settings.enabledSynonymSources = normalizeEnabledSynonymSources(state.settings.enabledSynonymSources);
       state.wordNotes = Object.fromEntries(
         Object.entries(state.wordNotes || {}).filter(([, value]) => typeof value === "string")
@@ -3094,7 +3096,7 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       elements.pronounceButton.addEventListener("click", async () => {
         const currentWord = getCurrentWord();
         if (currentWord) {
-          await speakWord(currentWord, false);
+          await speakWord(currentWord, false, playbackToken, true);
         }
       });
       elements.difficultButton.addEventListener("click", toggleCurrentWordDifficulty);
@@ -3122,9 +3124,16 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       elements.repeatInput.addEventListener("input", () => updateSetting("repeatCount", Number(elements.repeatInput.value), 1, 5, 1, 0));
 
       elements.resetPositionButton.addEventListener("click", resetGroupPosition);
-      elements.stopAudioButton.addEventListener("click", () => {
-        stopActiveAudio();
-        setStatus("当前音频已停止。", false);
+      elements.muteButton.addEventListener("click", () => {
+        state.settings.muted = !state.settings.muted;
+        saveState(false);
+        renderSettings();
+        if (state.settings.muted) {
+          stopActiveAudio();
+          setStatus("已开启静音模式。", false);
+        } else {
+          setStatus("已取消静音模式。", false);
+        }
       });
 
       elements.difficultyFilter.addEventListener("change", renderDifficultyList);
@@ -3700,7 +3709,13 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       }
     }
 
-    async function speakWord(word, quietStatus = false, token = playbackToken) {
+    async function speakWord(word, quietStatus = false, token = playbackToken, ignoreMute = false) {
+      if (state.settings.muted && !ignoreMute) {
+        if (!quietStatus) {
+          setStatus("静音模式已开启，发音已被静音。", false);
+        }
+        return;
+      }
       if (!word?.eng_sound) {
         if (!quietStatus) {
           setStatus("当前单词没有可播放的发音。", true);
@@ -5132,6 +5147,10 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       elements.rateValue.textContent = `${state.settings.playbackRate.toFixed(1)}x`;
       elements.intervalValue.textContent = `${state.settings.intervalSeconds}s`;
       elements.repeatValue.textContent = String(state.settings.repeatCount);
+      if (elements.muteButton) {
+        elements.muteButton.textContent = state.settings.muted ? "取消静音" : "静音";
+        elements.muteButton.classList.toggle("active", state.settings.muted);
+      }
       if (elements.toggleShowSynonymInput) {
         elements.toggleShowSynonymInput.checked = Boolean(state.settings.showSynonym);
       }

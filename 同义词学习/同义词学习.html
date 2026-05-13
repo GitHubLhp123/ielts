@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS 同义替换 · 极简学习</title>
+    <!-- Element UI 样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        /* 苹果风格微调 */
+        :root {
+            --el-color-primary: #0071e3;
+            --el-color-primary-light-3: rgba(0,113,227,0.3);
+            --el-color-primary-light-5: rgba(0,113,227,0.15);
+            --bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text: #1d1d1f;
+            --text-secondary: #86868b;
+            --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'PingFang SC', sans-serif;
+        }
+        body {
+            margin: 0;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px 16px 40px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .header-title .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #0071e3, #005bb5);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+        }
+        .stats-text {
+            white-space: nowrap;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .synonym-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .synonym-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 14px 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .synonym-card:hover {
+            border-color: rgba(0,0,0,0.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .card-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .main-word {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--el-color-primary);
+            min-width: 90px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .speak-btn {
+            cursor: pointer;
+            color: var(--el-color-primary);
+            font-size: 0.7rem;
+            border: 1px solid var(--el-color-primary-light-5);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.15s;
+            background: rgba(0,113,227,0.06);
+        }
+        .speak-btn:hover {
+            background: var(--el-color-primary);
+            color: #fff;
+        }
+        .synonyms-tags {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .synonym-tag {
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .synonym-tag:hover {
+            opacity: 0.8;
+        }
+        .notes-area {
+            min-width: 140px;
+            max-width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .note-tag {
+            cursor: default;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .note-tag .el-tag__close {
+            cursor: pointer;
+        }
+        .add-note-btn {
+            font-size: 0.7rem;
+            padding: 0;
+            text-decoration: underline;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 0;
+            color: var(--text-secondary);
+        }
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        .el-dialog__body {
+            padding: 20px 24px;
+        }
+        /* 选择器宽度 */
+        .voice-select {
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="app-container">
+            <!-- 头部 -->
+            <div class="header">
+                <div class="header-title">
+                    <div class="icon">📖</div>
+                    <span>IELTS 同义替换</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <el-select class="voice-select" v-model="selectedVoice" placeholder="选择发音语音" size="small"
+                        @change="saveVoicePref">
+                        <el-option v-for="v in voices" :key="v.name" :label="v.name" :value="v.name"></el-option>
+                    </el-select>
+                    <el-button size="small" icon="el-icon-upload2" @click="showUploadDialog = true">导入词库</el-button>
+                    <el-button size="small" icon="el-icon-download" @click="loadSampleData">示例词库</el-button>
+                </div>
+            </div>
+
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <div class="search-input">
+                    <el-input v-model="searchQuery" placeholder="搜索单词或同义词…" clearable size="small"
+                        prefix-icon="el-icon-search"></el-input>
+                </div>
+                <span class="stats-text">📚 {{ groups.length }} 组 · 📝 {{ noteCount }} 笔记</span>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-if="groups.length === 0" class="empty-state">
+                <i class="el-icon-folder-opened"></i>
+                <p>暂无词库，请导入 JSON 或点击“示例词库”</p>
+            </div>
+
+            <!-- 同义词列表 -->
+            <div v-else class="synonym-list">
+                <div v-for="(group, index) in filteredGroups" :key="index" class="synonym-card">
+                    <div class="card-content">
+                        <!-- 主词 -->
+                        <div class="main-word">
+                            <span>{{ group[0] }}</span>
+                            <div class="speak-btn" @click="speakWord(group[0])" title="发音">🔊</div>
+                        </div>
+                        <!-- 同义词标签 -->
+                        <div class="synonyms-tags">
+                            <el-tag v-for="(syn, idx) in group.slice(1)" :key="idx" size="small" class="synonym-tag"
+                                @click="speakWord(syn)" effect="plain" type="info">
+                                {{ syn }} 🔊
+                            </el-tag>
+                        </div>
+                        <!-- 笔记区域 -->
+                        <div class="notes-area">
+                            <el-tag v-for="(note, nidx) in getGroupNotes(group)" :key="nidx"
+                                closable size="mini" class="note-tag"
+                                type="warning" effect="light"
+                                @close="deleteNote(note.word)">
+                                <span><strong>{{ note.word }}</strong>: {{ note.text }}</span>
+                            </el-tag>
+                            <el-button type="text" size="mini" class="add-note-btn"
+                                @click="openNoteDialog(group)">+ 添加笔记</el-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上传弹窗 -->
+        <el-dialog title="导入同义替换词库" :visible.sync="showUploadDialog" width="420px" center>
+            <p style="color:var(--text-secondary);margin-bottom:16px;">请上传符合格式的 JSON 文件<br>（二维数组，每个子数组为一组同义词）</p>
+            <el-upload
+                class="upload-demo"
+                drag
+                accept=".json"
+                :auto-upload="false"
+                :on-change="handleFileChange"
+                :show-file-list="false">
+                <i class="el-icon-upload"></i>
+                <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                <div class="el-upload__tip" slot="tip">仅支持 .json 格式文件</div>
+            </el-upload>
+            <div style="margin-top:20px;text-align:center;" v-if="uploadFileName">
+                <span>{{ uploadFileName }}</span>
+                <el-button type="success" size="small" style="margin-left:10px;" @click="processUploadedFile">导入此文件</el-button>
+            </div>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="showUploadDialog = false">取 消</el-button>
+            </span>
+        </el-dialog>
+
+        <!-- 添加/编辑笔记弹窗 -->
+        <el-dialog :title="noteDialogTitle" :visible.sync="showNoteDialog" width="380px" @closed="resetNoteDialog">
+            <el-form label-width="70px" size="small">
+                <el-form-item label="关联单词">
+                    <el-select v-model="noteForm.word" placeholder="选择单词" style="width:100%;">
+                        <el-option v-for="w in currentNoteGroup" :key="w" :label="w" :value="w"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="笔记内容">
+                    <el-input v-model="noteForm.text" type="textarea" :rows="3" placeholder="输入笔记…"></el-input>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="showNoteDialog = false">取 消</el-button>
+                <el-button type="primary" @click="saveNote">保 存</el-button>
+            </span>
+        </el-dialog>
+    </div>
+
+    <!-- 引入 Vue 和 Element UI -->
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                groups: [],
+                notes: {}, // { word: text }
+                voices: [],
+                selectedVoice: '',
+                searchQuery: '',
+                showUploadDialog: false,
+                uploadFile: null,
+                uploadFileName: '',
+                showNoteDialog: false,
+                noteForm: { word: '', text: '' },
+                currentNoteGroup: [],
+                isEditingNote: false,  // 当前是否编辑已有笔记
+                editingOriginalWord: ''
+            },
+            computed: {
+                filteredGroups() {
+                    const q = this.searchQuery.trim().toLowerCase();
+                    if (!q) return this.groups;
+                    return this.groups.filter(g => g.some(w => w.toLowerCase().includes(q)));
+                },
+                noteCount() {
+                    return Object.values(this.notes).filter(t => t && t.trim()).length;
+                },
+                noteDialogTitle() {
+                    return this.isEditingNote ? '编辑笔记' : '添加笔记';
+                }
+            },
+            created() {
+                this.loadNotes();
+                this.initVoices();
+            },
+            methods: {
+                // 语音相关
+                initVoices() {
+                    const setVoices = () => {
+                        this.voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+                        if (this.voices.length === 0) {
+                            this.voices = [{ name: '无英语语音' }];
+                        } else {
+                            // 默认选中 Google UK English Male 或上次选择
+                            const saved = localStorage.getItem('ielts_voice_v4');
+                            const def = this.voices.find(v => v.name === 'Google UK English Male') || this.voices[0];
+                            this.selectedVoice = (saved && this.voices.find(v => v.name === saved)) ? saved : def.name;
+                        }
+                    };
+                    setVoices();
+                    if (speechSynthesis.onvoiceschanged !== undefined) {
+                        speechSynthesis.onvoiceschanged = setVoices;
+                    }
+                },
+                saveVoicePref() {
+                    localStorage.setItem('ielts_voice_v4', this.selectedVoice);
+                },
+                speakWord(word) {
+                    if (!window.speechSynthesis) return;
+                    speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(word);
+                    u.lang = 'en-US';
+                    u.rate = 0.85;
+                    const voice = this.voices.find(v => v.name === this.selectedVoice);
+                    if (voice && voice.name !== '无英语语音') u.voice = voice;
+                    speechSynthesis.speak(u);
+                },
+                // 笔记持久化
+                loadNotes() {
+                    try {
+                        const stored = localStorage.getItem('ielts_notes_v4');
+                        this.notes = stored ? JSON.parse(stored) : {};
+                    } catch {
+                        this.notes = {};
+                    }
+                },
+                saveNotes() {
+                    localStorage.setItem('ielts_notes_v4', JSON.stringify(this.notes));
+                },
+                getGroupNotes(group) {
+                    const result = [];
+                    const seen = new Set();
+                    for (const word of group) {
+                        if (this.notes[word] && !seen.has(word)) {
+                            result.push({ word, text: this.notes[word] });
+                            seen.add(word);
+                        }
+                    }
+                    return result;
+                },
+                deleteNote(word) {
+                    this.$confirm(`确定删除单词「${word}」的笔记吗？`, '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        delete this.notes[word];
+                        this.saveNotes();
+                        this.$message.success('笔记已删除');
+                    }).catch(() => {});
+                },
+                openNoteDialog(group) {
+                    this.currentNoteGroup = [...group];
+                    this.noteForm = { word: group[0], text: '' };
+                    this.isEditingNote = false;
+                    this.showNoteDialog = true;
+                },
+                resetNoteDialog() {
+                    this.noteForm = { word: '', text: '' };
+                    this.currentNoteGroup = [];
+                    this.isEditingNote = false;
+                    this.editingOriginalWord = '';
+                },
+                saveNote() {
+                    const { word, text } = this.noteForm;
+                    if (!word || !this.currentNoteGroup.includes(word)) {
+                        this.$message.warning('请选择词组内的单词');
+                        return;
+                    }
+                    if (!text.trim()) {
+                        // 如果文本为空，删除笔记（如果存在）
+                        if (this.notes[word]) {
+                            delete this.notes[word];
+                            this.saveNotes();
+                            this.$message.success('笔记已清除');
+                        }
+                    } else {
+                        this.notes[word] = text.trim();
+                        this.saveNotes();
+                        this.$message.success('笔记已保存');
+                    }
+                    this.showNoteDialog = false;
+                },
+                // 导入词库
+                handleFileChange(file, fileList) {
+                    this.uploadFile = file.raw;
+                    this.uploadFileName = file.name;
+                },
+                processUploadedFile() {
+                    if (!this.uploadFile) {
+                        this.$message.warning('请先选择文件');
+                        return;
+                    }
+                    const file = this.uploadFile;
+                    if (!file.name.endsWith('.json')) {
+                        this.$message.error('仅支持 .json 格式');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (!Array.isArray(data) || !data.every(item => Array.isArray(item) && item.length >= 1)) {
+                                throw new Error('格式错误');
+                            }
+                            this.groups = data
+                                .filter(arr => arr.length >= 1)
+                                .map(arr => arr.map(w => String(w).trim()).filter(Boolean))
+                                .filter(arr => arr.length >= 1);
+                            this.showUploadDialog = false;
+                            this.uploadFile = null;
+                            this.uploadFileName = '';
+                            this.$message.success(`成功导入 ${this.groups.length} 组词库`);
+                        } catch (err) {
+                            this.$message.error('JSON 格式不正确，请检查文件');
+                        }
+                    };
+                    reader.readAsText(file);
+                },
+                loadSampleData() {
+                    this.groups = [
+                        ["reserve", "book"],
+                        ["in advance", "ahead", "before"],
+                        ["have to", "must", "should", "need", "require"],
+                        ["adjust", "change", "alter", "modify"],
+                        ["and", "as well as", "with", "in addition"],
+                        ["but", "however", "yet", "instead"],
+                        ["because", "as a result", "therefore"],
+                        ["diversity", "various", "different"],
+                        ["fee", "cost", "price", "expense"],
+                        ["computer", "laptop", "mac", "win"]
+                    ];
+                    this.$message.success('示例词库已加载');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
