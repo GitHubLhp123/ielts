@@ -70,6 +70,50 @@
             color: var(--text-secondary);
             font-size: 0.85rem;
         }
+        .auto-play-panel {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, rgba(0,113,227,0.08), rgba(0,113,227,0.04));
+            border-radius: 10px;
+            border: 1px solid rgba(0,113,227,0.12);
+        }
+        .auto-play-panel .label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .play-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--el-color-primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        .play-btn:hover {
+            background: #005bb5;
+        }
+        .play-btn.playing {
+            background: #e67e22;
+        }
+        .play-btn.playing:hover {
+            background: #d35400;
+        }
+        .play-status {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .current-word-highlight {
+            color: var(--el-color-primary);
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(0,113,227,0.35);
+        }
         .synonym-list {
             display: flex;
             flex-direction: column;
@@ -167,11 +211,7 @@
         .el-dialog__body {
             padding: 20px 24px;
         }
-        /* 选择器宽度 */
-        .voice-select {
-            width: 200px;
-        }
-    </style>
+            </style>
 </head>
 <body>
     <div id="app">
@@ -183,8 +223,7 @@
                     <span>IELTS 同义替换</span>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
-                    <el-select class="voice-select" v-model="selectedVoice" placeholder="选择发音语音" size="small"
-                        @change="saveVoicePref">
+                    <el-select v-model="selectedVoice" placeholder="选择发音语音" size="small" style="width:200px;">
                         <el-option v-for="v in voices" :key="v.name" :label="v.name" :value="v.name"></el-option>
                     </el-select>
                     <el-button size="small" icon="el-icon-upload2" @click="showUploadDialog = true">导入词库</el-button>
@@ -199,6 +238,33 @@
                         prefix-icon="el-icon-search"></el-input>
                 </div>
                 <span class="stats-text">📚 {{ groups.length }} 组 · 📝 {{ noteCount }} 笔记</span>
+                <div class="auto-play-panel">
+                    <span class="label">单词循环</span>
+                    <el-select v-model="autoPlayWordLoop" size="mini" style="width:60px;">
+                        <el-option v-for="n in [1,2,3,5,10]" :key="n" :label="n" :value="n"></el-option>
+                    </el-select>
+                    <span class="label">组循环</span>
+                    <el-select v-model="autoPlayGroupLoop" size="mini" style="width:60px;">
+                        <el-option v-for="n in [1,2,3,5,10]" :key="n" :label="n" :value="n"></el-option>
+                    </el-select>
+                    <span class="label">倍速</span>
+                    <el-select v-model="autoPlayRate" size="mini" style="width:60px;">
+                        <el-option label="0.5x" :value="0.5"></el-option>
+                        <el-option label="0.75x" :value="0.75"></el-option>
+                        <el-option label="1x" :value="1"></el-option>
+                        <el-option label="1.25x" :value="1.25"></el-option>
+                        <el-option label="1.5x" :value="1.5"></el-option>
+                        <el-option label="2x" :value="2"></el-option>
+                    </el-select>
+                    <span class="label">间隔</span>
+                    <el-select v-model="autoPlayInterval" size="mini" style="width:60px;">
+                        <el-option v-for="n in [0,0.5,1,1.5,2,2.5,3,3.5,4,4.5,5]" :key="n" :label="n+'s'" :value="n"></el-option>
+                    </el-select>
+                    <div class="play-btn" :class="{ playing: isAutoPlaying }" @click="toggleAutoPlay" title="自动播放">
+                        {{ isAutoPlaying ? '⏸' : '▶' }}
+                    </div>
+                    <span class="play-status" v-if="isAutoPlaying">播放中…</span>
+                </div>
             </div>
 
             <!-- 空状态 -->
@@ -213,12 +279,13 @@
                     <div class="card-content">
                         <!-- 主词 -->
                         <div class="main-word">
-                            <span>{{ group[0] }}</span>
+                            <span :class="{ 'current-word-highlight': isAutoPlaying && currentWord === group[0] }">{{ group[0] }}</span>
                             <div class="speak-btn" @click="speakWord(group[0])" title="发音">🔊</div>
                         </div>
                         <!-- 同义词标签 -->
                         <div class="synonyms-tags">
                             <el-tag v-for="(syn, idx) in group.slice(1)" :key="idx" size="small" class="synonym-tag"
+                                :class="{ 'current-word-highlight': isAutoPlaying && currentWord === syn }"
                                 @click="speakWord(syn)" effect="plain" type="info">
                                 {{ syn }} 🔊
                             </el-tag>
@@ -289,7 +356,7 @@
             el: '#app',
             data: {
                 groups: [],
-                notes: {}, // { word: text }
+                notes: {},
                 voices: [],
                 selectedVoice: '',
                 searchQuery: '',
@@ -300,7 +367,19 @@
                 noteForm: { word: '', text: '' },
                 currentNoteGroup: [],
                 isEditingNote: false,  // 当前是否编辑已有笔记
-                editingOriginalWord: ''
+                editingOriginalWord: '',
+                // 自动播放
+                autoPlayWordLoop: 2,
+                autoPlayGroupLoop: 1,
+                autoPlayRate: 1,
+                autoPlayInterval: 0,
+                isAutoPlaying: false,
+                autoPlayTimer: null,
+                currentWord: '',
+                currentWordIdx: 0,
+                currentGroupIdx: 0,
+                currentWordLoopCount: 0,
+                currentGroupLoopCount: 0
             },
             computed: {
                 filteredGroups() {
@@ -320,26 +399,20 @@
                 this.initVoices();
             },
             methods: {
-                // 语音相关
                 initVoices() {
                     const setVoices = () => {
                         this.voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
                         if (this.voices.length === 0) {
                             this.voices = [{ name: '无英语语音' }];
                         } else {
-                            // 默认选中 Google UK English Male 或上次选择
-                            const saved = localStorage.getItem('ielts_voice_v4');
                             const def = this.voices.find(v => v.name === 'Google UK English Male') || this.voices[0];
-                            this.selectedVoice = (saved && this.voices.find(v => v.name === saved)) ? saved : def.name;
+                            this.selectedVoice = def.name;
                         }
                     };
                     setVoices();
                     if (speechSynthesis.onvoiceschanged !== undefined) {
                         speechSynthesis.onvoiceschanged = setVoices;
                     }
-                },
-                saveVoicePref() {
-                    localStorage.setItem('ielts_voice_v4', this.selectedVoice);
                 },
                 speakWord(word) {
                     if (!window.speechSynthesis) return;
@@ -349,6 +422,85 @@
                     u.rate = 0.85;
                     const voice = this.voices.find(v => v.name === this.selectedVoice);
                     if (voice && voice.name !== '无英语语音') u.voice = voice;
+                    speechSynthesis.speak(u);
+                },
+                // 自动播放
+                toggleAutoPlay() {
+                    if (this.isAutoPlaying) {
+                        this.stopAutoPlay();
+                    } else {
+                        this.startAutoPlay();
+                    }
+                },
+                startAutoPlay() {
+                    if (this.groups.length === 0) {
+                        this.$message.warning('请先导入词库');
+                        return;
+                    }
+                    this.isAutoPlaying = true;
+                    this.currentWordIdx = 0;
+                    this.currentGroupIdx = 0;
+                    this.currentWordLoopCount = 0;
+                    this.currentGroupLoopCount = 0;
+                    this.doAutoPlayStep();
+                },
+                stopAutoPlay() {
+                    this.isAutoPlaying = false;
+                    if (this.autoPlayTimer) {
+                        clearTimeout(this.autoPlayTimer);
+                        this.autoPlayTimer = null;
+                    }
+                    this.currentWord = '';
+                },
+                doAutoPlayStep() {
+                    if (!this.isAutoPlaying) return;
+                    const group = this.filteredGroups[this.currentGroupIdx];
+                    if (!group) {
+                        this.stopAutoPlay();
+                        return;
+                    }
+                    const word = group[this.currentWordIdx];
+                    this.currentWord = word;
+                    this.playWordWithRate(word, () => {
+                        this.scheduleNextWord();
+                    });
+                },
+                scheduleNextWord() {
+                    if (!this.isAutoPlaying) return;
+                    const group = this.filteredGroups[this.currentGroupIdx];
+                    const intervalMs = this.autoPlayInterval * 1000;
+                    this.autoPlayTimer = setTimeout(() => {
+                        this.currentWordLoopCount++;
+                        if (this.currentWordLoopCount >= this.autoPlayWordLoop) {
+                            this.currentWordLoopCount = 0;
+                            this.currentWordIdx++;
+                            if (this.currentWordIdx >= group.length) {
+                                this.currentWordIdx = 0;
+                                this.currentGroupLoopCount++;
+                                if (this.currentGroupLoopCount >= this.autoPlayGroupLoop) {
+                                    this.currentGroupLoopCount = 0;
+                                    this.currentGroupIdx++;
+                                    if (this.currentGroupIdx >= this.filteredGroups.length) {
+                                        this.stopAutoPlay();
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                        this.doAutoPlayStep();
+                    }, intervalMs);
+                },
+                playWordWithRate(word, onEnd) {
+                    if (!window.speechSynthesis) return;
+                    speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(word);
+                    u.lang = 'en-US';
+                    u.rate = 0.85 * this.autoPlayRate;
+                    const voice = this.voices.find(v => v.name === this.selectedVoice);
+                    if (voice && voice.name !== '无英语语音') u.voice = voice;
+                    u.onend = () => {
+                        if (onEnd) onEnd();
+                    };
                     speechSynthesis.speak(u);
                 },
                 // 笔记持久化
