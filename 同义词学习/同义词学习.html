@@ -70,6 +70,69 @@
             color: var(--text-secondary);
             font-size: 0.85rem;
         }
+        .auto-play-panel {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, rgba(0,113,227,0.08), rgba(0,113,227,0.04));
+            border-radius: 10px;
+            border: 1px solid rgba(0,113,227,0.12);
+        }
+        .auto-play-panel .label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .auto-play-panel .el-slider {
+            width: 80px;
+        }
+        .play-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--el-color-primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .play-btn:hover {
+            background: #005bb5;
+            transform: scale(1.05);
+        }
+        .play-btn.playing {
+            background: #e67e22;
+        }
+        .play-btn.playing:hover {
+            background: #d35400;
+        }
+        .play-status {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 60px;
+        }
+        .current-word-highlight {
+            color: var(--el-color-primary);
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(0,113,227,0.3);
+            transition: all 0.2s;
+        }
+        .current-group-card {
+            border-color: var(--el-color-primary);
+            box-shadow: 0 4px 16px rgba(0,113,227,0.15);
+        }
+        .rate-select {
+            width: 70px;
+        }
+        .loop-select {
+            width: 70px;
+        }
+        .interval-select {
+            width: 70px;
+        }
         .synonym-list {
             display: flex;
             flex-direction: column;
@@ -168,13 +231,7 @@
             padding: 20px 24px;
         }
         /* 选择器宽度 */
-        .voice-select {
-            width: 200px;
-        }
-        .tts-source-select {
-            width: 120px;
-        }
-    </style>
+            </style>
 </head>
 <body>
     <div id="app">
@@ -186,14 +243,6 @@
                     <span>IELTS 同义替换</span>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
-                    <el-select class="voice-select" v-model="selectedVoice" placeholder="选择发音语音" size="small"
-                        @change="saveVoicePref">
-                        <el-option v-for="v in voices" :key="v.name" :label="v.name" :value="v.name"></el-option>
-                    </el-select>
-                    <el-select class="tts-source-select" v-model="ttsSource" placeholder="发音源" size="small" @change="saveTtsSourcePref">
-                        <el-option label="Web语音" value="web"></el-option>
-                        <el-option label="百度翻译" value="baidu"></el-option>
-                    </el-select>
                     <el-button size="small" icon="el-icon-upload2" @click="showUploadDialog = true">导入词库</el-button>
                     <el-button size="small" icon="el-icon-download" @click="loadSampleData">示例词库</el-button>
                 </div>
@@ -206,6 +255,34 @@
                         prefix-icon="el-icon-search"></el-input>
                 </div>
                 <span class="stats-text">📚 {{ groups.length }} 组 · 📝 {{ noteCount }} 笔记</span>
+                <!-- 自动播放控制面板 -->
+                <div class="auto-play-panel">
+                    <span class="label">大循环</span>
+                    <el-select class="loop-select" v-model="autoPlayBigLoop" size="mini">
+                        <el-option v-for="n in [1,2,3,5,10]" :key="n" :label="n" :value="n"></el-option>
+                    </el-select>
+                    <span class="label">单词次数</span>
+                    <el-select class="loop-select" v-model="autoPlayLoop" size="mini">
+                        <el-option v-for="n in [1,2,3,5,10]" :key="n" :label="n" :value="n"></el-option>
+                    </el-select>
+                    <span class="label">倍速</span>
+                    <el-select class="rate-select" v-model="autoPlayRate" size="mini">
+                        <el-option label="0.5x" :value="0.5"></el-option>
+                        <el-option label="0.75x" :value="0.75"></el-option>
+                        <el-option label="1x" :value="1"></el-option>
+                        <el-option label="1.25x" :value="1.25"></el-option>
+                        <el-option label="1.5x" :value="1.5"></el-option>
+                        <el-option label="2x" :value="2"></el-option>
+                    </el-select>
+                    <span class="label">间隔</span>
+                    <el-select class="interval-select" v-model="autoPlayInterval" size="mini">
+                        <el-option v-for="n in [0,0.5,1,1.5,2,2.5,3,3.5,4,4.5,5]" :key="n" :label="n+'s'" :value="n"></el-option>
+                    </el-select>
+                    <div class="play-btn" :class="{ playing: isAutoPlaying }" @click="toggleAutoPlay" title="自动播放">
+                        {{ isAutoPlaying ? '⏸' : '▶' }}
+                    </div>
+                    <span class="play-status" v-if="isAutoPlaying">播放中…</span>
+                </div>
             </div>
 
             <!-- 空状态 -->
@@ -216,16 +293,17 @@
 
             <!-- 同义词列表 -->
             <div v-else class="synonym-list">
-                <div v-for="(group, index) in filteredGroups" :key="index" class="synonym-card">
+                <div v-for="(group, index) in filteredGroups" :key="index" class="synonym-card" :class="{ 'current-group-card': isAutoPlaying && currentGroupIndex === index }">
                     <div class="card-content">
                         <!-- 主词 -->
                         <div class="main-word">
-                            <span>{{ group[0] }}</span>
+                            <span :class="{ 'current-word-highlight': isAutoPlaying && currentWord === group[0] && currentGroupIndex === index }">{{ group[0] }}</span>
                             <div class="speak-btn" @click="speakWord(group[0])" title="发音">🔊</div>
                         </div>
                         <!-- 同义词标签 -->
                         <div class="synonyms-tags">
                             <el-tag v-for="(syn, idx) in group.slice(1)" :key="idx" size="small" class="synonym-tag"
+                                :class="{ 'current-word-highlight': isAutoPlaying && currentWord === syn && currentGroupIndex === index }"
                                 @click="speakWord(syn)" effect="plain" type="info">
                                 {{ syn }} 🔊
                             </el-tag>
@@ -297,9 +375,6 @@
             data: {
                 groups: [],
                 notes: {}, // { word: text }
-                voices: [],
-                selectedVoice: '',
-                ttsSource: 'web',
                 searchQuery: '',
                 showUploadDialog: false,
                 uploadFile: null,
@@ -308,7 +383,20 @@
                 noteForm: { word: '', text: '' },
                 currentNoteGroup: [],
                 isEditingNote: false,  // 当前是否编辑已有笔记
-                editingOriginalWord: ''
+                editingOriginalWord: '',
+                // 自动播放
+                autoPlayBigLoop: 1,
+                autoPlayLoop: 2,
+                autoPlayRate: 1,
+                autoPlayInterval: 0,
+                isAutoPlaying: false,
+                autoPlayTimer: null,
+                currentPlayIndex: 0,
+                currentWordIndex: 0,
+                currentLoopCount: 0,
+                currentBigLoopCount: 0,
+                currentWord: '',
+                currentGroupIndex: -1
             },
             computed: {
                 filteredGroups() {
@@ -325,58 +413,99 @@
             },
             created() {
                 this.loadNotes();
-                this.loadTtsSourcePref();
-                this.initVoices();
             },
             methods: {
-                // 语音相关
-                initVoices() {
-                    const setVoices = () => {
-                        this.voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
-                        if (this.voices.length === 0) {
-                            this.voices = [{ name: '无英语语音' }];
-                        } else {
-                            // 默认选中 Google UK English Male 或上次选择
-                            const saved = localStorage.getItem('ielts_voice_v4');
-                            const def = this.voices.find(v => v.name === 'Google UK English Male') || this.voices[0];
-                            this.selectedVoice = (saved && this.voices.find(v => v.name === saved)) ? saved : def.name;
-                        }
-                    };
-                    setVoices();
-                    if (speechSynthesis.onvoiceschanged !== undefined) {
-                        speechSynthesis.onvoiceschanged = setVoices;
-                    }
-                },
-                saveVoicePref() {
-                    localStorage.setItem('ielts_voice_v4', this.selectedVoice);
-                },
-                loadTtsSourcePref() {
-                    const saved = localStorage.getItem('ielts_tts_source');
-                    if (saved) this.ttsSource = saved;
-                },
-                saveTtsSourcePref() {
-                    localStorage.setItem('ielts_tts_source', this.ttsSource);
-                },
                 speakWord(word) {
-                    if (this.ttsSource === 'baidu') {
-                        this.speakBaidu(word);
+                    this.playWordWithRate(word);
+                },
+                playWordWithRate(word) {
+                    const encoded = encodeURIComponent(word);
+                    const rateMap = { 0.5: 3, 0.75: 4, 1: 5, 1.25: 6, 1.5: 7, 2: 9 };
+                    const spd = rateMap[this.autoPlayRate] || 5;
+                    const url = `https://fanyi.baidu.com/gettts?lan=uk&text=${encoded}&spd=${spd}&source=web`;
+                    const audio = new Audio(url);
+                    audio.play();
+                },
+                // 自动播放
+                toggleAutoPlay() {
+                    if (this.isAutoPlaying) {
+                        this.stopAutoPlay();
                     } else {
-                        this.speakWeb(word);
+                        this.startAutoPlay();
                     }
                 },
-                speakWeb(word) {
-                    if (!window.speechSynthesis) return;
-                    speechSynthesis.cancel();
-                    const u = new SpeechSynthesisUtterance(word);
-                    u.lang = 'en-US';
-                    u.rate = 0.85;
-                    const voice = this.voices.find(v => v.name === this.selectedVoice);
-                    if (voice && voice.name !== '无英语语音') u.voice = voice;
-                    speechSynthesis.speak(u);
+                startAutoPlay() {
+                    if (this.groups.length === 0) {
+                        this.$message.warning('请先导入词库');
+                        return;
+                    }
+                    this.isAutoPlaying = true;
+                    this.currentPlayIndex = 0;
+                    this.currentWordIndex = 0;
+                    this.currentLoopCount = 0;
+                    this.currentBigLoopCount = 0;
+                    this.doAutoPlayStep();
                 },
-                speakBaidu(word) {
+                stopAutoPlay() {
+                    this.isAutoPlaying = false;
+                    if (this.autoPlayTimer) {
+                        clearTimeout(this.autoPlayTimer);
+                        this.autoPlayTimer = null;
+                    }
+                    this.currentWord = '';
+                    this.currentGroupIndex = -1;
+                },
+                scrollToCurrentWord() {
+                    const el = document.querySelector('.current-word-highlight');
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                },
+                doAutoPlayStep() {
+                    if (!this.isAutoPlaying) return;
+                    const group = this.filteredGroups[this.currentPlayIndex];
+                    if (!group) {
+                        this.stopAutoPlay();
+                        return;
+                    }
+                    const words = group;
+                    const word = words[this.currentWordIndex];
+                    this.currentWord = word;
+                    this.currentGroupIndex = this.currentPlayIndex;
+                    this.$nextTick(() => {
+                        this.scrollToCurrentWord();
+                    });
+                    this.playWordWithRate(word);
+                    const baseDelay = 1200;
+                    const rateDelay = baseDelay / this.autoPlayRate;
+                    const intervalDelay = this.autoPlayInterval * 1000;
+                    const totalDelay = rateDelay + intervalDelay;
+                    this.autoPlayTimer = setTimeout(() => {
+                        this.currentWordIndex++;
+                        if (this.currentWordIndex >= words.length) {
+                            this.currentWordIndex = 0;
+                            this.currentLoopCount++;
+                            if (this.currentLoopCount >= this.autoPlayLoop) {
+                                this.currentLoopCount = 0;
+                                this.currentPlayIndex++;
+                                if (this.currentPlayIndex >= this.filteredGroups.length) {
+                                    this.currentPlayIndex = 0;
+                                    this.currentBigLoopCount++;
+                                    if (this.currentBigLoopCount >= this.autoPlayBigLoop) {
+                                        this.stopAutoPlay();
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                        this.doAutoPlayStep();
+                    }, totalDelay);
+                },
+                playWordWithRate(word) {
                     const encoded = encodeURIComponent(word);
-                    const url = `https://fanyi.baidu.com/gettts?lan=uk&text=${encoded}&spd=3&source=web`;
+                    const rateMap = { 0.5: 3, 0.75: 4, 1: 5, 1.25: 6, 1.5: 7, 2: 9 };
+                    const spd = rateMap[this.autoPlayRate] || 5;
+                    const url = `https://fanyi.baidu.com/gettts?lan=uk&text=${encoded}&spd=${spd}&source=web`;
                     const audio = new Audio(url);
                     audio.play();
                 },
