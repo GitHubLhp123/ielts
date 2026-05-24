@@ -171,6 +171,9 @@
         .voice-select {
             width: 200px;
         }
+        .tts-source-select {
+            width: 120px;
+        }
     </style>
 </head>
 <body>
@@ -186,6 +189,10 @@
                     <el-select class="voice-select" v-model="selectedVoice" placeholder="选择发音语音" size="small"
                         @change="saveVoicePref">
                         <el-option v-for="v in voices" :key="v.name" :label="v.name" :value="v.name"></el-option>
+                    </el-select>
+                    <el-select class="tts-source-select" v-model="ttsSource" placeholder="发音源" size="small" @change="saveTtsSourcePref">
+                        <el-option label="Web语音" value="web"></el-option>
+                        <el-option label="百度翻译" value="baidu"></el-option>
                     </el-select>
                     <el-button size="small" icon="el-icon-upload2" @click="showUploadDialog = true">导入词库</el-button>
                     <el-button size="small" icon="el-icon-download" @click="loadSampleData">示例词库</el-button>
@@ -292,6 +299,7 @@
                 notes: {}, // { word: text }
                 voices: [],
                 selectedVoice: '',
+                ttsSource: 'web',
                 searchQuery: '',
                 showUploadDialog: false,
                 uploadFile: null,
@@ -317,6 +325,7 @@
             },
             created() {
                 this.loadNotes();
+                this.loadTtsSourcePref();
                 this.initVoices();
             },
             methods: {
@@ -341,7 +350,21 @@
                 saveVoicePref() {
                     localStorage.setItem('ielts_voice_v4', this.selectedVoice);
                 },
+                loadTtsSourcePref() {
+                    const saved = localStorage.getItem('ielts_tts_source');
+                    if (saved) this.ttsSource = saved;
+                },
+                saveTtsSourcePref() {
+                    localStorage.setItem('ielts_tts_source', this.ttsSource);
+                },
                 speakWord(word) {
+                    if (this.ttsSource === 'baidu') {
+                        this.speakBaidu(word);
+                    } else {
+                        this.speakWeb(word);
+                    }
+                },
+                speakWeb(word) {
                     if (!window.speechSynthesis) return;
                     speechSynthesis.cancel();
                     const u = new SpeechSynthesisUtterance(word);
@@ -350,6 +373,12 @@
                     const voice = this.voices.find(v => v.name === this.selectedVoice);
                     if (voice && voice.name !== '无英语语音') u.voice = voice;
                     speechSynthesis.speak(u);
+                },
+                speakBaidu(word) {
+                    const encoded = encodeURIComponent(word);
+                    const url = `https://fanyi.baidu.com/gettts?lan=uk&text=${encoded}&spd=3&source=web`;
+                    const audio = new Audio(url);
+                    audio.play();
                 },
                 // 笔记持久化
                 loadNotes() {

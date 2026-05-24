@@ -838,6 +838,15 @@
                         </div>
                         <div class="setting-box">
                             <div class="setting-head">
+                                <span class="setting-caption">发音源</span>
+                            </div>
+                            <select id="ttsSourceSelect">
+                                <option value="web">Web语音</option>
+                                <option value="baidu">百度翻译</option>
+                            </select>
+                        </div>
+                        <div class="setting-box">
+                            <div class="setting-head">
                                 <span class="setting-caption">语速</span>
                                 <strong class="setting-value mono" id="rateValue">1.0</strong>
                             </div>
@@ -905,6 +914,7 @@
             // 语音设置
             let availableVoices = [];
             let selectedVoiceURI = "";
+            let ttsSource = 'web';
             let speechRate = 1.0;
             let repeatCount = 1;               // 每个单词播放次数 (1-5)
 
@@ -918,6 +928,7 @@
             const nextWordBtn = document.getElementById('nextWordBtn');
             const intervalInput = document.getElementById('intervalInput');
             const voiceSelect = document.getElementById('voiceSelect');
+            const ttsSourceSelect = document.getElementById('ttsSourceSelect');
             const rateSlider = document.getElementById('rateSlider');
             const rateValue = document.getElementById('rateValue');
             const intervalValue = document.getElementById('intervalValue');
@@ -1008,6 +1019,10 @@
 
             // 核心发音方法 (单次朗读)
             function speakWord(word, onEndCallback) {
+                if (ttsSource === 'baidu') {
+                    speakBaidu(word, onEndCallback);
+                    return;
+                }
                 cancelSpeechAndTimer();
                 const utterance = new SpeechSynthesisUtterance(word);
                 const voice = getSelectedVoice();
@@ -1030,6 +1045,26 @@
                 };
                 currentUtterance = utterance;
                 window.speechSynthesis.speak(utterance);
+            }
+
+            function speakBaidu(word, onEndCallback) {
+                cancelSpeechAndTimer();
+                isSpeaking = true;
+                setStatus(`🔊 百度朗读: ${word}`);
+                const encoded = encodeURIComponent(word);
+                const url = `https://fanyi.baidu.com/gettts?lan=uk&text=${encoded}&spd=3&source=web`;
+                const audio = new Audio(url);
+                audio.onended = () => {
+                    isSpeaking = false;
+                    setStatus('✅ 发音完成');
+                    if (onEndCallback) onEndCallback();
+                };
+                audio.onerror = () => {
+                    isSpeaking = false;
+                    setStatus('⚠️ 发音失败', true);
+                    if (onEndCallback) onEndCallback();
+                };
+                audio.play();
             }
 
             // 循环朗读当前单词 repeatCount 次，全部完成后调用 onComplete
@@ -1334,7 +1369,8 @@
                     wordItems: wordItems,
                     selectedVoiceURI: selectedVoiceURI,
                     speechRate: rateSlider.value,
-                    repeatCount: repeatSlider.value
+                    repeatCount: repeatSlider.value,
+                    ttsSource: ttsSource
                 };
                 localStorage.setItem('ielts_listen_repeat', JSON.stringify(store));
             }
@@ -1355,6 +1391,10 @@
                         repeatSlider.value = data.repeatCount;
                         repeatValue.textContent = data.repeatCount;
                         repeatCount = parseInt(data.repeatCount);
+                    }
+                    if (data.ttsSource) {
+                        ttsSource = data.ttsSource;
+                        ttsSourceSelect.value = ttsSource;
                     }
                     currentWordObj = null;
                     activeIndex = -1;
@@ -1404,6 +1444,10 @@
                 });
                 voiceSelect.addEventListener('change', () => {
                     selectedVoiceURI = voiceSelect.value;
+                    persistData();
+                });
+                ttsSourceSelect.addEventListener('change', () => {
+                    ttsSource = ttsSourceSelect.value;
                     persistData();
                 });
 
