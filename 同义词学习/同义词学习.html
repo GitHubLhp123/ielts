@@ -238,33 +238,30 @@
                         prefix-icon="el-icon-search"></el-input>
                 </div>
                 <span class="stats-text">📚 {{ groups.length }} 组 · 📝 {{ noteCount }} 笔记</span>
-                <div class="auto-play-panel">
-                    <span class="label">单词循环</span>
-                    <el-select v-model="autoPlayWordLoop" size="mini" style="width:60px;">
-                        <el-option v-for="n in [1,2,3,5,10]" :key="n" :label="n" :value="n"></el-option>
-                    </el-select>
-                    <span class="label">组循环</span>
-                    <el-select v-model="autoPlayGroupLoop" size="mini" style="width:60px;">
-                        <el-option v-for="n in [1,2,3,5,10]" :key="n" :label="n" :value="n"></el-option>
-                    </el-select>
-                    <span class="label">倍速</span>
-                    <el-select v-model="autoPlayRate" size="mini" style="width:60px;">
-                        <el-option label="0.5x" :value="0.5"></el-option>
-                        <el-option label="0.75x" :value="0.75"></el-option>
-                        <el-option label="1x" :value="1"></el-option>
-                        <el-option label="1.25x" :value="1.25"></el-option>
-                        <el-option label="1.5x" :value="1.5"></el-option>
-                        <el-option label="2x" :value="2"></el-option>
-                    </el-select>
-                    <span class="label">间隔</span>
-                    <el-select v-model="autoPlayInterval" size="mini" style="width:60px;">
-                        <el-option v-for="n in [0,0.5,1,1.5,2,2.5,3,3.5,4,4.5,5]" :key="n" :label="n+'s'" :value="n"></el-option>
-                    </el-select>
-                    <div class="play-btn" :class="{ playing: isAutoPlaying }" @click="toggleAutoPlay" title="自动播放">
-                        {{ isAutoPlaying ? '⏸' : '▶' }}
-                    </div>
-                    <span class="play-status" v-if="isAutoPlaying">播放中…</span>
+            </div>
+
+            <!-- 自动播放面板 - 固定在顶部 -->
+            <div class="auto-play-panel" style="position:sticky;top:0;z-index:100;margin-bottom:18px;">
+                <span class="label">单词循环</span>
+                <el-select v-model="autoPlayWordLoop" size="mini" style="width:60px;">
+                    <el-option v-for="n in [1,2,3,5,10]" :key="n" :label="n" :value="n"></el-option>
+                </el-select>
+                <span class="label">组循环</span>
+                <el-select v-model="autoPlayGroupLoop" size="mini" style="width:60px;">
+                    <el-option v-for="n in [1,2,3,5,10]" :key="n" :label="n" :value="n"></el-option>
+                </el-select>
+                <span class="label">倍速</span>
+                <el-slider v-model="autoPlayRate" :min="0.5" :max="2" :step="0.1" :show-tooltip="true" size="mini" style="width:80px;"></el-slider>
+                <span style="font-size:0.7rem;color:var(--text-secondary);min-width:30px;">{{ autoPlayRate.toFixed(1) }}x</span>
+                <span class="label">间隔</span>
+                <el-select v-model="autoPlayInterval" size="mini" style="width:60px;">
+                    <el-option v-for="n in [0,0.5,1,1.5,2,2.5,3,3.5,4,4.5,5]" :key="n" :label="n+'s'" :value="n"></el-option>
+                </el-select>
+                <div class="play-btn" :class="{ playing: isAutoPlaying }" @click="toggleAutoPlay" title="自动播放">
+                    {{ isAutoPlaying ? '⏸' : (isPaused ? '▶' : '▶') }}
                 </div>
+                <span class="play-status" v-if="isAutoPlaying">播放中…</span>
+                <span class="play-status" v-else-if="isPaused">已暂停</span>
             </div>
 
             <!-- 空状态 -->
@@ -275,17 +272,17 @@
 
             <!-- 同义词列表 -->
             <div v-else class="synonym-list">
-                <div v-for="(group, index) in filteredGroups" :key="index" class="synonym-card">
+                <div v-for="(group, index) in filteredGroups" :key="index" class="synonym-card" :data-group-idx="index">
                     <div class="card-content">
                         <!-- 主词 -->
                         <div class="main-word">
-                            <span :class="{ 'current-word-highlight': isAutoPlaying && currentWord === group[0] }">{{ group[0] }}</span>
+                            <span :class="{ 'current-word-highlight': isAutoPlaying && currentGroupIdx === index && currentWord === group[0] }">{{ group[0] }}</span>
                             <div class="speak-btn" @click="speakWord(group[0])" title="发音">🔊</div>
                         </div>
                         <!-- 同义词标签 -->
                         <div class="synonyms-tags">
                             <el-tag v-for="(syn, idx) in group.slice(1)" :key="idx" size="small" class="synonym-tag"
-                                :class="{ 'current-word-highlight': isAutoPlaying && currentWord === syn }"
+                                :class="{ 'current-word-highlight': isAutoPlaying && currentGroupIdx === index && currentWord === syn }"
                                 @click="speakWord(syn)" effect="plain" type="info">
                                 {{ syn }} 🔊
                             </el-tag>
@@ -374,12 +371,26 @@
                 autoPlayRate: 1,
                 autoPlayInterval: 0,
                 isAutoPlaying: false,
+                isPaused: false,
                 autoPlayTimer: null,
                 currentWord: '',
                 currentWordIdx: 0,
                 currentGroupIdx: 0,
                 currentWordLoopCount: 0,
-                currentGroupLoopCount: 0
+                currentGroupLoopCount: 0,
+                currentWordRef: null
+            },
+            watch: {
+                currentWord(newWord, oldWord) {
+                    if (newWord && newWord !== oldWord) {
+                        this.$nextTick(() => {
+                            const el = document.querySelector(`.current-word-highlight`);
+                            if (el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        });
+                    }
+                }
             },
             computed: {
                 filteredGroups() {
@@ -423,11 +434,51 @@
                     const voice = this.voices.find(v => v.name === this.selectedVoice);
                     if (voice && voice.name !== '无英语语音') u.voice = voice;
                     speechSynthesis.speak(u);
+                    // 手动点击时更新自动播放位置
+                    if (this.isAutoPlaying) {
+                        this.syncAutoPlayPosition(word);
+                    }
+                },
+                syncAutoPlayPosition(word) {
+                    // 清除待执行的定时器
+                    if (this.autoPlayTimer) {
+                        clearTimeout(this.autoPlayTimer);
+                        this.autoPlayTimer = null;
+                    }
+                    const group = this.filteredGroups[this.currentGroupIdx];
+                    if (!group) return;
+                    const wordIdx = group.indexOf(word);
+                    if (wordIdx !== -1) {
+                        this.currentWordIdx = wordIdx;
+                        this.currentWordLoopCount = 0;
+                    } else {
+                        // 跨组查找
+                        for (let i = 0; i < this.filteredGroups.length; i++) {
+                            const g = this.filteredGroups[i];
+                            const idx = g.indexOf(word);
+                            if (idx !== -1) {
+                                this.currentGroupIdx = i;
+                                this.currentWordIdx = idx;
+                                this.currentWordLoopCount = 0;
+                                break;
+                            }
+                        }
+                    }
+                    // 语音播放完毕后从新位置继续
+                    const currentGroup = this.filteredGroups[this.currentGroupIdx];
+                    if (currentGroup) {
+                        const intervalMs = this.autoPlayInterval * 1000;
+                        this.autoPlayTimer = setTimeout(() => {
+                            this.doAutoPlayStep();
+                        }, intervalMs);
+                    }
                 },
                 // 自动播放
                 toggleAutoPlay() {
                     if (this.isAutoPlaying) {
-                        this.stopAutoPlay();
+                        this.pauseAutoPlay();
+                    } else if (this.isPaused) {
+                        this.resumeAutoPlay();
                     } else {
                         this.startAutoPlay();
                     }
@@ -438,14 +489,31 @@
                         return;
                     }
                     this.isAutoPlaying = true;
+                    this.isPaused = false;
                     this.currentWordIdx = 0;
                     this.currentGroupIdx = 0;
                     this.currentWordLoopCount = 0;
                     this.currentGroupLoopCount = 0;
                     this.doAutoPlayStep();
                 },
+                pauseAutoPlay() {
+                    this.isAutoPlaying = false;
+                    this.isPaused = true;
+                    if (this.autoPlayTimer) {
+                        clearTimeout(this.autoPlayTimer);
+                        this.autoPlayTimer = null;
+                    }
+                    speechSynthesis.cancel();
+                },
+                resumeAutoPlay() {
+                    if (!this.isPaused) return;
+                    this.isAutoPlaying = true;
+                    this.isPaused = false;
+                    this.doAutoPlayStep();
+                },
                 stopAutoPlay() {
                     this.isAutoPlaying = false;
+                    this.isPaused = false;
                     if (this.autoPlayTimer) {
                         clearTimeout(this.autoPlayTimer);
                         this.autoPlayTimer = null;
