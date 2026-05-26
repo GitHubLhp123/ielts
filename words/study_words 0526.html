@@ -2476,7 +2476,6 @@
                   <span class="pill" id="studyCountBadge">学习 0 次</span>
                   <span class="pill" id="masteredBadge">未学会</span>
                   <span class="pill" id="difficultyBadge">未加入难词</span>
-                  <span class="pill" id="difficultyLevelBadge">难度 0</span>
                 </div>
               </div>
             </div>
@@ -2529,8 +2528,6 @@
                 <button class="toggle-btn" id="toggleWordButton">隐藏单词</button>
                 <button class="toggle-btn" id="toggleMeaningButton">显示中文</button>
                 <button class="play-btn" id="pronounceButton">播放发音</button>
-                <button class="control-btn soft" id="difficultyLevelUpButton" type="button">难度+1</button>
-                <button class="control-btn soft" id="difficultyLevelDownButton" type="button">难度-1</button>
               </div>
             </section>
 
@@ -2586,14 +2583,7 @@
             <div class="section-label">Difficult Words</div>
             <h2 class="chapter-title" style="margin:8px 0 0;">难词列表</h2>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <select id="difficultyFilter"></select>
-            <select id="difficultySortSelect" aria-label="排序方式">
-              <option value="default">默认（到期优先）</option>
-              <option value="levelDesc">难度等级 高→低</option>
-              <option value="levelAsc">难度等级 低→高</option>
-            </select>
-          </div>
+          <select id="difficultyFilter"></select>
         </div>
         <div class="difficulty-search-row">
           <input id="difficultySearchInput" class="search-input" type="search" placeholder="搜索难词：英文 / 中文 / 章节 / 分组">
@@ -2653,7 +2643,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       searchChapterFilter: "all",
       difficultyQuery: "",
       difficultyVisibleCount: 24,
-      difficultySortMode: "default",
       activeTab: "study",
       selectedDifficultKeys: [],
       progressByGroup: {},
@@ -2783,9 +2772,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       pronounceButton: document.getElementById("pronounceButton"),
       difficultButton: document.getElementById("difficultButton"),
       masteredButton: document.getElementById("masteredButton"),
-      difficultyLevelBadge: document.getElementById("difficultyLevelBadge"),
-      difficultyLevelUpButton: document.getElementById("difficultyLevelUpButton"),
-      difficultyLevelDownButton: document.getElementById("difficultyLevelDownButton"),
       noteInput: document.getElementById("noteInput"),
       chapterLine: document.getElementById("chapterLine"),
       wordText: document.getElementById("wordText"),
@@ -2831,7 +2817,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       muteButton: document.getElementById("muteButton"),
       statusText: document.getElementById("statusText"),
       difficultyFilter: document.getElementById("difficultyFilter"),
-      difficultySortSelect: document.getElementById("difficultySortSelect"),
       difficultySearchInput: document.getElementById("difficultySearchInput"),
       difficultySearchClearButton: document.getElementById("difficultySearchClearButton"),
       practiceSelectedDifficultButton: document.getElementById("practiceSelectedDifficultButton"),
@@ -3049,7 +3034,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       state.selectedLibraryChapter = typeof state.selectedLibraryChapter === "string" ? state.selectedLibraryChapter : "";
       state.difficultyQuery = typeof state.difficultyQuery === "string" ? state.difficultyQuery : "";
       state.difficultyVisibleCount = Number.isFinite(state.difficultyVisibleCount) ? Math.max(24, Math.round(state.difficultyVisibleCount)) : 24;
-      state.difficultySortMode = ["default", "levelDesc", "levelAsc"].includes(state.difficultySortMode) ? state.difficultySortMode : "default";
       state.studyLog = Array.isArray(state.studyLog)
         ? state.studyLog.filter((entry) => entry && typeof entry === "object" && typeof entry.kind === "string" && typeof entry.at === "string" && entry.kind !== "mastered")
         : [];
@@ -3117,8 +3101,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       });
       elements.difficultButton.addEventListener("click", toggleCurrentWordDifficulty);
       elements.masteredButton.addEventListener("click", toggleCurrentWordMastered);
-      elements.difficultyLevelUpButton.addEventListener("click", () => adjustCurrentWordDifficultyLevel(1));
-      elements.difficultyLevelDownButton.addEventListener("click", () => adjustCurrentWordDifficultyLevel(-1));
       elements.spellReplayButton.addEventListener("click", () => {
         void replaySpellAudio();
       });
@@ -3155,12 +3137,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       });
 
       elements.difficultyFilter.addEventListener("change", renderDifficultyList);
-      elements.difficultySortSelect.addEventListener("change", () => {
-        state.difficultySortMode = elements.difficultySortSelect.value;
-        state.difficultyVisibleCount = 24;
-        saveState(false);
-        renderDifficultyList();
-      });
       elements.difficultySearchInput.addEventListener("input", handleDifficultySearchInput);
       elements.difficultySearchClearButton.addEventListener("click", clearDifficultySearch);
       elements.difficultyLoadMoreButton.addEventListener("click", loadMoreDifficultWords);
@@ -3268,7 +3244,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       elements.searchInput.value = state.searchQuery;
       elements.searchAssistInput.value = state.searchAssistQuery;
       elements.difficultySearchInput.value = state.difficultyQuery;
-      elements.difficultySortSelect.value = state.difficultySortMode;
       const preserveActiveTab = state.activeTab !== "study";
       if (state.selectedGroupId && library.groupsById[state.selectedGroupId]) {
         setGroupSession(state.selectedGroupId, false, null, preserveActiveTab);
@@ -3839,52 +3814,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       setStatus(`${word.word} 已加入难词列表。`, false);
     }
 
-    function getWordDifficultyLevel(word) {
-      if (!word) {
-        return 0;
-      }
-      const entry = state.difficultWords[word.key];
-      if (!entry) {
-        return 0;
-      }
-      return clampNumber(Number(entry.difficultyLevel), 0, 10, 0, 0);
-    }
-
-    function adjustCurrentWordDifficultyLevel(delta) {
-      const word = getCurrentWord();
-      if (!word) {
-        return;
-      }
-      const current = getWordDifficultyLevel(word);
-      const next = clampNumber(current + delta, 0, 10, current, 0);
-      if (next === current) {
-        setStatus(delta > 0 ? `${word.word} 难度已是最高（10）。` : `${word.word} 难度已是 0。`, true);
-        return;
-      }
-      if (next === 0) {
-        delete state.difficultWords[word.key];
-        state.selectedDifficultKeys = state.selectedDifficultKeys.filter((key) => key !== word.key);
-        saveState();
-        renderAll();
-        setStatus(`${word.word} 难度降为 0，已从难词列表移除。`, false);
-        return;
-      }
-      if (state.difficultWords[word.key]) {
-        state.difficultWords[word.key] = {
-          ...state.difficultWords[word.key],
-          difficultyLevel: next
-        };
-      } else {
-        state.difficultWords[word.key] = {
-          ...createStoredWordSnapshot(word),
-          difficultyLevel: next
-        };
-      }
-      saveState();
-      renderAll();
-      setStatus(`${word.word} 难度等级 ${current} → ${next}。`, false);
-    }
-
     function createStoredWordSnapshot(word) {
       const stats = state.wordStats[word.key] || {};
       const existing = state.difficultWords[word.key] || {};
@@ -3911,8 +3840,7 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
         lastReviewAt: normalizeDateString(existing.lastReviewAt, ""),
         nextReviewAt: normalizeDateString(existing.nextReviewAt, addedAt),
         reviewStage: clampNumber(Number(existing.reviewStage), 0, REVIEW_INTERVALS_MS.length - 1, 0, 0),
-        reviewFailures: Math.max(0, Math.round(Number(existing.reviewFailures) || 0)),
-        difficultyLevel: clampNumber(Number(existing.difficultyLevel), 0, 10, 1, 0)
+        reviewFailures: Math.max(0, Math.round(Number(existing.reviewFailures) || 0))
       };
     }
 
@@ -3926,8 +3854,7 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
         lastReviewAt: normalizeDateString(item.lastReviewAt, ""),
         nextReviewAt: normalizeDateString(item.nextReviewAt, addedAt),
         reviewStage,
-        reviewFailures: Math.max(0, Math.round(Number(item.reviewFailures) || 0)),
-        difficultyLevel: clampNumber(Number(item.difficultyLevel), 0, 10, 1, 0)
+        reviewFailures: Math.max(0, Math.round(Number(item.reviewFailures) || 0))
       };
     }
 
@@ -4443,13 +4370,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       elements.masteredBadge.classList.toggle("active", Boolean(mastered));
       elements.difficultyBadge.textContent = difficult ? "已加入难词" : "未加入难词";
       elements.difficultyBadge.classList.toggle("active", Boolean(difficult));
-      const difficultyLevel = getWordDifficultyLevel(word);
-      elements.difficultyLevelBadge.textContent = `难度 ${difficultyLevel}`;
-      elements.difficultyLevelBadge.classList.toggle("active", difficultyLevel > 0);
-      elements.difficultyLevelUpButton.disabled = !word || difficultyLevel >= 10;
-      elements.difficultyLevelUpButton.style.opacity = (!word || difficultyLevel >= 10) ? "0.55" : "1";
-      elements.difficultyLevelDownButton.disabled = !word || difficultyLevel <= 0;
-      elements.difficultyLevelDownButton.style.opacity = (!word || difficultyLevel <= 0) ? "0.55" : "1";
       updateWordSourceBadges(word);
       elements.difficultButton.textContent = difficult ? "移出难词" : "加入难词";
       elements.masteredButton.textContent = mastered ? "取消已学会" : "标记已学会";
@@ -4920,7 +4840,7 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       elements.playPauseButton.textContent = state.practice.autoRunning ? "暂停" : "开始";
       elements.playPauseButton.classList.toggle("primary", !state.practice.autoRunning);
       elements.playPauseButton.classList.toggle("warn", state.practice.autoRunning);
-      [elements.prevButton, elements.nextButton, elements.playPauseButton, elements.pronounceButton, elements.difficultButton, elements.masteredButton, elements.difficultyLevelUpButton, elements.difficultyLevelDownButton].forEach((button) => {
+      [elements.prevButton, elements.nextButton, elements.playPauseButton, elements.pronounceButton, elements.difficultButton, elements.masteredButton].forEach((button) => {
         button.disabled = !hasWord;
         button.style.opacity = hasWord ? "1" : "0.55";
       });
@@ -5108,15 +5028,7 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
         elements.difficultyList.innerHTML = `<div class="empty">当前筛选条件下还没有难词。练习时点击“加入难词”即可。</div>`;
         return;
       }
-      const sortMode = state.difficultySortMode || "default";
       const sorted = [...items].sort((left, right) => {
-        if (sortMode === "levelDesc" || sortMode === "levelAsc") {
-          const leftLevel = clampNumber(Number(left.difficultyLevel), 0, 10, 0, 0);
-          const rightLevel = clampNumber(Number(right.difficultyLevel), 0, 10, 0, 0);
-          if (leftLevel !== rightLevel) {
-            return sortMode === "levelDesc" ? rightLevel - leftLevel : leftLevel - rightLevel;
-          }
-        }
         const leftDue = isDifficultyDue(left) ? 0 : 1;
         const rightDue = isDifficultyDue(right) ? 0 : 1;
         if (leftDue !== rightDue) {
@@ -5159,10 +5071,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
             </div>
             ${review.note ? `<div class="difficulty-note">${escapeHtml(review.note)}</div>` : ""}
             <div class="difficulty-review-row">
-              <div class="difficulty-stat">
-                <span class="compact-label">难度</span>
-                <strong>等级 ${review.difficultyLevel}</strong>
-              </div>
               <div class="difficulty-stat">
                 <span class="compact-label">已学</span>
                 <strong>${count} 次</strong>

@@ -967,26 +967,12 @@
                 <input id="intervalInput" type="number" min="0" step="0.5" value="2" />
               </label>
               <label>
-                单词播放速度
+                播放倍速
                 <select id="speedInput">
                   <option value="0.4">0.4x</option>
                   <option value="0.6">0.6x</option>
                   <option value="0.8">0.8x</option>
                   <option value="1.0" selected>1.0x</option>
-                  <option value="1.2">1.2x</option>
-                  <option value="1.4">1.4x</option>
-                  <option value="1.6">1.6x</option>
-                  <option value="1.8">1.8x</option>
-                  <option value="2.0">2.0x</option>
-                </select>
-              </label>
-              <label>
-                词组播放速度
-                <select id="phraseSpeedInput">
-                  <option value="0.4">0.4x</option>
-                  <option value="0.6">0.6x</option>
-                  <option value="0.8" selected>0.8x</option>
-                  <option value="1.0">1.0x</option>
                   <option value="1.2">1.2x</option>
                   <option value="1.4">1.4x</option>
                   <option value="1.6">1.6x</option>
@@ -1094,9 +1080,6 @@
               <button id="revealBtn" class="ghost" disabled>显示单词</button>
               <button id="nextBtn" class="ghost" disabled>下一题</button>
               <button id="restartWrongBtn" class="ghost" disabled>只练错词</button>
-              <button id="addMistakeBtn" class="ghost" disabled>错误等级 +1</button>
-              <button id="decreaseMistakeBtn" class="ghost" disabled>错误等级 -1</button>
-              <button id="removeMistakeBtn" class="ghost" disabled>移除错词本</button>
             </div>
 
             <div class="feedback" id="feedback">
@@ -1176,7 +1159,6 @@
         <label>
           排序方式
           <select id="mistakeSortSelect">
-            <option value="errorLevel">错误等级降序</option>
             <option value="errorRate">错误率降序</option>
             <option value="wrongCount">错误次数降序</option>
             <option value="recent">错误时间降序</option>
@@ -9888,9 +9870,6 @@ const EXPORT_FILE_PREFIX = "语料库";
     const CHAPTER_STATS_KEY = "ielts-dictation-chapter-stats-v1";
     const BACKUP_EXPORTED_AT_KEY = "ielts-dictation-backup-exported-at-v1";
     const BACKUP_REMINDER_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
-    const MISTAKE_MAX_ERROR_LEVEL = 10;
-    const MISTAKE_ERROR_LEVEL_ON_DICTATION = 3;
-    const MISTAKE_ERROR_LEVEL_ON_MANUAL_ADD = 1;
     const DB_NAME = "ielts-dictation-audio-db";
     const DB_VERSION = 1;
     const STORE_NAME = "audios";
@@ -9901,7 +9880,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       chapterSelect: document.getElementById("chapterSelect"),
       intervalInput: document.getElementById("intervalInput"),
       speedInput: document.getElementById("speedInput"),
-      phraseSpeedInput: document.getElementById("phraseSpeedInput"),
       modeSelect: document.getElementById("modeSelect"),
       listenOrderSelect: document.getElementById("listenOrderSelect"),
       listenRepeatInput: document.getElementById("listenRepeatInput"),
@@ -9917,9 +9895,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       revealBtn: document.getElementById("revealBtn"),
       nextBtn: document.getElementById("nextBtn"),
       restartWrongBtn: document.getElementById("restartWrongBtn"),
-      addMistakeBtn: document.getElementById("addMistakeBtn"),
-      decreaseMistakeBtn: document.getElementById("decreaseMistakeBtn"),
-      removeMistakeBtn: document.getElementById("removeMistakeBtn"),
       toggleWordBtn: document.getElementById("toggleWordBtn"),
       pendingList: document.getElementById("pendingList"),
       masteredList: document.getElementById("masteredList"),
@@ -9985,7 +9960,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       activeChapterId: "",
       intervalMs: 2000,
       playbackRate: 1,
-      phrasePlaybackRate: 0.8,
       listenOrder: "sequence",
       listenRepeatCount: 1,
       words: [],
@@ -10012,7 +9986,7 @@ const EXPORT_FILE_PREFIX = "语料库";
       pendingTimer: null,
       objectUrl: "",
       activeTab: "practice",
-      mistakeSortKey: "errorLevel",
+      mistakeSortKey: "errorRate",
       selectedMistakeIds: new Set(),
       selectedMistakeChapterIds: new Set(),
       selectedStatsChapterId: "",
@@ -10234,7 +10208,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 				chapter: elements.chapterSelect.value,
 				interval: elements.intervalInput.value.trim(),
 				speed: elements.speedInput.value,
-				phraseSpeed: elements.phraseSpeedInput.value,
         mode: elements.modeSelect.value,
         listenOrder: elements.listenOrderSelect.value,
         listenRepeat: elements.listenRepeatInput.value.trim(),
@@ -10263,7 +10236,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 				elements.chapterSelect.value = payload.chapter || "";
         elements.intervalInput.value = payload.interval || "2";
 				elements.speedInput.value = payload.speed || "1.0";
-				elements.phraseSpeedInput.value = payload.phraseSpeed || "0.8";
         elements.modeSelect.value = payload.mode || "dictation";
 				elements.listenOrderSelect.value = payload.listenOrder || "sequence";
 				elements.listenRepeatInput.value = payload.listenRepeat || "1";
@@ -10272,21 +10244,13 @@ const EXPORT_FILE_PREFIX = "语料库";
 				state.listenWordHidden = payload.listenWordHidden !== undefined ? payload.listenWordHidden : true;
 				state.activeTab = payload.activeTab || "practice";
         const normalizedSortKey = payload.mistakeSortKey === "accuracy" ? "errorRate" : payload.mistakeSortKey;
-        state.mistakeSortKey = normalizedSortKey === "errorLevel" || normalizedSortKey === "wrongCount" || normalizedSortKey === "errorRate" || normalizedSortKey === "recent"
+        state.mistakeSortKey = normalizedSortKey === "wrongCount" || normalizedSortKey === "errorRate" || normalizedSortKey === "recent"
           ? normalizedSortKey
-          : "errorLevel";
+          : "errorRate";
         state.selectedStatsChapterId = payload.statsChapterId || "";
         state.practiceMode = payload.mode || "dictation";
 				state.listenOrder = payload.listenOrder || "sequence";
 				state.listenRepeatCount = Math.max(1, Math.floor(Number(payload.listenRepeat || 1)));
-				const restoredWordRate = Number(payload.speed);
-				if (Number.isFinite(restoredWordRate) && restoredWordRate >= 0.4 && restoredWordRate <= 2) {
-					state.playbackRate = restoredWordRate;
-				}
-				const restoredPhraseRate = Number(payload.phraseSpeed);
-				if (Number.isFinite(restoredPhraseRate) && restoredPhraseRate >= 0.4 && restoredPhraseRate <= 2) {
-					state.phrasePlaybackRate = restoredPhraseRate;
-				}
 			} catch (error) {
 				console.warn("Failed to restore settings", error);
 			}
@@ -10300,7 +10264,6 @@ const EXPORT_FILE_PREFIX = "语料库";
           chapter: elements.chapterSelect.value,
           interval: elements.intervalInput.value.trim(),
           speed: elements.speedInput.value,
-          phraseSpeed: elements.phraseSpeedInput.value,
           mode: elements.modeSelect.value,
           listenOrder: elements.listenOrderSelect.value,
           listenRepeat: elements.listenRepeatInput.value.trim(),
@@ -10373,23 +10336,21 @@ const EXPORT_FILE_PREFIX = "语料库";
       const listenOrder = settings.listenOrder === "random" ? "random" : "sequence";
       const intervalValue = Number(settings.interval);
       const speedValue = Number(settings.speed);
-      const phraseSpeedValue = Number(settings.phraseSpeed);
       const listenRepeatValue = Math.max(1, Math.floor(Number(settings.listenRepeat || 1)));
 
       return {
         chapter,
         interval: Number.isFinite(intervalValue) && intervalValue >= 0 ? String(intervalValue) : "2",
         speed: Number.isFinite(speedValue) && speedValue >= 0.4 && speedValue <= 2 ? String(speedValue) : "1.0",
-        phraseSpeed: Number.isFinite(phraseSpeedValue) && phraseSpeedValue >= 0.4 && phraseSpeedValue <= 2 ? String(phraseSpeedValue) : "0.8",
         mode,
         listenOrder,
         listenRepeat: String(listenRepeatValue),
         words: typeof settings.words === "string" ? settings.words : "",
         showWords: Boolean(settings.showWords),
         activeTab: settings.activeTab === "mistakes" || settings.activeTab === "stats" ? settings.activeTab : "practice",
-        mistakeSortKey: settings.mistakeSortKey === "errorLevel" || settings.mistakeSortKey === "wrongCount" || settings.mistakeSortKey === "accuracy" || settings.mistakeSortKey === "errorRate" || settings.mistakeSortKey === "recent"
+        mistakeSortKey: settings.mistakeSortKey === "wrongCount" || settings.mistakeSortKey === "accuracy" || settings.mistakeSortKey === "errorRate" || settings.mistakeSortKey === "recent"
           ? (settings.mistakeSortKey === "accuracy" ? "errorRate" : settings.mistakeSortKey)
-          : "errorLevel",
+          : "errorRate",
         statsChapterId: typeof settings.statsChapterId === "string" && CHAPTER_WORD_SETS[settings.statsChapterId] ? settings.statsChapterId : ""
       };
     }
@@ -10416,24 +10377,13 @@ const EXPORT_FILE_PREFIX = "语料库";
             : (version <= 1 && typeof entry.lastAnswer === "string" && entry.lastAnswer.trim() ? [entry.lastAnswer] : [])
         );
 
-        const wrongCount = Math.max(1, Math.floor(Number(entry.wrongCount || 0) || 0));
-        const rawErrorLevel = Number(entry.errorLevel);
-        const errorLevel = Number.isFinite(rawErrorLevel)
-          ? Math.max(0, Math.min(MISTAKE_MAX_ERROR_LEVEL, Math.floor(rawErrorLevel)))
-          : Math.min(MISTAKE_MAX_ERROR_LEVEL, Math.max(1, wrongCount * MISTAKE_ERROR_LEVEL_ON_DICTATION));
-
-        if (errorLevel <= 0) {
-          return result;
-        }
-
         result.push({
           id: typeof entry.id === "string" && entry.id ? entry.id : `${chapterId}::${word}`,
           word,
           chapterId,
           chapterTitle: typeof entry.chapterTitle === "string" && entry.chapterTitle ? entry.chapterTitle : (CHAPTER_WORD_SETS[chapterId]?.title || ""),
           unit: typeof entry.unit === "string" && entry.unit ? entry.unit : chapterId,
-          wrongCount,
-          errorLevel,
+          wrongCount: Math.max(1, Math.floor(Number(entry.wrongCount || 0) || 0)),
           recentAnswers,
           lastWrongAt: Number.isFinite(Number(entry.lastWrongAt)) ? Number(entry.lastWrongAt) : Date.now()
         });
@@ -10621,7 +10571,7 @@ const EXPORT_FILE_PREFIX = "语料库";
       }
 
       const csvLines = [
-        ["单词名", "章节名", `错误等级（0-${MISTAKE_MAX_ERROR_LEVEL}）`, "错误次数", "练习次数", "正确率", "最近 5 次错误拼写"].join(","),
+        ["单词名", "章节名", "错误次数", "练习次数", "正确率", "最近 5 次错误拼写"].join(","),
         ...selectedEntries.map((entry) => {
           const metrics = getPracticeMetrics(entry);
           const accuracy = `${getWordAccuracy(entry)}%`;
@@ -10629,7 +10579,6 @@ const EXPORT_FILE_PREFIX = "语料库";
           return [
             entry.word,
             getChapterLabel({ chapterId: entry.chapterId, chapterTitle: entry.chapterTitle }, entry.chapterId),
-            Number(entry.errorLevel) || 0,
             entry.wrongCount,
             metrics.practiceCount,
             accuracy,
@@ -11036,74 +10985,32 @@ const EXPORT_FILE_PREFIX = "语料库";
     }
 
     function upsertMistakeBook(meta, answer) {
-      bumpMistakeBookEntry(meta, {
-        errorLevelDelta: MISTAKE_ERROR_LEVEL_ON_DICTATION,
-        recordWrongAnswer: true,
-        answer
-      });
-    }
-
-    function bumpMistakeBookEntry(meta, { errorLevelDelta = 1, recordWrongAnswer = false, answer = "" } = {}) {
-      if (!meta || !meta.word || !meta.chapterId) {
-        return null;
+      if (!meta) {
+        return;
       }
 
       const id = getMistakeEntryId(meta);
       const sanitizedAnswer = typeof answer === "string" ? answer.trim() : "";
       const existing = state.mistakeBook.find((entry) => entry.id === id);
-      const now = Date.now();
-      let entry;
       if (existing) {
-        existing.errorLevel = Math.min(MISTAKE_MAX_ERROR_LEVEL, Math.max(0, (Number(existing.errorLevel) || 0) + errorLevelDelta));
-        if (recordWrongAnswer) {
-          existing.wrongCount += 1;
-          existing.recentAnswers = [sanitizedAnswer || "未作答", ...getRecentMistakeAnswers(existing)].slice(0, 5);
-          existing.lastWrongAt = now;
-        }
-        entry = existing;
+        existing.wrongCount += 1;
+        existing.recentAnswers = [sanitizedAnswer || "未作答", ...getRecentMistakeAnswers(existing)].slice(0, 5);
+        existing.lastWrongAt = Date.now();
       } else {
-        entry = {
+        state.mistakeBook.push({
           id,
           word: meta.word,
           chapterId: meta.chapterId,
           chapterTitle: meta.chapterTitle,
           unit: meta.unit,
-          wrongCount: recordWrongAnswer ? 1 : 0,
-          errorLevel: Math.min(MISTAKE_MAX_ERROR_LEVEL, Math.max(0, errorLevelDelta)),
-          recentAnswers: recordWrongAnswer ? [sanitizedAnswer || "未作答"] : [],
-          lastWrongAt: now
-        };
-        state.mistakeBook.push(entry);
+          wrongCount: 1,
+          recentAnswers: [sanitizedAnswer || "未作答"],
+          lastWrongAt: Date.now()
+        });
       }
 
       state.mistakeBook.sort((left, right) => right.lastWrongAt - left.lastWrongAt);
       saveMistakeBook();
-      return entry;
-    }
-
-    function removeMistakeBookEntryByMeta(meta) {
-      if (!meta || !meta.word || !meta.chapterId) {
-        return false;
-      }
-
-      const id = getMistakeEntryId(meta);
-      const index = state.mistakeBook.findIndex((entry) => entry.id === id);
-      if (index < 0) {
-        return false;
-      }
-
-      state.mistakeBook.splice(index, 1);
-      state.selectedMistakeIds.delete(id);
-      saveMistakeBook();
-      return true;
-    }
-
-    function getMistakeBookEntryByMeta(meta) {
-      if (!meta || !meta.word || !meta.chapterId) {
-        return null;
-      }
-      const id = getMistakeEntryId(meta);
-      return state.mistakeBook.find((entry) => entry.id === id) || null;
     }
 
     function recordWordPractice(meta, isCorrect) {
@@ -11187,11 +11094,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 			}
 		}
 
-    function getPlaybackRateForSpelling(spelling) {
-      const isPhrase = typeof spelling === "string" && /\s/.test(spelling.trim());
-      return isPhrase ? state.phrasePlaybackRate : state.playbackRate;
-    }
-
 		async function playWord(word) {
       const practiceEntry = getPracticeEntry(word);
       const spelling = practiceEntry?.word || word;
@@ -11202,13 +11104,12 @@ const EXPORT_FILE_PREFIX = "语料库";
 
 			disposeObjectUrl();
 			state.currentAudioFinished = false;
-      const effectiveRate = getPlaybackRateForSpelling(spelling);
 
       if (isLocalSection(wordMeta.unit)) {
         const localPath = buildLocalAudioPath(wordMeta.unit, spelling);
         try {
           audio.src = localPath;
-          audio.playbackRate = effectiveRate;
+          audio.playbackRate = state.playbackRate;
           audio.currentTime = 0;
           await audio.play();
           setCacheStatus(`正在播放本地音频：${spelling}（${wordMeta.unit}）`);
@@ -11242,7 +11143,7 @@ const EXPORT_FILE_PREFIX = "语料库";
 			}
 
 			audio.src = playbackSource;
-			audio.playbackRate = effectiveRate;
+			audio.playbackRate = state.playbackRate;
 			audio.currentTime = 0;
 			await audio.play();
 			setCacheStatus(statusMessage);
@@ -11484,18 +11385,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       const practiceEntries = getMistakePracticeEntries();
 
       const sortedMistakeBook = filteredMistakeBook.slice().sort((left, right) => {
-        if (state.mistakeSortKey === "errorLevel") {
-          const leftLevel = Number(left.errorLevel) || 0;
-          const rightLevel = Number(right.errorLevel) || 0;
-          if (rightLevel !== leftLevel) {
-            return rightLevel - leftLevel;
-          }
-          if (right.wrongCount !== left.wrongCount) {
-            return right.wrongCount - left.wrongCount;
-          }
-          return right.lastWrongAt - left.lastWrongAt;
-        }
-
         if (state.mistakeSortKey === "wrongCount") {
           if (right.wrongCount !== left.wrongCount) {
             return right.wrongCount - left.wrongCount;
@@ -11562,8 +11451,7 @@ const EXPORT_FILE_PREFIX = "语料库";
         const meta = document.createElement("div");
         meta.className = "mistake-answer";
         const metrics = getPracticeMetrics(entry);
-        const errorLevel = Number(entry.errorLevel) || 0;
-        meta.textContent = `错误等级 ${errorLevel}/${MISTAKE_MAX_ERROR_LEVEL} · 错误次数 ${entry.wrongCount} · 练习次数 ${metrics.practiceCount} · 正确率 ${getWordAccuracy(entry)}%`;
+        meta.textContent = `错误次数 ${entry.wrongCount} · 练习次数 ${metrics.practiceCount} · 正确率 ${getWordAccuracy(entry)}%`;
 
         const recentAnswers = document.createElement("div");
         recentAnswers.className = "mistake-answer";
@@ -11752,27 +11640,8 @@ const EXPORT_FILE_PREFIX = "语料库";
       elements.revealBtn.disabled = !state.waitingForAnswer || isListenMode();
 			elements.nextBtn.disabled = !state.currentWordResolved || state.isFinished;
       elements.restartWrongBtn.disabled = state.mistakeEntries.length === 0 || isListenMode();
-      renderMistakeActionButtons();
 			elements.pauseBtn.textContent = state.isPaused ? "继续" : "暂停";
 		}
-
-    function renderMistakeActionButtons() {
-      const meta = getCurrentPracticeMeta();
-      const hasCurrentWord = Boolean(state.sessionStarted && !state.isFinished && meta && meta.word && meta.chapterId);
-      const existing = hasCurrentWord ? getMistakeBookEntryByMeta(meta) : null;
-      const atMax = Boolean(existing && existing.errorLevel >= MISTAKE_MAX_ERROR_LEVEL);
-
-      if (elements.addMistakeBtn) {
-        elements.addMistakeBtn.disabled = !hasCurrentWord || atMax;
-        elements.addMistakeBtn.textContent = `错误等级 +${MISTAKE_ERROR_LEVEL_ON_MANUAL_ADD}`;
-      }
-      if (elements.decreaseMistakeBtn) {
-        elements.decreaseMistakeBtn.disabled = !hasCurrentWord || !existing;
-      }
-      if (elements.removeMistakeBtn) {
-        elements.removeMistakeBtn.disabled = !hasCurrentWord || !existing;
-      }
-    }
 
 		function resetSession(words = state.words) {
       const practiceEntries = Array.isArray(words) && words.length && typeof words[0] === "object"
@@ -11823,7 +11692,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 			const words = parseWords(elements.wordInput.value);
 			const intervalSeconds = Number(elements.intervalInput.value || 2);
 			const playbackRate = Number(elements.speedInput.value || 1);
-			const phrasePlaybackRate = Number(elements.phraseSpeedInput.value || 0.8);
 			const selectedChapterId = elements.chapterSelect.value;
       const { missingWords, chapterMismatchWords, wordMetaMap } = resolveInputWords(words, selectedChapterId);
       const validWords = words.filter((word) => wordMetaMap[word]);
@@ -11848,10 +11716,7 @@ const EXPORT_FILE_PREFIX = "语料库";
         throw new Error("播放间隔必须是大于等于 0 的数字。填 0 表示不自动跳题，需要手动点“下一题”。");
 			}
 			if (Number.isNaN(playbackRate) || playbackRate < 0.4 || playbackRate > 2) {
-        throw new Error("单词播放速度必须在 0.4 到 2.0 之间。建议先用 0.8x 或 1.0x 练习，再逐步提高。");
-			}
-			if (Number.isNaN(phrasePlaybackRate) || phrasePlaybackRate < 0.4 || phrasePlaybackRate > 2) {
-        throw new Error("词组播放速度必须在 0.4 到 2.0 之间。");
+        throw new Error("播放倍速必须在 0.4 到 2.0 之间。建议先用 0.8x 或 1.0x 练习，再逐步提高。");
 			}
 
       state.unit = selectedChapterId || "自动匹配";
@@ -11860,7 +11725,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       state.wordMetaMap = wordMetaMap;
 			state.intervalMs = Math.round(intervalSeconds * 1000);
 			state.playbackRate = playbackRate;
-			state.phrasePlaybackRate = phrasePlaybackRate;
       state.practiceMode = elements.modeSelect.value || "dictation";
       state.listenOrder = elements.listenOrderSelect.value || "sequence";
       state.listenRepeatCount = Math.max(1, Math.floor(Number(elements.listenRepeatInput.value || 1)));
@@ -12092,73 +11956,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       resetSession(practiceEntries);
 			setCacheStatus(`已载入 ${wrongWords.length} 个错误单词，准备重新练习。`);
 		}
-
-    function getCurrentPracticeMeta() {
-      return getPracticeMeta(state.currentWord) || state.currentWordMeta || null;
-    }
-
-    function addCurrentWordToMistakeBook() {
-      const meta = getCurrentPracticeMeta();
-      if (!meta || !meta.word || !meta.chapterId) {
-        setFeedback("当前没有可加入错词本的单词。", "error");
-        return;
-      }
-
-      const before = getMistakeBookEntryByMeta(meta);
-      if (before && before.errorLevel >= MISTAKE_MAX_ERROR_LEVEL) {
-        setFeedback(`「${meta.word}」错误等级已达上限 ${MISTAKE_MAX_ERROR_LEVEL}。`, "warning");
-        render();
-        return;
-      }
-
-      const entry = bumpMistakeBookEntry(meta, { errorLevelDelta: MISTAKE_ERROR_LEVEL_ON_MANUAL_ADD });
-      if (entry) {
-        setFeedback(`已添加「${meta.word}」到错词本，错误等级 ${entry.errorLevel}/${MISTAKE_MAX_ERROR_LEVEL}。`, "success");
-      }
-      render();
-    }
-
-    function decreaseCurrentWordErrorLevel() {
-      const meta = getCurrentPracticeMeta();
-      if (!meta || !meta.word || !meta.chapterId) {
-        setFeedback("当前没有可调整的单词。", "error");
-        return;
-      }
-
-      const existing = getMistakeBookEntryByMeta(meta);
-      if (!existing) {
-        setFeedback(`「${meta.word}」不在错词本中。`, "");
-        render();
-        return;
-      }
-
-      const next = Math.max(0, (Number(existing.errorLevel) || 0) - 1);
-      if (next <= 0) {
-        removeMistakeBookEntryByMeta(meta);
-        setFeedback(`「${meta.word}」错误等级降到 0，已从错词本移除。`, "success");
-      } else {
-        existing.errorLevel = next;
-        saveMistakeBook();
-        setFeedback(`已降低「${meta.word}」错误等级至 ${next}/${MISTAKE_MAX_ERROR_LEVEL}。`, "success");
-      }
-      render();
-    }
-
-    function removeCurrentWordFromMistakeBook() {
-      const meta = getCurrentPracticeMeta();
-      if (!meta || !meta.word || !meta.chapterId) {
-        setFeedback("当前没有可移除的单词。", "error");
-        return;
-      }
-
-      const removed = removeMistakeBookEntryByMeta(meta);
-      if (removed) {
-        setFeedback(`已从错词本移除「${meta.word}」，错误等级已重置为 0。`, "success");
-      } else {
-        setFeedback(`「${meta.word}」不在错词本中。`, "");
-      }
-      render();
-    }
 
     async function playMistakeEntry(entryId) {
       if (state.sessionStarted && !state.isFinished) {
@@ -12403,9 +12200,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 				});
 			});
 			elements.restartWrongBtn.addEventListener("click", restartWrongWords);
-      elements.addMistakeBtn.addEventListener("click", addCurrentWordToMistakeBook);
-      elements.decreaseMistakeBtn.addEventListener("click", decreaseCurrentWordErrorLevel);
-      elements.removeMistakeBtn.addEventListener("click", removeCurrentWordFromMistakeBook);
 
 			elements.toggleWordBtn.addEventListener("click", () => {
 				state.showWords = !state.showWords;
@@ -12431,22 +12225,8 @@ const EXPORT_FILE_PREFIX = "语料库";
         input.addEventListener("change", saveSettings);
       });
 
-      [elements.speedInput, elements.phraseSpeedInput, elements.modeSelect, elements.listenOrderSelect].forEach((input) => {
+      [elements.speedInput, elements.modeSelect, elements.listenOrderSelect].forEach((input) => {
         input.addEventListener("change", saveSettings);
-      });
-
-      elements.speedInput.addEventListener("change", () => {
-        const value = Number(elements.speedInput.value);
-        if (Number.isFinite(value) && value >= 0.4 && value <= 2) {
-          state.playbackRate = value;
-        }
-      });
-
-      elements.phraseSpeedInput.addEventListener("change", () => {
-        const value = Number(elements.phraseSpeedInput.value);
-        if (Number.isFinite(value) && value >= 0.4 && value <= 2) {
-          state.phrasePlaybackRate = value;
-        }
       });
 
       elements.modeSelect.addEventListener("change", () => {
