@@ -1012,10 +1012,6 @@
                 单词循环次数
                 <input id="listenRepeatInput" type="number" min="1" step="1" value="1" />
               </label>
-              <label>
-                大循环播放次数
-                <input id="listenBigLoopInput" type="number" min="1" step="1" value="1" />
-              </label>
             </div>
 
             <label>
@@ -1096,7 +1092,6 @@
               <button id="replayBtn" class="ghost" disabled>重播当前音频</button>
               <button id="submitBtn" class="ghost" disabled>提交答案</button>
               <button id="revealBtn" class="ghost" disabled>显示单词</button>
-              <button id="prevBtn" class="ghost" hidden disabled>上一个</button>
               <button id="nextBtn" class="ghost" disabled>下一题</button>
               <button id="restartWrongBtn" class="ghost" disabled>只练错词</button>
               <button id="addMistakeBtn" class="ghost" disabled>错误等级 +1</button>
@@ -9910,7 +9905,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       modeSelect: document.getElementById("modeSelect"),
       listenOrderSelect: document.getElementById("listenOrderSelect"),
       listenRepeatInput: document.getElementById("listenRepeatInput"),
-      listenBigLoopInput: document.getElementById("listenBigLoopInput"),
       wordInput: document.getElementById("wordInput"),
       answerInput: document.getElementById("answerInput"),
       wordDisplay: document.getElementById("wordDisplay"),
@@ -9922,7 +9916,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       submitBtn: document.getElementById("submitBtn"),
       revealBtn: document.getElementById("revealBtn"),
       nextBtn: document.getElementById("nextBtn"),
-      prevBtn: document.getElementById("prevBtn"),
       restartWrongBtn: document.getElementById("restartWrongBtn"),
       addMistakeBtn: document.getElementById("addMistakeBtn"),
       decreaseMistakeBtn: document.getElementById("decreaseMistakeBtn"),
@@ -9995,8 +9988,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       phrasePlaybackRate: 0.8,
       listenOrder: "sequence",
       listenRepeatCount: 1,
-      bigLoopCount: 1,
-      bigLoopIndex: 0,
       words: [],
       wordMetaMap: {},
       practiceEntryMap: {},
@@ -10247,7 +10238,6 @@ const EXPORT_FILE_PREFIX = "语料库";
         mode: elements.modeSelect.value,
         listenOrder: elements.listenOrderSelect.value,
         listenRepeat: elements.listenRepeatInput.value.trim(),
-        listenBigLoop: elements.listenBigLoopInput.value.trim(),
 				words: elements.wordInput.value,
         showWords: state.showWords,
         listenWordHidden: state.listenWordHidden,
@@ -10277,7 +10267,6 @@ const EXPORT_FILE_PREFIX = "语料库";
         elements.modeSelect.value = payload.mode || "dictation";
 				elements.listenOrderSelect.value = payload.listenOrder || "sequence";
 				elements.listenRepeatInput.value = payload.listenRepeat || "1";
-				elements.listenBigLoopInput.value = payload.listenBigLoop || "1";
 				elements.wordInput.value = payload.words || "";
 				state.showWords = Boolean(payload.showWords);
 				state.listenWordHidden = payload.listenWordHidden !== undefined ? payload.listenWordHidden : true;
@@ -10290,7 +10279,6 @@ const EXPORT_FILE_PREFIX = "语料库";
         state.practiceMode = payload.mode || "dictation";
 				state.listenOrder = payload.listenOrder || "sequence";
 				state.listenRepeatCount = Math.max(1, Math.floor(Number(payload.listenRepeat || 1)));
-				state.bigLoopCount = Math.max(1, Math.floor(Number(payload.listenBigLoop || 1)));
 				const restoredWordRate = Number(payload.speed);
 				if (Number.isFinite(restoredWordRate) && restoredWordRate >= 0.4 && restoredWordRate <= 2) {
 					state.playbackRate = restoredWordRate;
@@ -10316,7 +10304,6 @@ const EXPORT_FILE_PREFIX = "语料库";
           mode: elements.modeSelect.value,
           listenOrder: elements.listenOrderSelect.value,
           listenRepeat: elements.listenRepeatInput.value.trim(),
-          listenBigLoop: elements.listenBigLoopInput.value.trim(),
           words: elements.wordInput.value,
           showWords: state.showWords,
           activeTab: state.activeTab,
@@ -10388,7 +10375,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       const speedValue = Number(settings.speed);
       const phraseSpeedValue = Number(settings.phraseSpeed);
       const listenRepeatValue = Math.max(1, Math.floor(Number(settings.listenRepeat || 1)));
-      const listenBigLoopValue = Math.max(1, Math.floor(Number(settings.listenBigLoop || 1)));
 
       return {
         chapter,
@@ -10398,7 +10384,6 @@ const EXPORT_FILE_PREFIX = "语料库";
         mode,
         listenOrder,
         listenRepeat: String(listenRepeatValue),
-        listenBigLoop: String(listenBigLoopValue),
         words: typeof settings.words === "string" ? settings.words : "",
         showWords: Boolean(settings.showWords),
         activeTab: settings.activeTab === "mistakes" || settings.activeTab === "stats" ? settings.activeTab : "practice",
@@ -11744,12 +11729,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       const listenMode = isListenMode();
       elements.listenOrderSelect.disabled = !listenMode;
       elements.listenRepeatInput.disabled = !listenMode;
-      if (elements.listenBigLoopInput) {
-        elements.listenBigLoopInput.disabled = !listenMode;
-      }
-      if (elements.prevBtn) {
-        elements.prevBtn.hidden = !listenMode;
-      }
     }
 
 		function render() {
@@ -11772,9 +11751,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       elements.submitBtn.disabled = !state.waitingForAnswer || isListenMode();
       elements.revealBtn.disabled = !state.waitingForAnswer || isListenMode();
 			elements.nextBtn.disabled = !state.currentWordResolved || state.isFinished;
-      if (elements.prevBtn) {
-        elements.prevBtn.disabled = !isListenMode() || !state.sessionStarted || state.isFinished || state.currentWordIndex <= 1;
-      }
       elements.restartWrongBtn.disabled = state.mistakeEntries.length === 0 || isListenMode();
       renderMistakeActionButtons();
 			elements.pauseBtn.textContent = state.isPaused ? "继续" : "暂停";
@@ -11829,7 +11805,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 			state.currentWordResolved = false;
 			state.currentAudioFinished = false;
       state.currentListenRepeatIndex = 0;
-      state.bigLoopIndex = 0;
 			state.waitingForAnswer = false;
       state.sessionRecordSaved = false;
 
@@ -11889,7 +11864,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       state.practiceMode = elements.modeSelect.value || "dictation";
       state.listenOrder = elements.listenOrderSelect.value || "sequence";
       state.listenRepeatCount = Math.max(1, Math.floor(Number(elements.listenRepeatInput.value || 1)));
-      state.bigLoopCount = Math.max(1, Math.floor(Number(elements.listenBigLoopInput.value || 1)));
       if (missingWords.length || chapterMismatchWords.length) {
         elements.wordInput.value = validWords.join("\n");
         const messages = [];
@@ -11913,21 +11887,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 			clearTimer();
 
 			if (!state.pendingWords.length) {
-        if (isListenMode() && state.bigLoopCount > 1 && state.bigLoopIndex < state.bigLoopCount - 1 && state.words.length) {
-          state.bigLoopIndex += 1;
-          if (state.listenOrder === "random") {
-            const reshuffled = shufflePracticeEntries(buildEntriesFromCurrentWords());
-            state.practiceEntryMap = reshuffled.reduce((result, entry) => {
-              result[entry.id] = entry;
-              return result;
-            }, {});
-            state.words = reshuffled.map((entry) => entry.id);
-          }
-          state.pendingWords = [...state.words];
-          setCacheStatus(`已完成第 ${state.bigLoopIndex} / ${state.bigLoopCount} 轮大循环，开始下一轮。`);
-          await moveToNextWord();
-          return;
-        }
         recordChapterPracticeIfNeeded();
 				state.sessionStarted = false;
 				state.isFinished = true;
@@ -11976,14 +11935,12 @@ const EXPORT_FILE_PREFIX = "语料库";
           elements.wordDisplay.classList.remove("hidden");
           elements.hideWordBtn.textContent = "隐藏";
         }
-        elements.promptHint.textContent = state.currentWordMeta ? `当前为纯播放模式，匹配 ${getChapterLabel(state.currentWordMeta)}，将按${state.listenOrder === "random" ? "随机" : "顺序"}播放，每词循环 ${state.listenRepeatCount} 次，大循环 ${state.bigLoopCount} 次。本模式不会记录正确率、错词本或章节统计。` : "当前为纯播放模式，不会记录听写结果。";
+        elements.promptHint.textContent = state.currentWordMeta ? `当前为纯播放模式，匹配 ${getChapterLabel(state.currentWordMeta)}，将按${state.listenOrder === "random" ? "随机" : "顺序"}播放，每词循环 ${state.listenRepeatCount} 次。本模式不会记录正确率、错词本或章节统计。` : "当前为纯播放模式，不会记录听写结果。";
       }
-			elements.progressChip.textContent = isListenMode() && state.bigLoopCount > 1
-				? `第 ${state.currentWordIndex} / ${state.words.length} 个（第 ${state.bigLoopIndex + 1} / ${state.bigLoopCount} 轮）`
-				: `第 ${state.currentWordIndex} / ${state.words.length} 个`;
+			elements.progressChip.textContent = `第 ${state.currentWordIndex} / ${state.words.length} 个`;
       elements.promptText.textContent = isListenMode() ? "正在听音播放" : "请听音频并输入单词拼写";
       elements.promptHint.textContent = isListenMode()
-      ? (state.currentWordMeta ? `当前为纯播放模式，匹配 ${getChapterLabel(state.currentWordMeta)}，将按${state.listenOrder === "random" ? "随机" : "顺序"}播放，每词循环 ${state.listenRepeatCount} 次，大循环 ${state.bigLoopCount} 次。本模式不会记录正确率、错词本或章节统计。` : "当前为纯播放模式，不会记录听写结果。")
+      ? (state.currentWordMeta ? `当前为纯播放模式，匹配 ${getChapterLabel(state.currentWordMeta)}，将按${state.listenOrder === "random" ? "随机" : "顺序"}播放，每词循环 ${state.listenRepeatCount} 次。本模式不会记录正确率、错词本或章节统计。` : "当前为纯播放模式，不会记录听写结果。")
       : (state.currentWordMeta ? `当前单词已准备播放，匹配 ${getChapterLabel(state.currentWordMeta)}。若播放失败，可先重播一次；若仍失败，通常是音频源不可达或浏览器拦截了远程 HTTP 音频。` : "当前单词已准备播放。");
 			setFeedback("", "");
 			renderPendingList();
@@ -12085,25 +12042,6 @@ const EXPORT_FILE_PREFIX = "语料库";
       }
 			moveToNextWord().catch((error) => {
 				setFeedback(error.message || "播放下一个单词失败。", "error");
-			});
-		}
-
-		function goToPreviousWordManually() {
-			if (!isListenMode() || !state.sessionStarted || state.isFinished) {
-				return;
-			}
-			if (state.currentWordIndex <= 1) {
-				return;
-			}
-			const previousEntryId = state.words[state.currentWordIndex - 2];
-			if (!previousEntryId) {
-				return;
-			}
-			clearTimer();
-			audio.pause();
-			state.pendingWords.unshift(previousEntryId);
-			moveToNextWord().catch((error) => {
-				setFeedback(error.message || "播放上一个单词失败。", "error");
 			});
 		}
 
@@ -12437,9 +12375,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 			elements.submitBtn.addEventListener("click", submitAnswer);
 			elements.revealBtn.addEventListener("click", revealCurrentWord);
 			elements.nextBtn.addEventListener("click", goToNextWordManually);
-			if (elements.prevBtn) {
-				elements.prevBtn.addEventListener("click", goToPreviousWordManually);
-			}
 
 			elements.answerInput.addEventListener("keydown", (event) => {
 				if (event.key === "Enter") {
@@ -12491,10 +12426,7 @@ const EXPORT_FILE_PREFIX = "语料库";
 			});
 
 
-      [elements.intervalInput, elements.listenRepeatInput, elements.listenBigLoopInput, elements.wordInput].forEach((input) => {
-        if (!input) {
-          return;
-        }
+      [elements.intervalInput, elements.listenRepeatInput, elements.wordInput].forEach((input) => {
         input.addEventListener("input", saveSettings);
         input.addEventListener("change", saveSettings);
       });
