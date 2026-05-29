@@ -450,6 +450,26 @@
       gap: 6px;
     }
 
+    .word-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 12px;
+      row-gap: 8px;
+    }
+
+    .word-title-row .phonetic {
+      align-self: baseline;
+    }
+
+    .word-title-row .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      align-self: center;
+    }
+
     .word-title {
       margin: 0;
       font-size: clamp(28px, 5.2vw, 56px);
@@ -2483,12 +2503,14 @@
 
             <div class="word-heading">
               <p class="small-text" id="chapterLine">请先从上方章节选择一个分组</p>
-              <h2 class="word-title" id="wordText">Ready</h2>
-              <div class="phonetic" id="phoneticText">/ -- /</div>
-              <div class="pill-row">
-                <span class="pill gold-badge hidden-visual" id="coreVocabBadge">★ 核心词汇</span>
-                <span class="pill gold-badge hidden-visual" id="reading538Badge">★ 阅读538词汇</span>
-                <span class="pill gold-badge hidden-visual" id="listening179Badge">★ 听力179词汇</span>
+              <div class="word-title-row">
+                <h2 class="word-title" id="wordText">Ready</h2>
+                <div class="phonetic" id="phoneticText">/ -- /</div>
+                <div class="pill-row">
+                  <span class="pill gold-badge hidden-visual" id="coreVocabBadge">★ 核心词汇</span>
+                  <span class="pill gold-badge hidden-visual" id="reading538Badge">★ 阅读538词汇</span>
+                  <span class="pill gold-badge hidden-visual" id="listening179Badge">★ 听力179词汇</span>
+                </div>
               </div>
             </div>
 
@@ -3869,20 +3891,25 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
         setStatus(`${word.word} 难度降为 0，已从难词列表移除。`, false);
         return;
       }
+      const resetReview = delta > 0;
+      const nowIso = new Date().toISOString();
       if (state.difficultWords[word.key]) {
         state.difficultWords[word.key] = {
           ...state.difficultWords[word.key],
-          difficultyLevel: next
+          difficultyLevel: next,
+          ...(resetReview ? { reviewStage: 0, nextReviewAt: nowIso } : {})
         };
       } else {
         state.difficultWords[word.key] = {
           ...createStoredWordSnapshot(word),
-          difficultyLevel: next
+          difficultyLevel: next,
+          ...(resetReview ? { reviewStage: 0, nextReviewAt: nowIso } : {})
         };
       }
       saveState();
       renderAll();
-      setStatus(`${word.word} 难度等级 ${current} → ${next}。`, false);
+      const suffix = resetReview ? "，复习时间已重置。" : "。";
+      setStatus(`${word.word} 难度等级 ${current} → ${next}${suffix}`, false);
     }
 
     function createStoredWordSnapshot(word) {
