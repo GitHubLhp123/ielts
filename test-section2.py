@@ -7,7 +7,7 @@ import json
 
 # ---------------- 配置 ----------------
 input_file = "/Users/lhp/Desktop/listening/chapter10/Section2.mp3"     # 原始音频文件
-output_dir = "listening-word/chunks/section2/"    # 输出目录
+output_dir = "listening-word/chunks/section211/"    # 输出目录
 silence_thresh = 0.01        # 静音阈值（0~1, 振幅比例）
 min_silence_len = 1500       # 静音最短长度，单位毫秒
 language = "en"
