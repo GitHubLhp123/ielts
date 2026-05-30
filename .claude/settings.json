@@ -3,7 +3,13 @@
     "allow": [
       "Bash(git checkout *)",
       "Bash(python build-chapter8-word.py)",
-      "Bash(python3 build-chapter8-word.py)"
+      "Bash(python3 build-chapter8-word.py)",
+      "Bash(sed 's/^DRY_RUN = False/DRY_RUN = True/' clean-chapter8-words.py)",
+      "Bash(python3 /tmp/clean_dry.py)",
+      "Bash(python3 clean-chapter8-words.py)",
+      "Bash(python3 -)",
+      "Bash(sed 's/^DRY_RUN = False/DRY_RUN = True/' normalize-chapter8-seps.py)",
+      "Bash(python3 /tmp/norm_dry.py)"
     ]
   }
 }
