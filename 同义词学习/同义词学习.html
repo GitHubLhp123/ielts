@@ -305,21 +305,32 @@
 
         <!-- 上传弹窗 -->
         <el-dialog title="导入同义替换词库" :visible.sync="showUploadDialog" width="420px" center>
-            <p style="color:var(--text-secondary);margin-bottom:16px;">请上传符合格式的 JSON 文件<br>（二维数组，每个子数组为一组同义词）</p>
+            <p style="color:var(--text-secondary);margin-bottom:16px;">请上传符合格式的 JSON 文件<br>（二维数组，每个子数组为一组同义词）<br>支持上传多个文件，将按上传顺序排列</p>
             <el-upload
                 class="upload-demo"
                 drag
+                multiple
                 accept=".json"
                 :auto-upload="false"
                 :on-change="handleFileChange"
                 :show-file-list="false">
                 <i class="el-icon-upload"></i>
                 <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-                <div class="el-upload__tip" slot="tip">仅支持 .json 格式文件</div>
+                <div class="el-upload__tip" slot="tip">仅支持 .json 格式文件，可多选</div>
             </el-upload>
-            <div style="margin-top:20px;text-align:center;" v-if="uploadFileName">
-                <span>{{ uploadFileName }}</span>
-                <el-button type="success" size="small" style="margin-left:10px;" @click="processUploadedFile">导入此文件</el-button>
+            <div style="margin-top:20px;" v-if="uploadFiles.length">
+                <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:8px;">待导入文件（按顺序）：</p>
+                <ul style="list-style:none;padding:0;margin:0;">
+                    <li v-for="(f, fidx) in uploadFiles" :key="fidx"
+                        style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg);border-radius:8px;margin-bottom:6px;">
+                        <span style="font-size:0.85rem;"><span style="color:var(--text-secondary);">{{ fidx + 1 }}.</span> {{ f.name }}</span>
+                        <i class="el-icon-close" style="cursor:pointer;color:var(--text-secondary);" @click="removeUploadFile(fidx)"></i>
+                    </li>
+                </ul>
+                <div style="text-align:center;margin-top:12px;">
+                    <el-button type="success" size="small" @click="processUploadedFile">导入这些文件</el-button>
+                    <el-button size="small" @click="clearUploadFiles">清空</el-button>
+                </div>
             </div>
             <span slot="footer" class="dialog-footer">
                 <el-button @click="showUploadDialog = false">取 消</el-button>
@@ -358,8 +369,7 @@
                 selectedVoice: '',
                 searchQuery: '',
                 showUploadDialog: false,
-                uploadFile: null,
-                uploadFileName: '',
+                uploadFiles: [],
                 showNoteDialog: false,
                 noteForm: { word: '', text: '' },
                 currentNoteGroup: [],
@@ -639,39 +649,66 @@
                 },
                 // 导入词库
                 handleFileChange(file, fileList) {
-                    this.uploadFile = file.raw;
-                    this.uploadFileName = file.name;
+                    // 按上传顺序追加，过滤非 json 文件
+                    if (!file.name.toLowerCase().endsWith('.json')) {
+                        this.$message.error(`「${file.name}」不是 .json 文件，已忽略`);
+                        return;
+                    }
+                    this.uploadFiles.push({ name: file.name, raw: file.raw });
                 },
-                processUploadedFile() {
-                    if (!this.uploadFile) {
+                removeUploadFile(idx) {
+                    this.uploadFiles.splice(idx, 1);
+                },
+                clearUploadFiles() {
+                    this.uploadFiles = [];
+                },
+                readFileAsJson(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const data = JSON.parse(e.target.result);
+                                if (!Array.isArray(data) || !data.every(item => Array.isArray(item) && item.length >= 1)) {
+                                    throw new Error('格式错误');
+                                }
+                                resolve(data);
+                            } catch (err) {
+                                reject(file.name);
+                            }
+                        };
+                        reader.onerror = () => reject(file.name);
+                        reader.readAsText(file.raw);
+                    });
+                },
+                async processUploadedFile() {
+                    if (!this.uploadFiles.length) {
                         this.$message.warning('请先选择文件');
                         return;
                     }
-                    const file = this.uploadFile;
-                    if (!file.name.endsWith('.json')) {
-                        this.$message.error('仅支持 .json 格式');
-                        return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
+                    const allGroups = [];
+                    const failed = [];
+                    // 按上传顺序依次读取并拼接
+                    for (const f of this.uploadFiles) {
                         try {
-                            const data = JSON.parse(e.target.result);
-                            if (!Array.isArray(data) || !data.every(item => Array.isArray(item) && item.length >= 1)) {
-                                throw new Error('格式错误');
-                            }
-                            this.groups = data
-                                .filter(arr => arr.length >= 1)
+                            const data = await this.readFileAsJson(f);
+                            const groups = data
                                 .map(arr => arr.map(w => String(w).trim()).filter(Boolean))
                                 .filter(arr => arr.length >= 1);
-                            this.showUploadDialog = false;
-                            this.uploadFile = null;
-                            this.uploadFileName = '';
-                            this.$message.success(`成功导入 ${this.groups.length} 组词库`);
-                        } catch (err) {
-                            this.$message.error('JSON 格式不正确，请检查文件');
+                            allGroups.push(...groups);
+                        } catch (name) {
+                            failed.push(name);
                         }
-                    };
-                    reader.readAsText(file);
+                    }
+                    if (failed.length) {
+                        this.$message.error(`以下文件格式不正确，已跳过：${failed.join('、')}`);
+                    }
+                    if (!allGroups.length) {
+                        return;
+                    }
+                    this.groups = allGroups;
+                    this.showUploadDialog = false;
+                    this.uploadFiles = [];
+                    this.$message.success(`成功导入 ${this.groups.length} 组词库`);
                 },
                 loadSampleData() {
                     this.groups = [

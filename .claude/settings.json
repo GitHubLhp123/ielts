@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(python build-chapter8-word.py)",
+      "Bash(python3 build-chapter8-word.py)"
     ]
   }
 }
