@@ -9,7 +9,10 @@
       "Bash(python3 clean-chapter8-words.py)",
       "Bash(python3 -)",
       "Bash(sed 's/^DRY_RUN = False/DRY_RUN = True/' normalize-chapter8-seps.py)",
-      "Bash(python3 /tmp/norm_dry.py)"
+      "Bash(python3 /tmp/norm_dry.py)",
+      "Bash(python3 -c \"import sys; sys.path.insert\\(0,'/Users/lhp/Desktop/codeProject/ielts-dev'\\); from importlib import import_module; m=__import__\\('normalize-chapter8-seps'.replace\\('-','_'\\)\\) if False else None\")",
+      "Bash(python3 normalize-chapter8-seps.py)",
+      "Bash(awk '{print $5/1024/1024\" MB file\"}')"
     ]
   }
 }
