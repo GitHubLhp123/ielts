@@ -11099,16 +11099,6 @@ const EXPORT_FILE_PREFIX = "语料库";
     const DB_NAME = "ielts-dictation-audio-db";
     const DB_VERSION = 1;
     const STORE_NAME = "audios";
-    // 关闭 mp3 本地缓存：音频改为流式播放，不写入 IndexedDB，避免占满浏览器存储配额。
-    // 如需恢复“下载并缓存音频”，把此处改回 true 即可。
-    const AUDIO_CACHE_ENABLED = false;
-    // 错词本/练习统计/章节统计体积会随使用增长，超过 localStorage ~5MB 上限即报“保存失败”。
-    // 改存到独立的 IndexedDB（容量大得多），settings 仍留在 localStorage（体积很小）。
-    const DATA_DB_NAME = "ielts-dictation-data-db";
-    const DATA_DB_VERSION = 1;
-    const DATA_STORE_NAME = "kv";
-    let dataDbAvailable = true;
-    let dataDbPromise = null;
 
     const elements = {
       workspaceGrid: document.querySelector(".grid"),
@@ -12026,120 +12016,23 @@ const EXPORT_FILE_PREFIX = "语料库";
       return action();
     }
 
-    function openDataDb() {
-      if (dataDbPromise) {
-        return dataDbPromise;
-      }
-      dataDbPromise = new Promise((resolve, reject) => {
-        if (typeof indexedDB === "undefined" || !indexedDB) {
-          reject(new Error("indexeddb_unavailable"));
-          return;
-        }
-        let request;
-        try {
-          request = indexedDB.open(DATA_DB_NAME, DATA_DB_VERSION);
-        } catch (error) {
-          reject(error);
-          return;
-        }
-        request.onupgradeneeded = () => {
-          const db = request.result;
-          if (!db.objectStoreNames.contains(DATA_STORE_NAME)) {
-            db.createObjectStore(DATA_STORE_NAME);
-          }
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error || new Error("indexeddb_open_failed"));
-      });
-      return dataDbPromise;
-    }
-
-    function dataDbGet(key) {
-      return openDataDb().then((db) => new Promise((resolve, reject) => {
-        const tx = db.transaction(DATA_STORE_NAME, "readonly");
-        const request = tx.objectStore(DATA_STORE_NAME).get(key);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error || new Error("indexeddb_get_failed"));
-      }));
-    }
-
-    function dataDbSet(key, value) {
-      return openDataDb().then((db) => new Promise((resolve, reject) => {
-        const tx = db.transaction(DATA_STORE_NAME, "readwrite");
-        tx.objectStore(DATA_STORE_NAME).put(value, key);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error || new Error("indexeddb_put_failed"));
-        tx.onabort = () => reject(tx.error || new Error("indexeddb_put_aborted"));
-      }));
-    }
-
-    function readLocalStorageJson(key) {
-      const raw = localStorage.getItem(key);
-      if (!raw) {
-        return null;
-      }
-      try {
-        return JSON.parse(raw);
-      } catch (error) {
-        console.warn("Failed to parse legacy localStorage value", key, error);
-        return null;
-      }
-    }
-
-    // 写入 IndexedDB；不可用时回退 localStorage。失败时弹出对应提示。
-    function persistData(key, value, errorMessage) {
-      if (!dataDbAvailable) {
-        try {
-          localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
-          console.warn("Failed to persist to localStorage", key, error);
-          setLibraryNotice(errorMessage, "error");
-        }
-        return;
-      }
-      dataDbSet(key, value).catch((error) => {
-        console.warn("Failed to persist to IndexedDB", key, error);
-        setLibraryNotice(errorMessage, "error");
-      });
-    }
-
-    // 读取：优先 IndexedDB；若为空则从旧的 localStorage 迁移并删除原键（释放 5MB 配额）。
-    async function loadData(key) {
-      if (!dataDbAvailable) {
-        return readLocalStorageJson(key);
-      }
-      try {
-        let value = await dataDbGet(key);
-        if (value === undefined) {
-          const legacy = readLocalStorageJson(key);
-          if (legacy != null) {
-            value = legacy;
-            try {
-              await dataDbSet(key, value);
-              localStorage.removeItem(key);
-            } catch (error) {
-              console.warn("Failed to migrate localStorage to IndexedDB", key, error);
-            }
-          }
-        }
-        return value === undefined ? null : value;
-      } catch (error) {
-        dataDbAvailable = false;
-        console.warn("Data DB unavailable, fallback to localStorage", error);
-        return readLocalStorageJson(key);
-      }
-    }
-
     function saveMistakeBook() {
-      persistData(MISTAKE_BOOK_KEY, state.mistakeBook, "错词本保存失败，可能是浏览器存储空间不足。建议先导出学习记录，再清理旧数据。");
+      try {
+        localStorage.setItem(MISTAKE_BOOK_KEY, JSON.stringify(state.mistakeBook));
+      } catch (error) {
+        console.warn("Failed to persist mistake book", error);
+        setLibraryNotice("错词本保存失败，可能是浏览器存储空间不足。建议先导出学习记录，再清理旧数据。", "error");
+      }
     }
 
-    async function loadMistakeBook() {
-      const payload = await loadData(MISTAKE_BOOK_KEY);
-      if (payload == null) {
+    function loadMistakeBook() {
+      const raw = localStorage.getItem(MISTAKE_BOOK_KEY);
+      if (!raw) {
         return;
       }
+
       try {
+        const payload = JSON.parse(raw);
         const entries = Array.isArray(payload) ? payload : [];
         state.mistakeBook = sanitizeMistakeBook(entries, detectMistakeBookVersion(entries));
       } catch (error) {
@@ -12148,31 +12041,45 @@ const EXPORT_FILE_PREFIX = "语料库";
     }
 
     function saveChapterStats() {
-      persistData(CHAPTER_STATS_KEY, state.chapterStats, "章节统计保存失败，可能是浏览器存储空间不足。建议先导出学习记录，再清理历史统计。");
+      try {
+        localStorage.setItem(CHAPTER_STATS_KEY, JSON.stringify(state.chapterStats));
+      } catch (error) {
+        console.warn("Failed to persist chapter stats", error);
+        setLibraryNotice("章节统计保存失败，可能是浏览器存储空间不足。建议先导出学习记录，再清理历史统计。", "error");
+      }
     }
 
     function saveWordStats() {
-      persistData(WORD_STATS_KEY, state.wordStats, "练习统计保存失败，可能是浏览器存储空间不足。建议先导出学习记录，再清理历史统计。");
+      try {
+        localStorage.setItem(WORD_STATS_KEY, JSON.stringify(state.wordStats));
+      } catch (error) {
+        console.warn("Failed to persist word stats", error);
+        setLibraryNotice("练习统计保存失败，可能是浏览器存储空间不足。建议先导出学习记录，再清理历史统计。", "error");
+      }
     }
 
-    async function loadWordStats() {
-      const payload = await loadData(WORD_STATS_KEY);
-      if (payload == null) {
+    function loadWordStats() {
+      const raw = localStorage.getItem(WORD_STATS_KEY);
+      if (!raw) {
         return;
       }
+
       try {
+        const payload = JSON.parse(raw);
         state.wordStats = sanitizeWordStats(payload && typeof payload === "object" ? payload : {});
       } catch (error) {
         console.warn("Failed to restore word stats", error);
       }
     }
 
-    async function loadChapterStats() {
-      const payload = await loadData(CHAPTER_STATS_KEY);
-      if (payload == null) {
+    function loadChapterStats() {
+      const raw = localStorage.getItem(CHAPTER_STATS_KEY);
+      if (!raw) {
         return;
       }
+
       try {
+        const payload = JSON.parse(raw);
         state.chapterStats = sanitizeChapterStats(payload && typeof payload === "object" ? payload : {});
       } catch (error) {
         console.warn("Failed to restore chapter stats", error);
@@ -12542,26 +12449,24 @@ const EXPORT_FILE_PREFIX = "语料库";
       }
 
       const audioId = `${wordMeta.unit}::${spelling}`;
+			const cached = await getAudioRecord(audioId);
       let playbackSource = buildAudioUrl(wordMeta.unit, spelling);
       let statusMessage = `正在在线播放 ${spelling}。`;
 
-			if (AUDIO_CACHE_ENABLED) {
-				const cached = await getAudioRecord(audioId);
-				if (cached?.blob) {
-					state.objectUrl = URL.createObjectURL(cached.blob);
+			if (cached?.blob) {
+				state.objectUrl = URL.createObjectURL(cached.blob);
+				playbackSource = state.objectUrl;
+        statusMessage = `正在播放本地缓存音频：${spelling}（${wordMeta.unit}）`;
+			} else {
+				try {
+          const result = await fetchAndCacheAudio(wordMeta.unit, spelling);
+					state.objectUrl = URL.createObjectURL(result.blob);
 					playbackSource = state.objectUrl;
-          statusMessage = `正在播放本地缓存音频：${spelling}（${wordMeta.unit}）`;
-				} else {
-					try {
-            const result = await fetchAndCacheAudio(wordMeta.unit, spelling);
-						state.objectUrl = URL.createObjectURL(result.blob);
-						playbackSource = state.objectUrl;
-            statusMessage = `已下载并缓存音频：${spelling}（${wordMeta.unit}）`;
-						await updateCachedCount();
-					} catch (error) {
-            playbackSource = buildAudioUrl(wordMeta.unit, spelling);
-            statusMessage = `当前直接播放远程音频：${spelling}。若站点未开放跨域缓存，浏览器可能无法持久保存该音频。`;
-					}
+          statusMessage = `已下载并缓存音频：${spelling}（${wordMeta.unit}）`;
+					await updateCachedCount();
+				} catch (error) {
+          playbackSource = buildAudioUrl(wordMeta.unit, spelling);
+          statusMessage = `当前直接播放远程音频：${spelling}。若站点未开放跨域缓存，浏览器可能无法持久保存该音频。`;
 				}
 			}
 
@@ -13560,22 +13465,20 @@ const EXPORT_FILE_PREFIX = "语料库";
       }
 
       const audioId = `${entry.unit}::${entry.word}`;
+      const cached = await getAudioRecord(audioId);
       let source = buildAudioUrl(entry.unit, entry.word);
 
-      if (AUDIO_CACHE_ENABLED) {
-        const cached = await getAudioRecord(audioId);
-        if (cached?.blob) {
-          state.objectUrl = URL.createObjectURL(cached.blob);
+      if (cached?.blob) {
+        state.objectUrl = URL.createObjectURL(cached.blob);
+        source = state.objectUrl;
+      } else {
+        try {
+          const result = await fetchAndCacheAudio(entry.unit, entry.word);
+          state.objectUrl = URL.createObjectURL(result.blob);
           source = state.objectUrl;
-        } else {
-          try {
-            const result = await fetchAndCacheAudio(entry.unit, entry.word);
-            state.objectUrl = URL.createObjectURL(result.blob);
-            source = state.objectUrl;
-            await updateCachedCount();
-          } catch (error) {
-            source = buildAudioUrl(entry.unit, entry.word);
-          }
+          await updateCachedCount();
+        } catch (error) {
+          source = buildAudioUrl(entry.unit, entry.word);
         }
       }
 
@@ -13983,10 +13886,10 @@ const EXPORT_FILE_PREFIX = "语料库";
 		async function initialize() {
 			populateChapterSelect();
 			loadSettings();
-      await loadMistakeBook();
-      await loadWordStats();
+      loadMistakeBook();
+      loadWordStats();
       hydrateWordStatsFromMistakeBook();
-      await loadChapterStats();
+      loadChapterStats();
 			bindEvents();
 			elements.answerInput.disabled = true;
 
@@ -14006,14 +13909,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 				render();
 			}
 
-			if (!AUDIO_CACHE_ENABLED) {
-				// 缓存已关闭：清空历史遗留的音频缓存，释放浏览器存储空间。
-				try {
-					await clearAudioRecords();
-				} catch (error) {
-					console.warn("Failed to purge disabled audio cache", error);
-				}
-			}
 			await updateCachedCount();
       await promptBackupReminderIfNeeded();
 		}

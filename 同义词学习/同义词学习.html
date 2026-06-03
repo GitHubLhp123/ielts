@@ -267,7 +267,7 @@
             <!-- 空状态 -->
             <div v-if="groups.length === 0" class="empty-state">
                 <i class="el-icon-folder-opened"></i>
-                <p>暂无词库，请导入 JSON 或点击“示例词库”</p>
+                <p>暂无词库，请导入 .txt / .json 或点击“示例词库”</p>
             </div>
 
             <!-- 同义词列表 -->
@@ -305,18 +305,18 @@
 
         <!-- 上传弹窗 -->
         <el-dialog title="导入同义替换词库" :visible.sync="showUploadDialog" width="420px" center>
-            <p style="color:var(--text-secondary);margin-bottom:16px;">请上传符合格式的 JSON 文件<br>（二维数组，每个子数组为一组同义词）<br>支持上传多个文件，将按上传顺序排列</p>
+            <p style="color:var(--text-secondary);margin-bottom:16px;">支持 .txt（每行一组，逗号分隔）或 .json（二维数组）<br>空行会被自动忽略，含中文的词只展示不播报<br>支持上传多个文件，将按上传顺序排列</p>
             <el-upload
                 class="upload-demo"
                 drag
                 multiple
-                accept=".json"
+                accept=".txt,.json"
                 :auto-upload="false"
                 :on-change="handleFileChange"
                 :show-file-list="false">
                 <i class="el-icon-upload"></i>
                 <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-                <div class="el-upload__tip" slot="tip">仅支持 .json 格式文件，可多选</div>
+                <div class="el-upload__tip" slot="tip">支持 .txt / .json 格式，可多选</div>
             </el-upload>
             <div style="margin-top:20px;" v-if="uploadFiles.length">
                 <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:8px;">待导入文件（按顺序）：</p>
@@ -435,8 +435,12 @@
                         speechSynthesis.onvoiceschanged = setVoices;
                     }
                 },
+                hasChinese(text) {
+                    return /[一-鿿]/.test(String(text || ''));
+                },
                 speakWord(word) {
                     if (!window.speechSynthesis) return;
+                    if (this.hasChinese(word)) return; // 含中文不播报
                     speechSynthesis.cancel();
                     const u = new SpeechSynthesisUtterance(word);
                     u.lang = 'en-US';
@@ -532,44 +536,81 @@
                 },
                 doAutoPlayStep() {
                     if (!this.isAutoPlaying) return;
-                    const group = this.filteredGroups[this.currentGroupIdx];
-                    if (!group) {
+                    if (this.filteredGroups.length === 0) {
                         this.stopAutoPlay();
                         return;
                     }
-                    const word = group[this.currentWordIdx];
-                    this.currentWord = word;
-                    this.playWordWithRate(word, () => {
-                        this.scheduleNextWord();
-                    });
+                    // 找到下一个可播报的词：跳过含中文的词（以及整组皆为中文的标题行）
+                    const totalWords = this.filteredGroups.reduce((sum, g) => sum + g.length, 0);
+                    const scanLimit = (totalWords + this.filteredGroups.length) * Math.max(1, this.autoPlayGroupLoop) + 5;
+                    let scanned = 0;
+                    while (scanned <= scanLimit) {
+                        const group = this.filteredGroups[this.currentGroupIdx];
+                        const word = group ? group[this.currentWordIdx] : undefined;
+                        if (word === undefined || this.hasChinese(word)) {
+                            // 位置无效或含中文：不播报，直接前进到下一个词
+                            this.currentWordLoopCount = 0;
+                            if (!this.moveToNextWord()) {
+                                this.stopAutoPlay();
+                                return;
+                            }
+                            scanned++;
+                            continue;
+                        }
+                        // 可播报的词
+                        this.currentWord = word;
+                        this.playWordWithRate(word, () => {
+                            this.scheduleNextWord();
+                        });
+                        return;
+                    }
+                    // 没有任何可播报内容
+                    this.stopAutoPlay();
                 },
                 scheduleNextWord() {
                     if (!this.isAutoPlaying) return;
-                    const group = this.filteredGroups[this.currentGroupIdx];
                     const intervalMs = this.autoPlayInterval * 1000;
                     this.autoPlayTimer = setTimeout(() => {
-                        this.currentWordLoopCount++;
-                        if (this.currentWordLoopCount >= this.autoPlayWordLoop) {
-                            this.currentWordLoopCount = 0;
-                            this.currentWordIdx++;
-                            if (this.currentWordIdx >= group.length) {
-                                this.currentWordIdx = 0;
-                                this.currentGroupLoopCount++;
-                                if (this.currentGroupLoopCount >= this.autoPlayGroupLoop) {
-                                    this.currentGroupLoopCount = 0;
-                                    this.currentGroupIdx++;
-                                    if (this.currentGroupIdx >= this.filteredGroups.length) {
-                                        this.stopAutoPlay();
-                                        return;
-                                    }
-                                }
-                            }
+                        if (!this.advanceAfterSpeak()) {
+                            this.stopAutoPlay();
+                            return;
                         }
                         this.doAutoPlayStep();
                     }, intervalMs);
                 },
+                // 朗读完一次后推进位置：先处理单词循环，再处理组内换词 / 组循环
+                advanceAfterSpeak() {
+                    this.currentWordLoopCount++;
+                    if (this.currentWordLoopCount < this.autoPlayWordLoop) {
+                        return true; // 同一个词再读一次
+                    }
+                    this.currentWordLoopCount = 0;
+                    return this.moveToNextWord();
+                },
+                // 原始前进一个词（含组内换词、组循环、跨组），返回 false 表示整个序列结束
+                moveToNextWord() {
+                    const group = this.filteredGroups[this.currentGroupIdx];
+                    if (!group) return false;
+                    this.currentWordIdx++;
+                    if (this.currentWordIdx < group.length) {
+                        return true;
+                    }
+                    // 到达本组末尾
+                    this.currentWordIdx = 0;
+                    this.currentGroupLoopCount++;
+                    if (this.currentGroupLoopCount < this.autoPlayGroupLoop) {
+                        return true; // 重复本组
+                    }
+                    this.currentGroupLoopCount = 0;
+                    this.currentGroupIdx++;
+                    return this.currentGroupIdx < this.filteredGroups.length;
+                },
                 playWordWithRate(word, onEnd) {
                     if (!window.speechSynthesis) return;
+                    if (this.hasChinese(word)) { // 含中文不播报，直接进入下一步
+                        if (onEnd) onEnd();
+                        return;
+                    }
                     speechSynthesis.cancel();
                     const u = new SpeechSynthesisUtterance(word);
                     u.lang = 'en-US';
@@ -649,9 +690,10 @@
                 },
                 // 导入词库
                 handleFileChange(file, fileList) {
-                    // 按上传顺序追加，过滤非 json 文件
-                    if (!file.name.toLowerCase().endsWith('.json')) {
-                        this.$message.error(`「${file.name}」不是 .json 文件，已忽略`);
+                    // 按上传顺序追加，仅接受 .txt / .json
+                    const name = file.name.toLowerCase();
+                    if (!name.endsWith('.txt') && !name.endsWith('.json')) {
+                        this.$message.error(`「${file.name}」不是 .txt / .json 文件，已忽略`);
                         return;
                     }
                     this.uploadFiles.push({ name: file.name, raw: file.raw });
@@ -662,16 +704,34 @@
                 clearUploadFiles() {
                     this.uploadFiles = [];
                 },
-                readFileAsJson(file) {
+                readFileAsGroups(file) {
                     return new Promise((resolve, reject) => {
                         const reader = new FileReader();
                         reader.onload = (e) => {
                             try {
-                                const data = JSON.parse(e.target.result);
-                                if (!Array.isArray(data) || !data.every(item => Array.isArray(item) && item.length >= 1)) {
-                                    throw new Error('格式错误');
+                                const name = file.name.toLowerCase();
+                                let groups;
+                                if (name.endsWith('.json')) {
+                                    const data = JSON.parse(e.target.result);
+                                    if (!Array.isArray(data) || !data.every(item => Array.isArray(item) && item.length >= 1)) {
+                                        throw new Error('格式错误');
+                                    }
+                                    groups = data
+                                        .map(arr => arr.map(w => String(w).trim()).filter(Boolean))
+                                        .filter(arr => arr.length >= 1);
+                                } else {
+                                    // .txt：按行读取，删除空行；每一行为一组，组内按逗号分隔
+                                    groups = String(e.target.result)
+                                        .split(/\r?\n/)
+                                        .map(line => line.trim())
+                                        .filter(line => line.length > 0)
+                                        .map(line => line.split(/[,，]/).map(w => w.trim()).filter(Boolean))
+                                        .filter(arr => arr.length >= 1);
                                 }
-                                resolve(data);
+                                if (!groups.length) {
+                                    throw new Error('空文件');
+                                }
+                                resolve(groups);
                             } catch (err) {
                                 reject(file.name);
                             }
@@ -690,10 +750,7 @@
                     // 按上传顺序依次读取并拼接
                     for (const f of this.uploadFiles) {
                         try {
-                            const data = await this.readFileAsJson(f);
-                            const groups = data
-                                .map(arr => arr.map(w => String(w).trim()).filter(Boolean))
-                                .filter(arr => arr.length >= 1);
+                            const groups = await this.readFileAsGroups(f);
                             allGroups.push(...groups);
                         } catch (name) {
                             failed.push(name);
