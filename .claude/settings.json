@@ -21,7 +21,10 @@
       "Bash(awk 'length\\($0\\)<300')",
       "Bash(awk '{ if \\(length\\($0\\)>500\\) print NR\": \"length\\($0\\)\" chars\" }' /Users/lhp/Desktop/codeProject/ielts-dev/listening-word/王璐语料库_源码.html)",
       "Bash(awk 'length\\($0\\)<200')",
-      "Bash(grep -n 'loadSettings\\(\\)\\\\|loadMistakeBook\\(\\)\\\\|loadWordStats\\(\\)\\\\|loadChapterStats\\(\\)\\\\|updateCachedCount\\(\\)\\\\|function bootstrap\\\\|function init\\\\|DOMContentLoaded\\\\|disposeObjectUrl' /Users/lhp/Desktop/codeProject/ielts-dev/listening-word/王璐语料库_源码.html)"
+      "Bash(grep -n 'loadSettings\\(\\)\\\\|loadMistakeBook\\(\\)\\\\|loadWordStats\\(\\)\\\\|loadChapterStats\\(\\)\\\\|updateCachedCount\\(\\)\\\\|function bootstrap\\\\|function init\\\\|DOMContentLoaded\\\\|disposeObjectUrl' /Users/lhp/Desktop/codeProject/ielts-dev/listening-word/王璐语料库_源码.html)",
+      "Bash(awk 'length\\($0\\)<160')",
+      "Bash(awk 'NR>=12500 && NR<=12516' /Users/lhp/Desktop/codeProject/ielts-dev/listening-word/王璐语料库_源码.html)",
+      "Bash(awk 'NR>=13108 && NR<=13145' /Users/lhp/Desktop/codeProject/ielts-dev/listening-word/王璐语料库_源码.html)"
     ]
   }
 }
