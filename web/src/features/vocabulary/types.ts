@@ -97,6 +97,24 @@ export interface PresetLists {
   core: string[]
 }
 
+/** 听力语料音频索引条目（corpus.json，legacy window.LISTENING_WORD_AUDIO_DATA） */
+export interface CorpusEntry {
+  '单词名': string
+  'mp3路径': string
+  word: string
+  mp3Path: string
+  chapterId: string
+  chapterTitle: string
+}
+
+/** 归一化后的语料条目（供 UI 展示与播放） */
+export interface CorpusItem {
+  content: string
+  mp3Path: string
+  chapterId: string
+  chapterTitle: string
+}
+
 /* ============ 状态（DEFAULT_STATE 树） ============ */
 
 export type PracticeMode = 'standard' | 'quiz' | 'spell'

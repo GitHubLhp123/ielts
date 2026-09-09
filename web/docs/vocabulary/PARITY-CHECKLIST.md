@@ -9,7 +9,7 @@
   - `web/src/data/vocabulary/synonyms.json`（normalize_group 清洗）
   - `web/src/data/vocabulary/presets.json`（reading/listening/core）
 - legacy 页面存在时逐项与内联数据深度相等断言（`npm run data:vocab`）。已验证 ✓
-- 注：听力语料（`window.LISTENING_WORD_AUDIO_DATA`）**尚未**纳入同步脚本 —— 待 listening 模块数据层统一接入。
+- 听力语料：`web/src/data/vocabulary/corpus.json` 目前为 legacy `window.LISTENING_WORD_AUDIO_DATA` 的直接快照（懒加载，独立 chunk），待 listening 模块数据层统一后改由其重建（脚本内已注明）。
 
 ## 代码分层（`web/src/features/vocabulary/`）
 | 层 | 文件 | 状态 |
@@ -32,19 +32,20 @@
 - 三种练习模式（standard/quiz/spell），quiz 干扰项=全词库释义 3+1
 - 自动播放引擎（倍速/间隔/重复/静音/手动发音 ignoreMute）
 - recordExposure / studyLog / mastered 幂等 / 难词 6 档复习调度 + due 到期文案
-- 搜索（词/义/章节/音标 assist、Enter 开始、前 24 预览）、预设词源（reading/listening/core）
+- 搜索（词/义/章节/音标 assist、Enter 开始、前 24 预览）、预设词源（reading/listening/core/**listeningCorpus**）
+- 听力语料：corpus.json 懒加载快照 + token 级句子匹配卡 + 语料音频播放（不受 muted 门控，同 legacy）
 - 备份导出/导入（{state} 与裸 state 兼容）、7 天备份提醒
 - 全局快捷键（←/→/↑/Enter/Space/Ctrl+Space 重听）、输入框与 composition 守卫
+- 起始序号（1-based）跳转、拼写模式输入自动聚焦
 - 总览：今日卡、7 天 ECharts 折线、词库覆盖率、30 天热力图（DOM）
 - 设置弹窗（播放参数/显示开关/同义词源启用过滤/备份）
+- 单元测试 28 项（数据等价计数、同义词、语料匹配、复习调度、统计、搜索、难词筛选、快照归一化、状态合并/水合首启兼容）
 
-待补（下一阶段，见 legacy-BEHAVIOR-REPORT §12 亦同）：
-- [ ] 听力语料卡（当前词 ↔ 语料句子 token 匹配 + 语料 mp3 播放）与 listeningCorpus 词源
-- [ ] 同义词 popover（chip 悬浮/钉住/复制/词卡按钮组），现为内联 chip（点击已命中词发音）
-- [ ] 起始序号跳转输入、难度页"练习选中"与列表同屏联动细节
-- [ ] spell 输入自动聚焦 / quiz 选项键盘选择等焦点细节
-- [ ] 迁移后首次运行对旧 localStorage / IDB（apple-word-trainer-v4）读取冒烟测试（同源同 key 直接兼容）
-- [ ] 图标/样式收敛为 legacy 的玻璃拟态主题 tokens（可选，非功能 parity）
+待补（均为非功能差异/视觉层）：
+- [ ] 同义词 chip → legacy 悬浮 popover（钉住/复制/操作按钮组）精细交互
+- [ ] spell 模式下 quiz 面板语义空态细节、语料行高亮当前命中 token
+- [ ] 旧数据首启在真实浏览器中的端到端确认（单元层已覆盖 merge/hydrate）
+- [ ] 玻璃拟态主题 tokens 视觉迁移（可选）
 
 ## 运行
 ```bash

@@ -118,9 +118,9 @@ export const modules: IeltsModule[] = [
       '备份导入导出与本地状态持久化',
     ],
     icon: Notebook,
-    status: 'active',
+    status: 'done',
     notes:
-      '重构进度：数据层/状态层/学习·搜索·难词·总览已拆分实现（见 web/docs/vocabulary/）。数据链路：web/scripts/sync-vocab-data.mjs 从 words/data 重建并与 legacy 内联数据做一致性断言。待补：听力语料卡/听力语料词源（语料数据接入）、同义词 popover 精细交互、起始序号跳转、spell 输入自动聚焦等（见 parity 清单）。',
+      '已完成模块化重构（数据层/状态层/组件/视图分离 + 28 项单元测试）。数据链路：web/scripts/sync-vocab-data.mjs 从 words/data 重建并与 legacy 内联数据一致性断言；听力语料卡/词源已接入（corpus.json 懒加载）。待美化项：同义词 popover 精细交互、legacy 玻璃拟态主题 tokens（非功能差异）。',
   },
   {
     id: 'synonyms',

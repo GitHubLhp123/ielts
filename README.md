@@ -28,7 +28,7 @@
 | `/pronunciation` | 单词精听器 | `dictionary/发音.html` | 待重构 |
 | `/dictation` | 单词听写（双模式） | `dictionary/发音和听写.html`（+ `发音/发音和听写.html` 待比对稿） | 待重构 |
 | `/corpus-dictation` | 语料库章节听写 | `listening-word/王璐语料库_源码.html` | 待重构 |
-| `/vocabulary` | 词汇学习 | `words/study_words.html` | 待重构 |
+| `/vocabulary` | 词汇学习 | `words/study_words.html` | ✅ 已完成（v0.2，28 项测试通过，见 `web/docs/vocabulary/`） |
 | `/synonyms` | 同义替换学习 | `同义词学习/同义词学习.html` | 待重构 |
 | `/audio-player` | 音频顺序播放器 | `audio-playlist-player/音频顺序播放器.html` | 待重构 |
 

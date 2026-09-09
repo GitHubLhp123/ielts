@@ -9,6 +9,7 @@ import { defineStore } from 'pinia'
 import { watch } from 'vue'
 
 import { CORE_VOCAB_LOOKUP, LISTENING_179_LOOKUP, READING_538_LOOKUP, library } from '../data/library'
+import { getCorpusWordLookup, loadCorpus } from '../data/corpus'
 import { getSearchResults, getFilteredDifficultWords, getDueDifficultWords, hasSearchFilters } from '../domain/search'
 import { buildQuizOptions } from '../domain/quiz'
 import { scheduleReview, levelAfterAdjust } from '../domain/review'
@@ -58,6 +59,7 @@ export const useVocabularyStore = defineStore('vocabulary', {
     ui: createUi() as VocabularyUiState,
     idbAvailable: true,
     ready: false,
+    corpusReady: false,
   }),
 
   getters: {
@@ -230,13 +232,26 @@ export const useVocabularyStore = defineStore('vocabulary', {
       this.finishStartSession(`搜索练习已开始（${items.length} 词）`)
     },
 
-    startPresetSourcePractice(sourceType: PresetSourceType) {
+    async ensureCorpus() {
+      if (this.corpusReady) return
+      await loadCorpus()
+      this.corpusReady = true
+    },
+
+    async startPresetSourcePractice(sourceType: PresetSourceType) {
       if (sourceType === 'listeningCorpus' && !this.data.settings.showListeningCorpus) {
         this.setStatus('请先在设置中开启听力语料', true)
         return
       }
       const label = PRESET_SOURCE_LABELS[sourceType]
-      const items = this.presetSourceWords(sourceType)
+      let items: SessionWord[]
+      if (sourceType === 'listeningCorpus') {
+        await this.ensureCorpus()
+        const lookup = await getCorpusWordLookup()
+        items = library.allWords.filter((w) => lookup.has(normalizeLexeme(w.word)))
+      } else {
+        items = this.presetSourceWords(sourceType)
+      }
       if (!items.length) {
         this.setStatus(`「${label}」词源为空`, true)
         return
@@ -258,7 +273,7 @@ export const useVocabularyStore = defineStore('vocabulary', {
           lookup = CORE_VOCAB_LOOKUP
           break
         case 'listeningCorpus':
-          return [] // TODO(round+): 听力语料词源（见 docs parity 清单）
+          return []
       }
       return library.allWords.filter((w) => lookup.has(normalizeLexeme(w.word)))
     },
@@ -404,6 +419,32 @@ export const useVocabularyStore = defineStore('vocabulary', {
           return
         }
       }
+    },
+
+    /** 语料音频直接播放（legacy 中不经 speakWord，不受 muted 门控） */
+    async playCorpusAudio(mp3Path: string) {
+      if (!mp3Path) return
+      invalidatePlayback()
+      const token = getPlaybackToken()
+      try {
+        await playAudio(mp3Path, this.data.settings.playbackRate, token)
+      } catch {
+        this.setStatus('语料音频播放失败', true)
+      }
+    },
+
+    /** 跳到会话中第 index1Based 个词（legacy 起始序号，1-based） */
+    jumpToIndex(index1Based: number) {
+      const session = this.session
+      if (!session?.items?.length) {
+        this.setStatus('当前没有可跳转的会话', true)
+        return
+      }
+      const index = clampIndex(Math.floor(Number(index1Based) || 0) - 1, session.items.length)
+      session.currentIndex = index
+      this.resetQuizState()
+      if (this.data.practice.mode === 'quiz') this.ensureQuizRound(this.currentWord)
+      this.setStatus(`已跳到第 ${index + 1} 个词`)
     },
 
     /* ========== 状态推进 ========== */

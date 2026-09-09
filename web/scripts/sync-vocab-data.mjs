@@ -159,6 +159,17 @@ function extractLegacyInline(html, name) {
   return undefined
 }
 
+/** 从 legacy 中取出 `window.LISTENING_WORD_AUDIO_DATA = [...]`（独立 script 块注入） */
+function extractLegacyAudioIndex(html) {
+  const prefix = 'window.LISTENING_WORD_AUDIO_DATA = '
+  for (const line of html.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed.startsWith(prefix)) continue
+    return JSON.parse(trimmed.slice(prefix.length).replace(/;\s*$/, ''))
+  }
+  return undefined
+}
+
 function deepEqual(a, b) {
   if (a === b) return true
   if (typeof a !== typeof b || a === null || b === null) return false
@@ -192,6 +203,7 @@ async function main() {
 
   // —— legacy 一致性断言（存在 legacy 页面时强制执行）——
   let legacyParityOk = null
+  let corpus = undefined
   if (await exists(LEGACY_HTML)) {
     const html = readFileSync(LEGACY_HTML, 'utf8')
     const checks = [
@@ -216,6 +228,9 @@ async function main() {
     if (failures.length) {
       throw new Error(`与 legacy 内联数据不一致：${failures.join(', ')}`)
     }
+    // 听力语料音频索引：直接快照 legacy（其来源为 listening-word 语料 HTML 的
+    // CHAPTER_WORD_SETS；待 listening 模块数据层统一后改由其重建）
+    corpus = extractLegacyAudioIndex(html)
     legacyParityOk = true
     console.log('[parity] 全部数据产物与 legacy study_words.html 内联一致 ✓')
   }
@@ -230,6 +245,10 @@ async function main() {
   write('library.json', library)
   write('synonyms.json', synonyms)
   write('presets.json', presets)
+  if (corpus !== undefined) {
+    write('corpus.json', corpus)
+    console.log('[note] corpus.json 为 legacy 快照，待 listening 数据层接入后改由其重建')
+  }
   write('manifest.json', {
     generatedAt: new Date().toISOString(),
     generatedBy: 'web/scripts/sync-vocab-data.mjs',
@@ -243,6 +262,7 @@ async function main() {
       reading: presets.reading.length,
       listening: presets.listening.length,
       core: presets.core.length,
+      corpusEntries: corpus?.length ?? 0,
     },
   })
   console.log('done.')

@@ -2,15 +2,16 @@
 /**
  * 学习页 —— 组合库导航 / 预设词源 / 搜索 / 练习工作台 / 队列预览。
  */
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 
 import { useVocabularyStore } from '../stores/vocabulary'
 import { library } from '../data/library'
 import { resolveSynonymGroups } from '../data/synonyms'
 import { getWordSourceFlags, buildWordSourceLabels } from '../data/sources'
 import { getSearchResults, hasSearchFilters } from '../domain/search'
-import { formatReviewDueText } from '../utils'
-import type { SessionWord, VocabWord } from '../types'
+import { resolveCorpusMatches, getCorpusWordLookup } from '../data/corpus'
+import { formatReviewDueText, normalizeLexeme } from '../utils'
+import type { SessionWord, VocabWord, CorpusItem } from '../types'
 
 const store = useVocabularyStore()
 
@@ -27,6 +28,14 @@ const presetCounts = computed(() => ({
   listening179: store.presetSourceWords('listening179').length,
   core: store.presetSourceWords('core').length,
 }))
+
+/** 语料词源计数（懒加载后填充） */
+const corpusPresetCount = ref<number | null>(null)
+async function refreshCorpusPresetCount() {
+  await store.ensureCorpus()
+  const lookup = await getCorpusWordLookup()
+  corpusPresetCount.value = library.allWords.filter((w) => lookup.has(normalizeLexeme(w.word))).length
+}
 
 /* ---------- 搜索 ---------- */
 const searchQuery = computed({
@@ -113,12 +122,74 @@ function speakWord(wordArg: SessionWord | VocabWord) {
 
 /* ---------- spell ---------- */
 const spellInput = ref('')
+const spellInputRef = ref<{ focus?: () => void } | null>(null)
+
 function submitSpell() {
   store.submitSpellAnswer(spellInput.value)
   spellInput.value = ''
+  // 答对会自动前进到新词；保持拼写输入焦点便于连续作答
+  const el = document.activeElement as HTMLElement | null
+  if (el?.tagName === 'INPUT') void nextTick(() => el.focus())
 }
+
 function replaySpell() {
   if (word.value?.eng_sound) void store.speakWord(word.value, true)
+}
+
+/** 拼写模式下自动聚焦输入框（legacy renderSpellPanel 行为） */
+watch(
+  () => [mode.value === 'spell', word.value?.key] as const,
+  ([inSpell]) => {
+    if (inSpell) void nextTick(() => spellInputRef.value?.focus?.())
+  },
+  { flush: 'post' },
+)
+
+/* ---------- 听力语料匹配卡（懒加载） ---------- */
+const corpusMatches = ref<CorpusItem[]>([])
+let corpusWatchActive = true
+
+async function refreshCorpusMatches() {
+  const currentWord = word.value
+  if (!currentWord || !store.data.settings.showListeningCorpus || !corpusWatchActive) {
+    corpusMatches.value = []
+    return
+  }
+  await store.ensureCorpus()
+  if (!corpusWatchActive || word.value?.key !== currentWord.key) return
+  corpusMatches.value = await resolveCorpusMatches(currentWord.word, 24)
+}
+
+onMounted(() => {
+  void store.ensureCorpus()
+  if (store.data.settings.showListeningCorpus) {
+    void refreshCorpusPresetCount()
+  }
+})
+
+onBeforeUnmount(() => {
+  corpusWatchActive = false
+})
+
+watch(
+  () => [word.value?.key, store.data.settings.showListeningCorpus] as const,
+  ([, showCorpus]) => {
+    corpusMatches.value = []
+    if (showCorpus && corpusPresetCount.value === null) void refreshCorpusPresetCount()
+    void refreshCorpusMatches()
+  },
+  { flush: 'post' },
+)
+
+/* ---------- 起始序号跳转 ---------- */
+const startIndexInput = ref('')
+function jumpToStartIndex() {
+  const value = Number(startIndexInput.value.trim())
+  if (!Number.isFinite(value) || value < 1) {
+    store.setStatus('请输入 ≥1 的序号', true)
+    return
+  }
+  store.jumpToIndex(value)
 }
 </script>
 
@@ -147,6 +218,13 @@ function replaySpell() {
             </el-button>
             <el-button size="small" :disabled="!presetCounts.core" @click="store.startPresetSourcePractice('core')">
               学习核心词汇 ({{ presetCounts.core }})
+            </el-button>
+            <el-button
+              size="small"
+              :disabled="!store.data.settings.showListeningCorpus || !(corpusPresetCount ?? 0)"
+              @click="store.startPresetSourcePractice('listeningCorpus')"
+            >
+              学习听力语料词 {{ corpusPresetCount === null ? '（加载中…）' : `(${corpusPresetCount})` }}
             </el-button>
           </div>
 
@@ -224,7 +302,7 @@ function replaySpell() {
           </div>
 
           <div v-if="mode === 'spell'" class="spell-row">
-            <el-input v-model="spellInput" size="small" placeholder="输入单词拼写后回车" class="spell-input" @keyup.enter="submitSpell" />
+            <el-input ref="spellInputRef" v-model="spellInput" size="small" placeholder="输入单词拼写后回车" class="spell-input" @keyup.enter="submitSpell" />
             <el-button size="small" :disabled="!word.eng_sound" @click="replaySpell">重听发音</el-button>
             <el-button size="small" type="primary" @click="submitSpell">提交</el-button>
           </div>
@@ -264,6 +342,17 @@ function replaySpell() {
             </div>
           </div>
 
+          <div v-if="store.data.settings.showListeningCorpus && corpusMatches.length" class="corpus-block">
+            <div class="corpus-title">听力语料库</div>
+            <div v-for="(item, idx) in corpusMatches" :key="`${item.mp3Path}-${idx}`" class="corpus-row">
+              <button class="corpus-play" type="button" title="播放" @click="store.playCorpusAudio(item.mp3Path)">▶</button>
+              <div class="corpus-body">
+                <div>{{ item.content }}</div>
+                <div class="dim">{{ item.chapterTitle }}</div>
+              </div>
+            </div>
+          </div>
+
           <div class="word-foot dim">
             <span>已学 {{ stat?.count || 0 }} 次 · 最近：{{ stat?.lastStudiedAt ? new Date(stat.lastStudiedAt).toLocaleString() : '—' }}</span>
             <span v-if="difficultEntry">下次复习：{{ formatReviewDueText(difficultEntry.nextReviewAt) }}</span>
@@ -299,7 +388,11 @@ function replaySpell() {
             <el-slider v-model="store.data.settings.repeatCount" :min="1" :max="5" :step="1" size="small" class="slider" @change="store.updateSetting('repeatCount', $event)" />
           </div>
           <div class="transport-sub">
-            <span v-if="store.session" class="dim">{{ store.session.label }} · {{ store.session.items.length }} 词</span>
+            <div class="transport-jump">
+              <span v-if="store.session" class="dim">{{ store.session.label }} · {{ store.session.items.length }} 词</span>
+              <el-input v-model="startIndexInput" size="small" class="start-input" placeholder="起始序号(1-based)" @keyup.enter="jumpToStartIndex" />
+              <el-button size="small" @click="jumpToStartIndex">跳转</el-button>
+            </div>
             <div class="transport-actions">
               <el-button v-if="store.session?.mode === 'group'" size="small" text @click="store.resetGroupPosition()">回到组首</el-button>
             </div>
@@ -552,6 +645,49 @@ function replaySpell() {
   cursor: pointer;
 }
 
+.corpus-block {
+  margin-top: 12px;
+  border-top: 1px dashed #ebeef5;
+  padding-top: 8px;
+}
+
+.corpus-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #606266;
+  margin-bottom: 6px;
+}
+
+.corpus-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.corpus-play {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #c0c4cc;
+  background: #fff;
+  color: #1473ff;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.corpus-play:hover {
+  border-color: #1473ff;
+}
+
+.corpus-body {
+  font-size: 13px;
+  color: #4a5a6a;
+  line-height: 1.6;
+}
+
 .word-foot {
   display: flex;
   gap: 16px;
@@ -593,7 +729,19 @@ function replaySpell() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.transport-jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.start-input {
+  width: 150px;
 }
 
 .side-head {
