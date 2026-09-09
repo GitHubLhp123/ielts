@@ -8,7 +8,8 @@ import { ElMessageBox } from 'element-plus'
 
 import './styles/legacy-full.css'
 import { chapterEntries, resolveWordMeta, matchAnyChapter, buildAudioUrl } from './data/corpus'
-import { useCorpusStore } from './stores/corpus'
+import { useCorpusStore, entryKey, sanitizeSettings, sanitizeMistakeBook } from './stores/corpus'
+import type { Settings } from './stores/corpus'
 
 type TabKey = 'practice' | 'mistakes' | 'stats'
 type PracticeMode = 'dictation' | 'listen'
@@ -479,6 +480,170 @@ function toggleMistakeErrorLevel(entryKeyValue: string) {
   store.persistMistakeBook()
 }
 
+
+/* ---------- 错词进阶：选择与批量 ---------- */
+const selectedMistakeKeys = ref<string[]>([])
+
+function toggleSelected(key: string) {
+  const i = selectedMistakeKeys.value.indexOf(key)
+  if (i >= 0) selectedMistakeKeys.value.splice(i, 1)
+  else selectedMistakeKeys.value.push(key)
+}
+
+function clearSelections() {
+  selectedMistakeKeys.value = []
+}
+
+function selectLowAccuracy() {
+  selectedMistakeKeys.value = mistakeList.value
+    .filter(([, e]) => {
+      const practice = store.wordStats[entryKeyOfEntry(e)]
+      const total = practice?.practiceCount ?? 0
+      const rate = total ? ((practice.correctCount ?? 0) / total) * 100 : 0
+      return e.wrongCount > 0 && rate < 50
+    })
+    .map(([k]) => k)
+}
+
+function selectHighWrong() {
+  selectedMistakeKeys.value = mistakeList.value.filter(([, e]) => e.wrongCount >= 3).map(([k]) => k)
+}
+
+function selectRecent() {
+  const daysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  selectedMistakeKeys.value = mistakeList.value
+    .filter(([, e]) => new Date(e.lastErrorAt).getTime() >= daysAgo)
+    .map(([k]) => k)
+}
+
+function invertSelection() {
+  const base = mistakeList.value.map(([k]) => k)
+  const current = new Set(selectedMistakeKeys.value)
+  selectedMistakeKeys.value = base.filter((k) => !current.has(k))
+}
+
+function entryKeyOfEntry(e: { chapterId: string; word: string }): string {
+  return entryKey(e.chapterId, e.word)
+}
+
+function startSelectedMistakePractice() {
+  const pool = selectedMistakeKeys.value.length ? selectedMistakeKeys.value : visibleMistakes.value.map(([k]) => k)
+  if (!pool.length) {
+    setFeedback('没有可练习的错词。', 'warning')
+    return
+  }
+  const practice: PracticeEntry[] = pool
+    .map((key) => store.mistakeBook[key])
+    .filter(Boolean)
+    .map((entry, i) => ({
+      id: `${entry.chapterId}::${entry.word}::w-${i}`,
+      word: entry.word,
+      meta: { chapterId: entry.chapterId, chapterTitle: entry.title || entry.chapterId, audioUrl: buildAudioUrl(entry.chapterId, entry.word) },
+    }))
+  entries.value = practice
+  pending.value = practice.map((e) => e.id)
+  mastered.value = []
+  roundMistakes.value = []
+  sessionStarted.value = false
+  isFinished.value = false
+  cacheStatus.value = `已载入 ${practice.length} 个错词，准备练习。`
+  activeTab.value = 'practice'
+}
+
+function exportSelectedMistakeCsv() {
+  const pool = visibleMistakes.value.map(([k, e]) => ({ key: k, entry: e }))
+  const rows = [['单词', '章节', '错误等级', '错误次数', '最近错误'].join(',')]
+  for (const { entry } of pool) {
+    rows.push([entry.word, entry.chapterId, entry.errorLevel, entry.wrongCount, entry.lastErrorAt].join(','))
+  }
+  const blob = new Blob(['\ufeff' + rows.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = '错词本导出.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+/* ---------- 备份导入导出（v2，兼容 v1） ---------- */
+function exportBackup() {
+  const payload = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    settings: store.settings,
+    mistakeBook: store.mistakeBook,
+    wordStats: store.wordStats,
+    chapterStats: store.chapterStats,
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `语料库听写备份-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const importFileEl = ref<HTMLInputElement | null>(null)
+const importPreview = ref('')
+const importPreviewList = ref<string[]>([])
+let pendingImport: any = null
+
+function triggerImport() {
+  importFileEl.value?.click()
+}
+
+async function onImportFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  try {
+    const text = await file.text()
+    const data = JSON.parse(text)
+    if (!data || typeof data !== 'object') throw new Error('bad')
+    pendingImport = data
+    const settings = data.settings || {}
+    const mistakeCount = Object.keys(data.mistakeBook || {}).length
+    const wordCount = Object.keys(data.wordStats || {}).length
+    const chapterCount = Object.keys(data.chapterStats || {}).length
+    importPreviewList.value = [
+      `设置 ${settings.lastChapter ? '（含章节选择）' : ''}`,
+      `错词本 ${mistakeCount} 条`,
+      `词统计 ${wordCount} 条`,
+      `章节统计 ${chapterCount} 组`,
+    ]
+    importPreview.value = `将覆盖当前本地数据（版本 ${data.version ?? '1'}${data.version === 2 ? '' : '，将按 v1 兼容导入'}）。`
+  } catch {
+    importPreview.value = '文件解析失败：不是有效的备份 JSON。'
+  }
+}
+
+function confirmImport() {
+  if (!pendingImport) return
+  const src = pendingImport
+  if (src.settings && typeof src.settings === 'object') store.settings = sanitizeSettingsRef(src.settings)
+  if (src.mistakeBook && typeof src.mistakeBook === 'object') store.mistakeBook = sanitizeMistakeBookRef(src.mistakeBook)
+  if (src.wordStats && typeof src.wordStats === 'object') store.wordStats = { ...src.wordStats }
+  if (src.chapterStats && typeof src.chapterStats === 'object') store.chapterStats = { ...src.chapterStats }
+  store.persistSettings()
+  store.persistMistakeBook()
+  store.persistWordStats()
+  store.persistChapterStats()
+  importPreview.value = ''
+  importPreviewList.value = []
+  pendingImport = null
+  ElMessageBox.alert('导入完成', '完成', { confirmButtonText: '好的' })
+}
+
+function sanitizeSettingsRef(raw: unknown): Settings {
+  return sanitizeSettings(raw)
+}
+
+function sanitizeMistakeBookRef(raw: unknown) {
+  return sanitizeMistakeBook(raw)
+}
+
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   if (chapterOptions.value.length) {
@@ -546,6 +711,24 @@ onBeforeUnmount(() => {
               </div>
               <label>单词列表<textarea v-model="wordInput" placeholder="almost&#10;currently&#10;directly"></textarea></label>
               <div class="status-bar" :class="{ error: cacheStatus.includes('移除') }">{{ cacheStatus }}</div>
+              <div class="tool-grid">
+                <div class="tool-card">
+                  <div><h3>备份与迁移</h3><p>导出或导入学习记录（设置/错词/词统计/章节统计，兼容 v1）。</p></div>
+                  <div class="action-grid">
+                    <button class="ghost" type="button" @click="exportBackup">导出学习记录</button>
+                    <button class="ghost" type="button" @click="triggerImport">导入学习记录</button>
+                  </div>
+                  <input ref="importFileEl" type="file" accept="application/json,.json" hidden @change="onImportFile" />
+                  <div v-if="importPreview" class="import-preview">
+                    <div><h4>导入预览</h4><p>{{ importPreview }}</p></div>
+                    <ul><li v-for="line in importPreviewList" :key="line">{{ line }}</li></ul>
+                    <div class="mini-actions">
+                      <button class="ghost" type="button" @click="confirmImport">确认导入</button>
+                      <button class="ghost" type="button" @click="importPreview = ''; importPreviewList = []; pendingImport = null">取消</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="guide-note">
                 <strong>使用提示</strong>
                 <p>1. 章节选择后只匹配该章节音频；2. 听写模式记录统计与错词；3. 听音模式仅顺序/随机播放不写统计（↑重播 ←→切词）；4. 超时或显示答案会记入错词本。</p>
@@ -628,9 +811,20 @@ onBeforeUnmount(() => {
             <button class="ghost" type="button" @click="mistakeChapterFilter = []">清空筛选</button>
             <div class="subtle">按住 Command 可多选章节。</div>
           </div>
+
+          <div class="action-grid action-grid--compact" style="margin-top: 10px;">
+            <button class="ghost" type="button" @click="selectLowAccuracy">选择正确率低于 50%</button>
+            <button class="ghost" type="button" @click="selectHighWrong">选择错误次数 ≥ 3</button>
+            <button class="ghost" type="button" @click="selectRecent">选择最近 7 天错词</button>
+            <button class="ghost" type="button" @click="invertSelection">反选当前筛选</button>
+            <button class="ghost" type="button" @click="clearSelections">清空选择</button>
+            <button class="ghost" type="button" @click="exportSelectedMistakeCsv">导出 CSV</button>
+            <button class="primary" type="button" @click="startSelectedMistakePractice">开始错词练习</button>
+          </div>
           <div class="status-bar">{{ visibleMistakes.length ? `共 ${visibleMistakes.length} 条错词` : '暂无错词记录。' }}</div>
           <ul class="record-list">
             <li v-for="[key, entry] in visibleMistakes" :key="key" class="mistake-row">
+              <input type="checkbox" :checked="selectedMistakeKeys.includes(key)" @change="toggleSelected(key)" />
               <div>
                 <strong>{{ entry.word }}</strong>
                 <span class="subtle">{{ entry.title }} · 等级 {{ entry.errorLevel }} · 错 {{ entry.wrongCount }} · 对 {{ entry.rightCount }}</span>

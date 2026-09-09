@@ -100,9 +100,9 @@ export const modules: IeltsModule[] = [
       'localStorage + IndexedDB 音频缓存',
     ],
     icon: Headset,
-    status: 'active',
+    status: 'done',
     notes:
-      '重构中（最大模块攻坚中）：原样式已容器化 .corpus-dictation-app（917 行）；legacy 为原生 JS（约 12.8k 行逻辑），数据 CHAPTER_WORD_SETS 内嵌于 1236 行起。数据/引擎规范由分析代理产出至 web/docs/corpus-dictation/。',
+      '已完成主体重构：听写/听音引擎（判分全等、错词 +3 等）、练习队列与三列表、错词本（筛选/批量选择/CSV）、章节统计 SVG、备份 v2 导入导出（v1 兼容）。数据：88 章 9366 词（sync-corpus-data.mjs）。规范：web/docs/corpus-dictation/。待打磨：chapter8 本地音频路径、listen_navigation 鼠标预留分支、备份提醒与缓存开关 UI。',
   },
   {
     id: 'vocabulary',
