@@ -7,6 +7,7 @@ import { onBeforeUnmount, onMounted } from 'vue'
 
 import { useVocabularyStore } from './stores/vocabulary'
 import { MODE_LABELS } from './constants'
+import './styles/legacy-theme.css'
 import OverviewPane from './components/OverviewPane.vue'
 import StudyPane from './components/StudyPane.vue'
 import DifficultPane from './components/DifficultPane.vue'
@@ -64,7 +65,7 @@ function onKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="vocab" v-loading="!store.ready">
+  <div class="vocab vocab-app" v-loading="!store.ready">
     <el-alert
       v-if="store.ui.hasBackupBanner"
       type="warning"
@@ -75,7 +76,7 @@ function onKeydown(event: KeyboardEvent) {
       :closable="false"
     />
 
-    <el-card shadow="never" class="toolbar">
+    <el-card shadow="never" class="toolbar panel">
       <div class="toolbar-row">
         <el-radio-group :model-value="store.data.activeTab" size="small" @update:model-value="store.setActiveTab($event)">
           <el-radio-button value="overview">总览</el-radio-button>
@@ -132,9 +133,9 @@ function onKeydown(event: KeyboardEvent) {
 </template>
 
 <style scoped>
+/* .vocab 负责全幅渐变底（见 legacy-theme.css 中 .vocab-app）；内容容器由各 pane 限宽 */
 .vocab {
-  max-width: 1240px;
-  margin: 0 auto;
+  width: auto;
 }
 
 .backup-banner {
