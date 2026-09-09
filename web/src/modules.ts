@@ -119,8 +119,8 @@ export const modules: IeltsModule[] = [
       '本地进度缓存（ielts_listen_repeat）',
     ],
     icon: Headset,
-    status: 'todo',
-    notes: '收编 legacy 变体 发音/发音和听写.html（独立于 /dictation 的只听循环工具）。原样式已容器化 .listen-dictation-app；实现中。',
+    status: 'done',
+    notes: '已收编 legacy 变体 发音/发音和听写.html：只听循环（次数/间隔）、中文过滤、一键乱序、Web TTS/百度发音源、听写自检面板、进度缓存（ielts_listen_repeat）；样式容器化 .listen-dictation-app。',
   },
   {
     id: 'vocabulary',
