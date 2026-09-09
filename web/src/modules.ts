@@ -57,7 +57,8 @@ export const modules: IeltsModule[] = [
       '统计图与学习热力图',
     ],
     icon: DataAnalysis,
-    status: 'todo',
+    status: 'active',
+    notes: '重构中（分析/移植进行中）：原样式已容器化到 .study-tracker-app；行为规范由分析代理落盘至 web/docs/study-tracker/。',
   },
   {
     id: 'pronunciation',
