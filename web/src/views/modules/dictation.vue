@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import ModulePlaceholder from '@/components/ModulePlaceholder.vue'
+/**
+ * 单词听写（听写/只听双模式）—— 忠实还原 dictionary/发音和听写.html。
+ */
+import DictationModule from '@/features/dictation/DictationModule.vue'
 </script>
 
 <template>
-  <ModulePlaceholder module-id="dictation" />
+  <DictationModule />
 </template>

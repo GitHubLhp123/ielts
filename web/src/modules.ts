@@ -74,14 +74,14 @@ export const modules: IeltsModule[] = [
     id: 'dictation',
     title: '单词听写',
     subtitle: '听写 / 只听 双模式',
-    legacy: ['dictionary/发音和听写.html', '发音/发音和听写.html'],
+    legacy: ['dictionary/发音和听写.html'],
     summary:
-      '雅思单词听写练习：听写 / 只听双模式切换。注意存在两个历史稿，重构时需比对合并。',
-    features: ['听写模式', '只听模式', '练习数据本地持久化'],
+      '雅思单词听写练习：听写 / 只听双模式切换。听写模式自动校对拼写并移除正确词、只听模式顺序播放自由标记掌握，进度自动缓存。',
+    features: ['听写模式：自动校对 + 错词本 + 正确移除', '只听模式：顺序循环 + 一键标记掌握', 'TTS 英音优先 + 语速/间隔调节', '单词网格点击跳转、进度缓存恢复（ielts_dual_apple）'],
     icon: EditPen,
-    status: 'todo',
+    status: 'done',
     notes:
-      '仓库中存在两个同名旧稿：README 以 dictionary/发音和听写.html 为权威，根目录 发音/发音和听写.html 为更新的未提交稿（内容更大、日期更新），重构前需人工比对确定基线。',
+      '基线为 README 权威稿 dictionary/发音和听写.html（原样式容器级移植）。仓库另存有更新变体 发音/发音和听写.html（只听循环模式+中文过滤+一键乱序），尚未纳入任何模块，待评估后决定独立成模块或并入本模块。',
   },
   {
     id: 'corpus-dictation',
