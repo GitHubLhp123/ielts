@@ -10,6 +10,7 @@ import './styles/legacy-full.css'
 import StudyTable from './components/StudyTable.vue'
 import StudyReview from './components/StudyReview.vue'
 import StudyAccounting from './components/StudyAccounting.vue'
+import StudyCharts from './components/StudyCharts.vue'
 import { DEFAULT_GROUPS, DEFAULT_PROJECT_COLUMNS, DEFAULT_NOTE_FIELDS, SAMPLE_ROWS } from './model/defaults'
 import { deserializeRow, normalizeRows, serializeRows, createEmptyRow, getTodayText, type StudyRow, type StudyColumn, type NoteField } from './model/tableModel'
 
@@ -533,6 +534,9 @@ onBeforeUnmount(() => {
 
           <!-- 记账本 -->
           <StudyAccounting v-else-if="activeTab === 'accounting'" :state="state" />
+
+          <!-- 学习统计 -->
+          <StudyCharts v-else-if="activeTab === 'charts'" :state="state" />
 
           <!-- 记录建议 -->
           <template v-else-if="activeTab === 'tips'">
