@@ -536,6 +536,56 @@ const recentBookkeeping = computed(() => {
 
 watch(state, () => schedulePersist(), { deep: true })
 
+/* ---------- 桌面提醒 ---------- */
+let reminderTimer: ReturnType<typeof setInterval> | null = null
+
+function todayDateKey(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function checkReminderTrigger() {
+  const cfg = state.value.reminderConfig
+  if (!cfg?.enabled || !cfg.time) return
+  if (cfg.lastSentDate === todayDateKey()) return
+  const now = new Date()
+  const parts = String(cfg.time).split(':')
+  const hh = Number(parts[0])
+  const mm = Number(parts[1])
+  if (now.getHours() === hh && now.getMinutes() === mm && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    new Notification('学习状态跟踪提醒', { body: '到点啦，今天的学习记录/复盘写了吗？' })
+    cfg.lastSentDate = todayDateKey()
+  }
+}
+
+async function handleReminderToggle(checked: boolean) {
+  if (!('Notification' in window)) {
+    alert('当前浏览器不支持桌面通知')
+    checked = false
+  } else if (checked && Notification.permission !== 'granted') {
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') {
+      checked = false
+      alert('通知权限未授予，无法开启提醒')
+    }
+  }
+  state.value.reminderConfig.enabled = checked
+  state.value.reminderConfig.permission = typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
+  setupReminderTimer()
+  persistNow()
+}
+
+function setupReminderTimer() {
+  if (reminderTimer) {
+    clearInterval(reminderTimer)
+    reminderTimer = null
+  }
+  if (state.value.reminderConfig?.enabled) {
+    checkReminderTrigger()
+    reminderTimer = setInterval(checkReminderTrigger, 30000)
+  }
+}
+
 onMounted(() => {
   const raw = localStorage.getItem(STORAGE_KEY)
   if (raw) {
@@ -547,12 +597,17 @@ onMounted(() => {
   }
   hydrateTableState()
   persistNow()
+  setupReminderTimer()
 })
 
 onBeforeUnmount(() => {
   if (persistTimer) {
     clearTimeout(persistTimer)
     persistNow()
+  }
+  if (reminderTimer) {
+    clearInterval(reminderTimer)
+    reminderTimer = null
   }
 })
 </script>
@@ -733,8 +788,8 @@ onBeforeUnmount(() => {
                 <div v-else class="overview-empty">暂无明显风险项目。</div>
                 <div class="reminder-mini">
                   <span class="dim">填写提醒</span>
-                  <input type="checkbox" :checked="!!state.reminderConfig?.enabled" @change="state.reminderConfig.enabled = ($event.target as HTMLInputElement).checked" />
-                  <input type="time" :value="state.reminderConfig?.time || '21:30'" @change="state.reminderConfig.time = ($event.target as HTMLInputElement).value" class="ep-input" style="width: 110px;" />
+                  <input type="checkbox" :checked="!!state.reminderConfig?.enabled" @change="handleReminderToggle(($event.target as HTMLInputElement).checked)" />
+                  <input type="time" :value="state.reminderConfig?.time || '21:30'" @change="state.reminderConfig.time = ($event.target as HTMLInputElement).value; persistNow()" class="ep-input" style="width: 110px;" />
                 </div>
               </div>
             </div>

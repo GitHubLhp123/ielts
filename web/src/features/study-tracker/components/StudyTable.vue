@@ -2,7 +2,7 @@
 /**
  * 学习记录表（tab=table）—— 忠实还原 legacy 表格面板（本轮的表格核心）。
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { LOW_SCORE_THRESHOLD, DEFAULT_NOTE_FIELDS } from '../model/defaults'
@@ -298,6 +298,64 @@ function onRangeEnd(input: HTMLInputElement) {
   dateRange.value = [dateRange.value[0] || '', input.value]
 }
 
+/* ---------- 分组 / 复盘栏位配置弹窗 ---------- */
+const showGroupConfig = ref(false)
+const showNoteFieldsConfig = ref(false)
+const newGroupName = ref('')
+const newColumnName = ref('')
+const newColumnGroup = ref('group-study')
+const newNoteFieldName = ref('')
+
+function addGroup() {
+  const name = String(newGroupName.value).trim()
+  if (!name) return
+  const list = st.value.groups ?? []
+  if (list.some((g: any) => g.name === name)) { alert('分组名已存在'); return }
+  list.push({ id: `group-${Date.now().toString(36)}`, name })
+  newGroupName.value = ''
+}
+
+function removeGroup(id: string) {
+  if (id === 'group-ungrouped') { alert('未分组不能删除'); return }
+  if (!window.confirm('删除分组会把其下项目移到未分组，继续吗？')) return
+  st.value.groups = (st.value.groups ?? []).filter((g: any) => g.id !== id)
+  for (const c of st.value.projectColumns ?? []) if (c.groupId === id) c.groupId = 'group-ungrouped'
+}
+
+function removeColumn(columnId: string) {
+  if (!window.confirm('删除项目会连同该列记录数据一起移除，继续吗？')) return
+  st.value.projectColumns = (st.value.projectColumns ?? []).filter((c: any) => c.id !== columnId)
+  for (const row of st.value.tableData ?? []) if (row.metrics) delete row.metrics[columnId]
+}
+
+function addColumn() {
+  const name = String(newColumnName.value).trim()
+  if (!name) return
+  const cols = st.value.projectColumns ?? []
+  if (cols.some((c: any) => c.name === name)) { alert('项目名已存在'); return }
+  const column = { id: `col-${Date.now().toString(36)}`, name, groupId: newColumnGroup.value, width: 100, targetValue: 60 }
+  cols.push(column)
+  for (const row of st.value.tableData ?? []) if (row.metrics) row.metrics[column.id] = ''
+  newColumnName.value = ''
+}
+
+function addNoteField() {
+  const name = String(newNoteFieldName.value).trim()
+  if (!name) return
+  const fields = st.value.noteFields ?? []
+  if (fields.some((f: any) => f.name === name)) { alert('栏位名已存在'); return }
+  const field = { id: `nf-${Date.now().toString(36)}`, name }
+  fields.push(field)
+  for (const row of st.value.tableData ?? []) if (row.notes) row.notes[field.id] = ''
+  newNoteFieldName.value = ''
+}
+
+function removeNoteField(fieldId: string) {
+  if (!window.confirm('删除栏位会清空各行该栏内容，继续吗？')) return
+  st.value.noteFields = (st.value.noteFields ?? []).filter((f: any) => f.id !== fieldId)
+  for (const row of st.value.tableData ?? []) if (row.notes) delete row.notes[fieldId]
+}
+
 /* 排序/筛选/日期选择默认值 */
 const dateRange = computed({
   get: () => filter.value.dateRange,
@@ -357,6 +415,8 @@ function resetFilters() {
         </div>
         <div class="toolbar-actions">
           <button class="ep-mini-btn" type="button" @click="syncTodayPlanToTodos">明日计划同步 Todo</button>
+                <button class="ep-mini-btn" type="button" @click="showGroupConfig = true">分组与组项目</button>
+                <button class="ep-mini-btn" type="button" @click="showNoteFieldsConfig = true">复盘栏位</button>
           <button class="ep-mini-btn" type="button" @click="notesCollapsed = !notesCollapsed">
             {{ notesCollapsed ? '展开' : '折叠' }} 复盘栏
           </button>
@@ -497,7 +557,61 @@ function resetFilters() {
         </tbody>
       </table>
     </div>
-    <div class="dim" style="margin-top: 6px;">显示 {{ filteredRows.length }} / {{ rows.length }} 行 · 筛选不改变数据，均自动保存</div>
+
+    <!-- 配置弹窗 -->
+    <div v-if="showGroupConfig" class="modal-mask">
+      <div class="modal-card">
+        <div class="modal-head">
+          <strong>分组与组项目</strong>
+          <button class="ep-mini-btn" type="button" @click="showGroupConfig = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div v-for="group in groups" :key="group.id" class="cfg-group">
+            <div class="cfg-group-head">
+              <input v-model="group.name" class="ep-input" style="width: 140px;" />
+              <button v-if="group.id !== 'group-ungrouped'" class="ep-mini-btn danger" type="button" @click="removeGroup(group.id)">删除分组</button>
+            </div>
+            <div v-for="column in columns.filter((c) => c.groupId === group.id)" :key="column.id" class="cfg-col-row">
+              <input v-model="column.name" class="ep-input" style="width: 110px;" />
+              <select v-model="column.groupId" class="ep-input" style="width: 110px;">
+                <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+              </select>
+              <input v-model.number="column.targetValue" class="ep-input" type="number" min="0" max="100" style="width: 70px;" title="目标分" />
+              <button class="ep-mini-btn danger" type="button" @click="removeColumn(column.id)">删列</button>
+            </div>
+          </div>
+          <div class="cfg-add-row">
+            <input v-model="newGroupName" class="ep-input" placeholder="新分组名" style="width: 140px;" @keyup.enter="addGroup" />
+            <button class="ep-mini-btn" type="button" @click="addGroup">新增分组</button>
+            <input v-model="newColumnName" class="ep-input" placeholder="新项目名" style="width: 140px;" @keyup.enter="addColumn" />
+            <select v-model="newColumnGroup" class="ep-input" style="width: 120px;">
+              <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+            </select>
+            <button class="ep-mini-btn" type="button" @click="addColumn">新增项目</button>
+          </div>
+          <p class="dim">项目名与分组名可直接改名；目标分用于折线图虚线。</p>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showNoteFieldsConfig" class="modal-mask">
+      <div class="modal-card">
+        <div class="modal-head">
+          <strong>复盘栏位</strong>
+          <button class="ep-mini-btn" type="button" @click="showNoteFieldsConfig = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div v-for="field in noteFields" :key="field.id" class="cfg-col-row">
+            <input v-model="field.name" class="ep-input" style="width: 200px;" />
+            <button class="ep-mini-btn danger" type="button" @click="removeNoteField(field.id)">删除栏位</button>
+          </div>
+          <div class="cfg-add-row">
+            <input v-model="newNoteFieldName" class="ep-input" placeholder="新栏位名，如：心情" style="width: 220px;" @keyup.enter="addNoteField" />
+            <button class="ep-mini-btn" type="button" @click="addNoteField">新增栏位</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -600,5 +714,54 @@ function resetFilters() {
 .empty-row {
   color: #98a2b3;
   padding: 18px;
+}
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+
+.modal-card {
+  width: min(620px, 92vw);
+  max-height: 82vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-body {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.cfg-group-head,
+.cfg-col-row,
+.cfg-add-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cfg-group-head {
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.cfg-group {
+  border-bottom: 1px dashed rgba(15, 23, 42, 0.1);
+  padding-bottom: 8px;
 }
 </style>
