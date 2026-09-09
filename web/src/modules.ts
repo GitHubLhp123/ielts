@@ -57,8 +57,9 @@ export const modules: IeltsModule[] = [
       '统计图与学习热力图',
     ],
     icon: DataAnalysis,
-    status: 'active',
-    notes: '重构中（分析/移植进行中）：原样式已容器化到 .study-tracker-app；行为规范由分析代理落盘至 web/docs/study-tracker/。',
+    status: 'done',
+    notes:
+      '已完成主体重构：Hero/JSON 导入导出/Todo/学习记录表(动态列编辑+历史锁定+明日计划同步)/复盘展览表/记账本(日历+周期草稿)/学习统计(ECharts 热力图+趋势)/记录建议/Excel(.xls)/PDF 周月报(html2canvas+jspdf)。原样式容器化 .study-tracker-app，持久化沿用 v4 key 与旧数据双向兼容（规格见 web/docs/study-tracker/）。待打磨：分组/栏位配置弹窗、桌面通知提醒、列宽拖拽与单元格间距滑杆（非核心路径）。',
   },
   {
     id: 'pronunciation',

@@ -282,6 +282,119 @@ function exportExcel() {
   persistNow()
 }
 
+function loadScriptOnce(src: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    if ((window as any).__scriptLoaded?.[src]) {
+      resolve(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = src
+    script.onload = () => {
+      ;((window as any).__scriptLoaded = (window as any).__scriptLoaded || {})[src] = true
+      resolve(true)
+    }
+    script.onerror = () => resolve(false)
+    document.head.appendChild(script)
+  })
+}
+
+async function exportPdfReport(period: 'week' | 'month') {
+  const html2canvasLib = (window as any).html2canvas
+  const jsPdfLib = (window as any).jspdf?.jsPDF
+  if (!html2canvasLib) {
+    const ok = await loadScriptOnce('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js')
+    if (!ok) {
+      alert('加载 PDF 组件失败，请检查网络')
+      return
+    }
+  }
+  if (!jsPdfLib) {
+    const ok = await loadScriptOnce('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js')
+    if (!ok) {
+      alert('加载 PDF 组件失败，请检查网络')
+      return
+    }
+  }
+  const html2canvas: any = (window as any).html2canvas
+  const jsPDF: any = (window as any).jspdf?.jsPDF
+  if (!html2canvas || !jsPDF) return
+  const today = new Date()
+  const todayTextFn = () => {
+    const y = today.getFullYear()
+    const m = String(today.getMonth() + 1).padStart(2, '0')
+    const d = String(today.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+  const columns: any[] = state.value.projectColumns ?? []
+  const noteFieldsArr: any[] = state.value.noteFields ?? []
+  const rows: any[] = (state.value.tableData ?? []).filter((r: any) => r.date)
+  const start = period === 'week' ? shiftDateText(6) : todayTextFn().slice(0, 7)
+  const inRange = (date: string) => (period === 'week' ? date >= start && date <= todayTextFn() : date.startsWith(start))
+  const scopeRows = rows.filter((r: any) => inRange(r.date)).sort((a: any, b: any) => a.date.localeCompare(b.date))
+  let sum = 0
+  let count = 0
+  for (const row of scopeRows) {
+    for (const c of columns) {
+      const v = String(row.metrics?.[c.id] ?? '')
+      if (/^\d+(\.\d)?$/.test(v)) {
+        sum += Number(v)
+        count += 1
+      }
+    }
+  }
+  const avgScore = count ? (sum / count).toFixed(1) : '—'
+  const durationSum = scopeRows.reduce((s: number, r: any) => s + (Number(r.durationMinutes) || 0), 0)
+  const esc = (v: unknown) =>
+    String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const rowHtml = scopeRows
+    .map((row) => {
+      const cells = [`<td>${esc(row.date)}</td>`, `<td>${row.durationMinutes ?? ''}</td>`]
+      for (const c of columns) cells.push(`<td>${esc(row.metrics?.[c.id] ?? '')}</td>`)
+      for (const f of noteFieldsArr) cells.push(`<td>${esc(row.notes?.[f.id] ?? '')}</td>`)
+      return `<tr>${cells.join('')}</tr>`
+    })
+    .join('')
+  const headCells = ['日期', '时长(分)'].concat(
+    columns.map((c: any) => esc(c.name)),
+    noteFieldsArr.map((f: any) => esc(f.name)),
+  )
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = 'position:fixed;left:-99999px;top:0;width:900px;background:#fff;padding:24px;font-family:-apple-system,PingFang SC,sans-serif;color:#111827;'
+  wrapper.innerHTML =
+    `<h2 style="margin:0 0 4px;">学习状态跟踪 · ${period === 'week' ? '周报' : '月报'}</h2>` +
+    `<p style="margin:0 0 12px;color:#556171;font-size:12px;">周期：${start} ~ ${period === 'week' ? todayTextFn() : start + ' 全月'} · 均分 ${avgScore} · 总时长 ${durationSum} 分钟</p>` +
+    `<table style="border-collapse:collapse;width:100%;font-size:10px;"><thead><tr>` +
+    headCells.map((h: string) => `<th style="border:1px solid #d8dee9;padding:4px;background:#eef3fb;">${h}</th>`).join('') +
+    `</tr></thead><tbody>${rowHtml || '<tr><td style="border:1px solid #d8dee9;padding:8px;" colspan="' + headCells.length + '">该周期暂无学习记录</td></tr>'}</tbody></table>`
+  document.body.appendChild(wrapper)
+  try {
+    const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: '#ffffff' })
+    const doc = new jsPDF('p', 'pt', 'a4')
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 24
+    const imgHeight = (canvas.height * pageWidth) / canvas.width
+    let heightLeft = imgHeight
+    let position = margin
+    doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, pageWidth, imgHeight)
+    heightLeft -= pageHeight - margin * 2
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight + margin
+      doc.addPage()
+      doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, position, pageWidth, imgHeight)
+      heightLeft -= pageHeight - margin * 2
+    }
+    doc.save(`学习状态跟踪-${period === 'week' ? '周报' : '月报'}-${todayTextFn()}.pdf`)
+  } catch (error) {
+    alert(`PDF 生成失败：${(error as Error).message}`)
+  } finally {
+    wrapper.remove()
+  }
+  state.value.lastExportAt = new Date().toISOString()
+  persistNow()
+}
+
 function triggerDataImport() {
   const input = document.createElement('input')
   input.type = 'file'
@@ -314,6 +427,111 @@ const activeTab = computed({
     state.value.activeTab = v
     schedulePersist()
   },
+})
+
+
+/* ---------- Overview 数据 ---------- */
+interface OverviewStat {
+  label: string
+  value: string
+}
+
+const overviewCards = computed<OverviewStat[]>(() => {
+  const today = getTodayText()
+  const rowsToday = (state.value.tableData ?? []).filter((r: any) => r.date === today)
+  const row = rowsToday[0]
+  let todayScore = '—'
+  if (row) {
+    const values = (state.value.projectColumns ?? []).map((c: any) => row.metrics?.[c.id]).filter((v: string) => /^\d+(\.\d)?$/.test(String(v)))
+    if (values.length) todayScore = (values.reduce((s: number, v: string) => s + Number(v), 0) / values.length).toFixed(1)
+  }
+  const entries: any[] = state.value.bookkeepingEntries ?? []
+  const month = today.slice(0, 7)
+  return [
+    { label: '本周平均分', value: trendSummary.value.currentScore === null ? '—' : trendSummary.value.currentScore.toFixed(1) },
+    { label: '周均时长', value: `${trendSummary.value.currentDurationMinutes.toFixed(0)} 分钟` },
+    { label: '今日记录', value: rowsToday.length ? todayScore : '未填' },
+    { label: '本月支出', value: entries.filter((e: any) => String(e.time).startsWith(month)).reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0).toFixed(0) },
+    { label: '风险项目', value: String(riskColumns.value.length) },
+  ]
+})
+
+function shiftDateText(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
+function scoreStatsInRange(rowsAny: any[], startDate: string, endDate: string) {
+  const list = rowsAny.filter((r: any) => r.date && r.date >= startDate && r.date <= endDate)
+  const columns: any[] = state.value.projectColumns ?? []
+  let sum = 0
+  let count = 0
+  let duration = 0
+  for (const row of list) {
+    duration += Number(row.durationMinutes) || 0
+    for (const c of columns) {
+      const v = String(row.metrics?.[c.id] ?? '')
+      if (/^\d+(\.\d)?$/.test(v)) {
+        sum += Number(v)
+        count += 1
+      }
+    }
+  }
+  return { avg: count ? sum / count : null, durationMinutes: duration, rows: list.length }
+}
+
+const trendSummary = computed(() => {
+  const rowsAny = state.value.tableData ?? []
+  const today = getTodayText()
+  const current = scoreStatsInRange(rowsAny, shiftDateText(6), today)
+  const previous = scoreStatsInRange(rowsAny, shiftDateText(13), shiftDateText(7))
+  let change: string | null = null
+  if (current.avg !== null && previous.avg !== null && previous.avg > 0) {
+    const pct = ((current.avg - previous.avg) / previous.avg) * 100
+    change = `${pct >= 0 ? '+' : ''}${pct.toFixed(0)}%`
+  }
+  return { currentScore: current.avg, currentDurationMinutes: current.durationMinutes, change }
+})
+
+/* 风险列：从最近日期向前连续 <60 且为数值的行数 ≥2 */
+const riskColumns = computed<string[]>(() => {
+  const rowsAny = (state.value.tableData ?? []).filter((r: any) => r.date).sort((a: any, b: any) => b.date.localeCompare(a.date))
+  const low: string[] = []
+  for (const c of state.value.projectColumns ?? []) {
+    let count = 0
+    for (const row of rowsAny) {
+      const v = String(row.metrics?.[c.id] ?? '')
+      if (!/^\d+(\.\d)?$/.test(v)) break
+      if (Number(v) < 60) count += 1
+      else break
+    }
+    if (count >= 2) low.push(`${c.name}（连续 ${count} 天）`)
+  }
+  return low
+})
+
+const recentReviews = computed(() => {
+  const rowsAny = (state.value.tableData ?? []).filter((r: any) => r.date).sort((a: any, b: any) => b.date.localeCompare(a.date))
+  const fields: any[] = state.value.noteFields ?? []
+  const result: { date: string; preview: string }[] = []
+  for (const row of rowsAny.slice(0, 6)) {
+    const field = fields.find((f) => (row.notes?.[f.id] || '').trim())
+    if (field) {
+      const preview = String(row.notes[field.id]).trim()
+      result.push({ date: row.date, preview: preview.length > 60 ? `${preview.slice(0, 60)}…` : preview })
+    }
+    if (result.length >= 3) break
+  }
+  return result
+})
+
+const recentBookkeeping = computed(() => {
+  const entriesAny: any[] = state.value.bookkeepingEntries ?? []
+  return [...entriesAny].sort((a, b) => String(b.time).localeCompare(String(a.time))).slice(0, 5)
 })
 
 watch(state, () => schedulePersist(), { deep: true })
@@ -355,8 +573,8 @@ onBeforeUnmount(() => {
               <button class="ep-mini-btn" type="button" @click="exportData">⬇ 导出数据</button>
               <button class="ep-mini-btn" type="button" @click="triggerDataImport">⬆ 导入数据</button>
               <button class="ep-mini-btn" type="button" @click="exportExcel">📊 导出 Excel</button>
-              <button class="ep-mini-btn" type="button" disabled title="随统计/导出轮接入">📄 周报 PDF</button>
-              <button class="ep-mini-btn" type="button" disabled title="随统计/导出轮接入">📄 月报 PDF</button>
+              <button class="ep-mini-btn" type="button" @click="exportPdfReport('week')">📄 周报 PDF</button>
+              <button class="ep-mini-btn" type="button" @click="exportPdfReport('month')">📄 月报 PDF</button>
             </div>
             <div class="hero-tags">
               <span class="hero-tag">本地自动保存</span>
@@ -475,15 +693,10 @@ onBeforeUnmount(() => {
           <!-- Overview -->
           <div v-if="activeTab === 'overview'" class="tab-pane-block">
             <div class="overview-summary-grid">
-              <div v-for="card in [
-                { title: '待办总数', value: todoItems.length, description: '含已完成' },
-                { title: '未完成', value: pendingTodoItems.length, description: '今日可推进' },
-                { title: '已完成', value: completedTodoCount, description: '保留在列表中' },
-                { title: '今日复盘', value: 0, description: '记录表轮次后展示' },
-              ]" :key="card.title" class="stats-card overview-card">
-                <div class="stats-label">{{ card.title }}</div>
+              <div v-for="card in overviewCards" :key="card.label" class="stats-card overview-card">
+                <div class="stats-label">{{ card.label }}</div>
                 <div class="stats-value">{{ card.value }}</div>
-                <div class="stats-sub">{{ card.description }}</div>
+                <div class="stats-sub">{{ card.label === '今日记录' ? '有数值列的平均分' : '自动统计' }}</div>
               </div>
             </div>
             <div class="overview-grid">
@@ -509,7 +722,20 @@ onBeforeUnmount(() => {
                     <div class="toolbar-note">近 7 天数据会自动汇总（学习记录表轮次后填充）。</div>
                   </div>
                 </div>
-                <div class="overview-empty">还没有足够的学习记录生成趋势。</div>
+                <div class="trend-lines">
+                  <div class="trend-line"><span>近 7 天均分</span><strong>{{ trendSummary.currentScore === null ? '—' : trendSummary.currentScore.toFixed(1) }}</strong></div>
+                  <div class="trend-line"><span>环比上周</span><strong>{{ trendSummary.change ?? '—' }}</strong></div>
+                  <div class="trend-line"><span>近 7 天总时长</span><strong>{{ trendSummary.currentDurationMinutes }} 分钟</strong></div>
+                </div>
+                <div v-if="riskColumns.length" class="risk-list">
+                  <div v-for="r in riskColumns" :key="r" class="risk-item">⚠️ {{ r }} 连续偏低</div>
+                </div>
+                <div v-else class="overview-empty">暂无明显风险项目。</div>
+                <div class="reminder-mini">
+                  <span class="dim">填写提醒</span>
+                  <input type="checkbox" :checked="!!state.reminderConfig?.enabled" @change="state.reminderConfig.enabled = ($event.target as HTMLInputElement).checked" />
+                  <input type="time" :value="state.reminderConfig?.time || '21:30'" @change="state.reminderConfig.time = ($event.target as HTMLInputElement).value" class="ep-input" style="width: 110px;" />
+                </div>
               </div>
             </div>
             <div class="section-card overview-panel" style="margin-top: 12px;">
@@ -520,8 +746,20 @@ onBeforeUnmount(() => {
                 </div>
               </div>
               <div class="overview-list">
-                <div class="overview-empty">还没有可展示的复盘记录。</div>
-                <div class="overview-empty">还没有支出记录。</div>
+                <template v-if="recentReviews.length">
+                  <div v-for="review in recentReviews" :key="review.date" class="overview-list-item">
+                    <span class="ep-tag type-中">{{ review.date }}</span>
+                    <span>{{ review.preview }}</span>
+                  </div>
+                </template>
+                <div v-else class="overview-empty">还没有可展示的复盘记录。</div>
+                <template v-if="recentBookkeeping.length">
+                  <div v-for="entry in recentBookkeeping" :key="entry.id" class="overview-list-item overview-finance-list">
+                    <span class="dim">{{ entry.time }} · {{ entry.item }}</span>
+                    <strong>￥{{ Number(entry.amount || 0).toFixed(1) }}</strong>
+                  </div>
+                </template>
+                <div v-else class="overview-empty">还没有支出记录。</div>
               </div>
             </div>
           </div>
@@ -733,5 +971,52 @@ onBeforeUnmount(() => {
   line-height: 1.9;
   color: #44546a;
   font-size: 0.9rem;
+}
+.trend-lines {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.trend-line {
+  display: flex;
+  justify-content: space-between;
+  color: #44546a;
+  font-size: 0.9rem;
+}
+
+.trend-line strong {
+  color: #0a84ff;
+}
+
+.risk-list {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.risk-item {
+  font-size: 0.8rem;
+  color: #d70015;
+  background: rgba(215, 0, 21, 0.06);
+  border-radius: 8px;
+  padding: 5px 9px;
+}
+
+.reminder-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.overview-list-item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.overview-finance-list {
+  justify-content: space-between;
 }
 </style>
