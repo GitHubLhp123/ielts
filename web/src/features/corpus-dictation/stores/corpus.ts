@@ -99,12 +99,12 @@ export function sanitizeMistakeBook(raw: unknown): Record<string, MistakeEntry> 
       chapterId: String(entry.chapterId ?? ''),
       word: String(entry.word ?? ''),
       title: String(entry.title ?? ''),
-      errorLevel: Number.isFinite(level) ? Math.min(10, Math.max(1, level)) : 1,
+      errorLevel: Number.isFinite(level) ? Math.min(10, Math.max(0, level)) : 0,
       wrongCount: Math.max(0, Math.round(Number(entry.wrongCount) || 0)),
       rightCount: Math.max(0, Math.round(Number(entry.rightCount) || 0)),
       lastErrorAt: String(entry.lastErrorAt ?? ''),
       recentAnswers: Array.isArray(entry.recentAnswers)
-        ? entry.recentAnswers.filter((a: unknown) => a === 'correct' || a === 'wrong').slice(-20)
+        ? entry.recentAnswers.filter((a: unknown) => a === 'correct' || a === 'wrong').slice(-5)
         : [],
     }
   }
@@ -222,7 +222,7 @@ export const useCorpusStore = defineStore('corpusDictation', {
             entry.errorLevel = Math.min(10, entry.errorLevel + 3)
             entry.lastErrorAt = now
             entry.recentAnswers.push('wrong')
-            if (entry.recentAnswers.length > 20) entry.recentAnswers.shift()
+            if (entry.recentAnswers.length > 5) entry.recentAnswers.shift()
           } else {
             this.mistakeBook[key] = {
               chapterId,
@@ -244,11 +244,10 @@ export const useCorpusStore = defineStore('corpusDictation', {
         if (!entry) return
         entry.rightCount += 1
         entry.recentAnswers.push('correct')
-        if (entry.recentAnswers.length > 20) entry.recentAnswers.shift()
-        if (entry.errorLevel <= 1) {
+        if (entry.recentAnswers.length > 5) entry.recentAnswers.shift()
+        entry.errorLevel -= 1
+        if (entry.errorLevel <= 0) {
           delete this.mistakeBook[key]
-        } else {
-          entry.errorLevel -= 1
         }
         this.persistMistakeBook()
       },
@@ -284,6 +283,30 @@ export const useCorpusStore = defineStore('corpusDictation', {
       async clearAudioCache() {
         await dbClear(AUDIO_DB_NAME, AUDIO_STORE_NAME)
         this.cacheCount = 0
+      },
+
+      /** 手动加入错词本：错误等级 +1（新条目 level=1） */
+      addMistakeManual(chapterId: string, word: string, title: string) {
+        const key = entryKey(chapterId, word)
+        const now = new Date().toISOString()
+        const entry = this.mistakeBook[key]
+        if (entry) {
+          entry.errorLevel = Math.min(10, entry.errorLevel + 1)
+          entry.wrongCount += 1
+          entry.lastErrorAt = now
+        } else {
+          this.mistakeBook[key] = {
+            chapterId,
+            word,
+            title,
+            errorLevel: 1,
+            wrongCount: 1,
+            rightCount: 0,
+            lastErrorAt: now,
+            recentAnswers: ['wrong'],
+          }
+        }
+        this.persistMistakeBook()
       },
 
       removeMistake(key: string) {
