@@ -24,13 +24,14 @@
 
 | 新路由（web/） | 模块 | 旧页面（重构源） | 状态 |
 | --- | --- | --- | --- |
-| `/study-tracker` | 学习状态跟踪 | `daily-status/学习状态跟踪.html` | 待重构 |
-| `/pronunciation` | 单词精听器 | `dictionary/发音.html` | 待重构 |
-| `/dictation` | 单词听写（双模式） | `dictionary/发音和听写.html`（+ `发音/发音和听写.html` 待比对稿） | 待重构 |
-| `/corpus-dictation` | 语料库章节听写 | `listening-word/王璐语料库_源码.html` | 待重构 |
+| `/study-tracker` | 学习状态跟踪 | `daily-status/学习状态跟踪.html` | ✅ 已完成 |
+| `/pronunciation` | 单词精听器 | `dictionary/发音.html` | ✅ 已完成 |
+| `/dictation` | 单词听写（双模式） | `dictionary/发音和听写.html` | ✅ 已完成（变体已独立为 `/listen-dictation`） |
+| `/corpus-dictation` | 语料库章节听写 | `listening-word/王璐语料库_源码.html` | ✅ 已完成 |
 | `/vocabulary` | 词汇学习 | `words/study_words.html` | ✅ 已完成（v0.2，28 项测试通过，见 `web/docs/vocabulary/`） |
-| `/synonyms` | 同义替换学习 | `同义词学习/同义词学习.html` | 待重构 |
-| `/audio-player` | 音频顺序播放器 | `audio-playlist-player/音频顺序播放器.html` | 待重构 |
+| `/synonyms` | 同义替换学习 | `同义词学习/同义词学习.html` | ✅ 已完成 |
+| `/audio-player` | 音频顺序播放器 | `audio-playlist-player/音频顺序播放器.html` | ✅ 已完成（核心；系统词库增强方案见 `web/docs/audio-player/ENHANCER-PLAN.md`） |
+| `/listen-dictation` | 只听循环听写 | `发音/发音和听写.html`（变体） | ✅ 已完成（只听循环/中文过滤/乱序/双发音源） |
 
 模块注册表（单一路由/菜单/卡片/占位数据源）：`web/src/modules.ts`；每个模块一个独立视图文件
 `web/src/views/modules/<id>.vue`，重构时逐个替换其占位内容即可。
