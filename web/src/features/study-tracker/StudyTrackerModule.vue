@@ -7,6 +7,9 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import './styles/legacy-full.css'
+import StudyTable from './components/StudyTable.vue'
+import { DEFAULT_GROUPS, DEFAULT_PROJECT_COLUMNS, DEFAULT_NOTE_FIELDS, SAMPLE_ROWS } from './model/defaults'
+import { deserializeRow, normalizeRows, serializeRows, createEmptyRow, getTodayText, type StudyRow, type StudyColumn, type NoteField } from './model/tableModel'
 
 const STORAGE_KEY = 'daily-learning-tracker-state-v4'
 const STORAGE_META_KEY = 'daily-learning-tracker-state-meta-v1'
@@ -27,6 +30,11 @@ interface TodoItem {
 function createInitialState() {
   return {
     activeTab: 'overview',
+    notesCollapsed: true,
+    groups: DEFAULT_GROUPS.map((g) => ({ ...g })),
+    projectColumns: DEFAULT_PROJECT_COLUMNS.map((c) => ({ ...c })),
+    noteFields: DEFAULT_NOTE_FIELDS.map((f) => ({ ...f })),
+    tableData: SAMPLE_ROWS.map((r) => ({ ...r, metrics: { ...r.metrics }, notes: { ...r.notes } })),
     newTodoText: '',
     newTodoPriority: '中' as TodoPriority,
     todoEditingId: '',
@@ -55,16 +63,65 @@ function deepMergeState(stored: unknown) {
     if (src[key] === undefined) continue
     const baseVal = base[key]
     const srcVal = src[key]
-    if (baseVal !== null && typeof baseVal === 'object' && !Array.isArray(baseVal)) {
+    if (Array.isArray(baseVal)) {
+      state.value[key] = Array.isArray(srcVal) ? srcVal : baseVal
+    } else if (baseVal !== null && typeof baseVal === 'object') {
       state.value[key] = { ...baseVal, ...(srcVal && typeof srcVal === 'object' ? srcVal : {}) }
     } else {
       state.value[key] = srcVal
     }
   }
+  hydrateTableState()
+}
+
+function hydrateTableState() {
+  const st = state.value
+  // groups：确保存在未分组且位于头部
+  let groups = Array.isArray(st.groups) ? (st.groups as any[]) : []
+  if (!groups.some((g) => g && g.id === 'group-ungrouped')) {
+    groups = [{ id: 'group-ungrouped', name: '未分组' }, ...groups]
+  }
+  st.groups = groups
+  // columns
+  const columns: StudyColumn[] = Array.isArray(st.projectColumns)
+    ? (st.projectColumns as StudyColumn[])
+    : DEFAULT_PROJECT_COLUMNS.map((c) => ({ ...c }))
+  st.projectColumns = columns.map((c) => ({
+    ...c,
+    width: Number(c.width) || 100,
+    targetValue: (c.targetValue as any) === undefined || c.targetValue === null || (c.targetValue as any) === '' ? null : Number(c.targetValue) || null,
+  }))
+  // noteFields
+  const noteFields: NoteField[] = Array.isArray(st.noteFields) ? (st.noteFields as NoteField[]) : DEFAULT_NOTE_FIELDS.map((f) => ({ ...f }))
+  st.noteFields = noteFields
+  // rows：解码嵌套 metrics -> 扁平
+  const rawRows = Array.isArray(st.tableData) ? st.tableData : []
+  let rows: StudyRow[] = rawRows.map((r: any) => deserializeRow(r, columns))
+  for (const row of rows) {
+    for (const field of noteFields) {
+      if (row.notes[field.id] === undefined) row.notes[field.id] = ''
+    }
+  }
+  rows = normalizeRows(rows)
+  if (!rows.length) {
+    rows = [createEmptyRow(columns, noteFields, [])]
+  }
+  if (!rows.some((r) => r.date === getTodayText())) {
+    rows.push(createEmptyRow(columns, noteFields, rows.map((r) => r.id)))
+    rows[rows.length - 1].date = getTodayText()
+  }
+  st.tableData = rows
+}
+
+function buildPersistPayload(): Record<string, any> {
+  return {
+    ...state.value,
+    tableData: serializeRows(state.value.tableData as StudyRow[], state.value.projectColumns as StudyColumn[]),
+  }
 }
 
 function persistNow() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.value))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(buildPersistPayload()))
   const meta = JSON.parse(localStorage.getItem(STORAGE_META_KEY) || '{}') as Record<string, any>
   meta.savedAt = Date.now()
   meta.app = 'daily-learning-tracker-web'
@@ -187,9 +244,10 @@ function download(filename: string, text: string, type = 'application/json') {
 
 function exportData() {
   state.value.lastExportAt = new Date().toISOString()
-  persistNow()
+  const payload = { version: 4, exportedAt: new Date().toISOString(), state: buildPersistPayload() }
   const day = new Date().toISOString().slice(0, 10)
-  download(`learning-tracker-${day}.json`, JSON.stringify(state.value, null, 2))
+  download(`学习状态跟踪-完整数据-${day}.json`, JSON.stringify(payload, null, 2))
+  persistNow()
 }
 
 function triggerDataImport() {
@@ -237,6 +295,8 @@ onMounted(() => {
       /* ignore */
     }
   }
+  hydrateTableState()
+  persistNow()
 })
 
 onBeforeUnmount(() => {
@@ -433,6 +493,9 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
+
+          <!-- 学习记录表 -->
+          <StudyTable v-else-if="activeTab === 'table'" :state="state" />
 
           <!-- 其余 Tab：分轮实现 -->
           <div v-else class="tab-pane-block">
