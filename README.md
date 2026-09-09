@@ -16,6 +16,42 @@
 
 ---
 
+## 0. Web 前端重构（进行中 · v0.1 "web init"）
+
+> 仓库于 2026-09 启动现代化重构：旧「单文件 HTML（Vue2 / Element UI / ECharts CDN 时代）」应用
+> 全部备份于仓库外（`~/Desktop/ielts-dev-backup-20260909-205928/`，含 `.git`），
+> 正在用 **Vue 3 + Vite + TypeScript + Pinia + Vue Router + Element Plus + ECharts** 重构为单一现代应用，代码位于 `web/`。
+
+| 新路由（web/） | 模块 | 旧页面（重构源） | 状态 |
+| --- | --- | --- | --- |
+| `/study-tracker` | 学习状态跟踪 | `daily-status/学习状态跟踪.html` | 待重构 |
+| `/pronunciation` | 单词精听器 | `dictionary/发音.html` | 待重构 |
+| `/dictation` | 单词听写（双模式） | `dictionary/发音和听写.html`（+ `发音/发音和听写.html` 待比对稿） | 待重构 |
+| `/corpus-dictation` | 语料库章节听写 | `listening-word/王璐语料库_源码.html` | 待重构 |
+| `/vocabulary` | 词汇学习 | `words/study_words.html` | 待重构 |
+| `/synonyms` | 同义替换学习 | `同义词学习/同义词学习.html` | 待重构 |
+| `/audio-player` | 音频顺序播放器 | `audio-playlist-player/音频顺序播放器.html` | 待重构 |
+
+模块注册表（单一路由/菜单/卡片/占位数据源）：`web/src/modules.ts`；每个模块一个独立视图文件
+`web/src/views/modules/<id>.vue`，重构时逐个替换其占位内容即可。
+
+运行方式：
+
+```bash
+cd web
+npm install        # 首次安装依赖
+npm run dev        # 开发服务器 → http://127.0.0.1:5173
+npm run build      # 类型检查（vue-tsc）+ 产物输出 web/dist/
+npm run preview    # 本地预览构建产物
+```
+
+说明：若在沙箱环境执行 npm，请先 `export npm_config_cache="$PWD/.npm-cache"`（本仓库根目录，
+已在 .gitignore 中忽略）。
+
+---
+
+---
+
 ## 1. 项目结构总览
 
 根目录按功能模块拆分：
@@ -26,6 +62,7 @@
 - words：词汇学习主页面、数据源、生成产物、音频资源、维护脚本
 - audio-playlist-player：本地音频顺序播放器，支持上传、逐项倍速/次数配置、定时自动暂停
 - data：共享或集中管理的数据目录（含 generated/source）
+- web：新版前端应用（Vue 3 + Vite + TS），正在逐一替换上面各模块的旧 HTML 页面（见第 0 节）
 
 你可以把仓库理解为“前端页面层 + 数据构建层 + 版本审查层”三层结构：
 
