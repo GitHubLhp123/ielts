@@ -8,6 +8,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import './styles/legacy-full.css'
 import StudyTable from './components/StudyTable.vue'
+import StudyReview from './components/StudyReview.vue'
 import { DEFAULT_GROUPS, DEFAULT_PROJECT_COLUMNS, DEFAULT_NOTE_FIELDS, SAMPLE_ROWS } from './model/defaults'
 import { deserializeRow, normalizeRows, serializeRows, createEmptyRow, getTodayText, type StudyRow, type StudyColumn, type NoteField } from './model/tableModel'
 
@@ -250,6 +251,35 @@ function exportData() {
   persistNow()
 }
 
+function exportExcel() {
+  const columns: any[] = state.value.projectColumns ?? []
+  const noteFieldsArr: any[] = state.value.noteFields ?? []
+  const rows: any[] = (state.value.tableData ?? []).filter((r: any) => r.date).sort((a: any, b: any) => a.date.localeCompare(b.date))
+  const groupName = (id: string) => {
+    const found = (state.value.groups ?? []).find((g: any) => g.id === id)
+    return found ? found.name : '未分组'
+  }
+  const esc = (v: unknown) =>
+    String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  const headerCells = ['日期', '时长（分钟）']
+  for (const c of columns) headerCells.push(`${c.name}（${groupName(c.groupId)}）`)
+  for (const f of noteFieldsArr) headerCells.push(f.name)
+  const headerHtml = headerCells.map((h) => `<th>${esc(h)}</th>`).join('')
+  const bodyHtml = rows
+    .map((row) => {
+      const cells = [row.date, row.durationMinutes ?? '']
+      for (const c of columns) cells.push(row.metrics?.[c.id] ?? '')
+      for (const f of noteFieldsArr) cells.push(row.notes?.[f.id] ?? '')
+      return `<tr>${cells.map((v) => `<td>${esc(v)}</td>`).join('')}</tr>`
+    })
+    .join('')
+  const tableHtml = `<table border="1"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`
+  const day = new Date().toISOString().slice(0, 10)
+  download(`学习状态跟踪-${day}.xls`, tableHtml, 'application/vnd.ms-excel')
+  state.value.lastExportAt = new Date().toISOString()
+  persistNow()
+}
+
 function triggerDataImport() {
   const input = document.createElement('input')
   input.type = 'file'
@@ -322,9 +352,9 @@ onBeforeUnmount(() => {
             <div class="hero-actions">
               <button class="ep-mini-btn" type="button" @click="exportData">⬇ 导出数据</button>
               <button class="ep-mini-btn" type="button" @click="triggerDataImport">⬆ 导入数据</button>
-              <button class="ep-mini-btn" type="button" disabled title="随学习记录表轮接入">📊 导出 Excel</button>
-              <button class="ep-mini-btn" type="button" disabled title="随学习记录表轮接入">📄 周报 PDF</button>
-              <button class="ep-mini-btn" type="button" disabled title="随学习记录表轮接入">📄 月报 PDF</button>
+              <button class="ep-mini-btn" type="button" @click="exportExcel">📊 导出 Excel</button>
+              <button class="ep-mini-btn" type="button" disabled title="随统计/导出轮接入">📄 周报 PDF</button>
+              <button class="ep-mini-btn" type="button" disabled title="随统计/导出轮接入">📄 月报 PDF</button>
             </div>
             <div class="hero-tags">
               <span class="hero-tag">本地自动保存</span>
@@ -497,6 +527,32 @@ onBeforeUnmount(() => {
           <!-- 学习记录表 -->
           <StudyTable v-else-if="activeTab === 'table'" :state="state" />
 
+          <!-- 复盘展览表 -->
+          <StudyReview v-else-if="activeTab === 'review'" :state="state" />
+
+          <!-- 记录建议 -->
+          <template v-else-if="activeTab === 'tips'">
+            <div class="tab-pane-block tips-layout">
+              <div class="tips-card">
+                <div class="toolbar-title">记录建议</div>
+                <ul class="tips-list">
+                  <li>每天打开页面先看一眼「今日动作」，把 Todo 里未完成的先落地。</li>
+                  <li>得分尽量当天填：超过 24 小时回忆会失真，历史日期也会自动锁定。</li>
+                  <li>低于 60 分的项目第二天优先安排，连续偏低会出现在风险提醒里。</li>
+                </ul>
+              </div>
+              <div class="tips-card">
+                <div class="toolbar-title">使用框架</div>
+                <ul class="tips-list">
+                  <li>记录：<b>时长（分钟）</b> + 各项目<b>得分（0–100，/ 表示未进行）</b>。</li>
+                  <li>复盘：每天写<b>总结 / 弱项 / 明日计划</b>；明日计划可一键拆成 Todo。</li>
+                  <li>周报 / 月报：导出 PDF 前会先按周期汇总均分、时长与类别支出。</li>
+                  <li>定期用顶部「导出数据」做整页备份（推荐每周一次）。</li>
+                </ul>
+              </div>
+            </div>
+          </template>
+
           <!-- 其余 Tab：分轮实现 -->
           <div v-else class="tab-pane-block">
             <div class="section-card table-toolbar-card">
@@ -650,5 +706,24 @@ onBeforeUnmount(() => {
 .todo-item.is-done .todo-text {
   text-decoration: line-through;
   color: #98a2b3;
+}
+.tips-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.tips-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+
+.tips-list {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  line-height: 1.9;
+  color: #44546a;
+  font-size: 0.9rem;
 }
 </style>
