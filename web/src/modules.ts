@@ -17,7 +17,7 @@ import {
   VideoPlay,
 } from '@element-plus/icons-vue'
 
-export type ModuleStatus = 'todo' | 'done'
+export type ModuleStatus = 'todo' | 'active' | 'done'
 
 export interface IeltsModule {
   /** 路由段与唯一标识，如 vocabulary */
@@ -34,7 +34,7 @@ export interface IeltsModule {
   features: string[]
   /** Element Plus 图标组件 */
   icon: Component
-  /** 重构进度：todo = 待重构（占位页），done = 已完成 */
+  /** 重构进度：todo = 待重构（占位页），active = 重构中，done = 已完成 */
   status: ModuleStatus
   /** 附加说明（如数据来源、多个旧稿待比对） */
   notes?: string
@@ -118,9 +118,9 @@ export const modules: IeltsModule[] = [
       '备份导入导出与本地状态持久化',
     ],
     icon: Notebook,
-    status: 'todo',
+    status: 'active',
     notes:
-      '数据链路：words/data/source（源词表）→ words/scripts 生成 → words/data/generated（分组 JSON / manifest / 同义词 bundle）。重构后建议改为构建期静态导入 + schema 化前端状态。',
+      '重构进度：数据层/状态层/学习·搜索·难词·总览已拆分实现（见 web/docs/vocabulary/）。数据链路：web/scripts/sync-vocab-data.mjs 从 words/data 重建并与 legacy 内联数据做一致性断言。待补：听力语料卡/听力语料词源（语料数据接入）、同义词 popover 精细交互、起始序号跳转、spell 输入自动聚焦等（见 parity 清单）。',
   },
   {
     id: 'synonyms',

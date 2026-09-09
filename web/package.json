@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "data:vocab": "node scripts/sync-vocab-data.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

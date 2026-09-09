@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import ModulePlaceholder from '@/components/ModulePlaceholder.vue'
+/**
+ * 词汇学习（study_words）—— 重构后入口。
+ * 完整实现位于 features/vocabulary/VocabularyModule.vue。
+ */
+import VocabularyModule from '@/features/vocabulary/VocabularyModule.vue'
 </script>
 
 <template>
-  <ModulePlaceholder module-id="vocabulary" />
+  <VocabularyModule />
 </template>

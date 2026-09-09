@@ -11,6 +11,18 @@ const doneCount = computed(() => modules.filter((m) => m.status === 'done').leng
 function open(id: string) {
   router.push(`/${id}`)
 }
+
+function statusLabel(status: string): string {
+  if (status === 'done') return '已完成'
+  if (status === 'active') return '重构中'
+  return '待重构'
+}
+
+function statusTagType(status: string): 'success' | 'warning' | 'info' {
+  if (status === 'done') return 'success'
+  if (status === 'active') return 'warning'
+  return 'info'
+}
 </script>
 
 <template>
@@ -41,8 +53,8 @@ function open(id: string) {
             <div class="mod-titles">
               <div class="mod-title">
                 {{ m.title }}
-                <el-tag size="small" :type="m.status === 'done' ? 'success' : 'info'" effect="light">
-                  {{ m.status === 'done' ? '已完成' : '待重构' }}
+                <el-tag size="small" :type="statusTagType(m.status)" effect="light">
+                  {{ statusLabel(m.status) }}
                 </el-tag>
               </div>
               <div class="mod-sub">{{ m.subtitle }}</div>

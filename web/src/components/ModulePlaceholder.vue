@@ -19,8 +19,8 @@ const mod = computed(() => getModule(props.moduleId))
         <div>
           <div class="ph-title">
             {{ mod.title }}
-            <el-tag size="small" :type="mod.status === 'done' ? 'success' : 'warning'" effect="dark">
-              {{ mod.status === 'done' ? '已完成重构' : '待重构 · 占位页' }}
+            <el-tag size="small" :type="mod.status === 'done' ? 'success' : mod.status === 'active' ? 'warning' : 'info'" effect="dark">
+              {{ mod.status === 'done' ? '已完成重构' : mod.status === 'active' ? '重构中' : '待重构 · 占位页' }}
             </el-tag>
           </div>
           <div class="ph-sub">{{ mod.subtitle }}</div>
