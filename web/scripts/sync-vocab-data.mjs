@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url'
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const WEB_ROOT = join(SCRIPT_DIR, '..')
 const REPO_ROOT = join(WEB_ROOT, '..')
-const WORDS_DIR = join(REPO_ROOT, 'words')
+const WORDS_DIR = join(REPO_ROOT, 'legacy', 'words')
 const OUT_DIR = join(WEB_ROOT, 'src', 'data', 'vocabulary')
 const LEGACY_HTML = join(WORDS_DIR, 'study_words.html')
 

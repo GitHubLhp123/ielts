@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = join(SCRIPT_DIR, '..', '..')
-const LEGACY_HTML = join(REPO_ROOT, 'listening-word', '王璐语料库_源码.html')
+const LEGACY_HTML = join(REPO_ROOT, 'legacy', 'listening-word', '王璐语料库_源码.html')
 const OUT_DIR = join(REPO_ROOT, 'web', 'src', 'data', 'corpus')
 const OUT_FILE = join(OUT_DIR, 'chapters.json')
 

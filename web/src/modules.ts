@@ -45,7 +45,7 @@ export const modules: IeltsModule[] = [
     id: 'study-tracker',
     title: '学习状态跟踪',
     subtitle: '记录 / 复盘 / Todo / 记账',
-    legacy: ['daily-status/学习状态跟踪.html'],
+    legacy: ['legacy/daily-status/学习状态跟踪.html'],
     summary:
       '每日学习记录与复盘工具：学习记录表、Todo、复盘、记账本，周/月统计与热力图，支持 JSON/Excel/PDF 导入导出。',
     features: [
@@ -65,7 +65,7 @@ export const modules: IeltsModule[] = [
     id: 'pronunciation',
     title: '单词精听器',
     subtitle: '纯正英音 · 批量播放',
-    legacy: ['dictionary/发音.html'],
+    legacy: ['legacy/dictionary/发音.html'],
     summary: '轻量发音练习入口：按词批量播放英音，适合快速练耳与口语模仿。',
     features: ['批量粘贴词表（换行/逗号分隔）', '本地 TTS 精听（英音优先选声）', '语速可调 / 暂停 / 任意跳词', '单词清单点击即播'],
     icon: Mic,
@@ -76,7 +76,7 @@ export const modules: IeltsModule[] = [
     id: 'dictation',
     title: '单词听写',
     subtitle: '听写 / 只听 双模式',
-    legacy: ['dictionary/发音和听写.html'],
+    legacy: ['legacy/dictionary/发音和听写.html'],
     summary:
       '雅思单词听写练习：听写 / 只听双模式切换。听写模式自动校对拼写并移除正确词、只听模式顺序播放自由标记掌握，进度自动缓存。',
     features: ['听写模式：自动校对 + 错词本 + 正确移除', '只听模式：顺序循环 + 一键标记掌握', 'TTS 英音优先 + 语速/间隔调节', '单词网格点击跳转、进度缓存恢复（ielts_dual_apple）'],
@@ -89,7 +89,7 @@ export const modules: IeltsModule[] = [
     id: 'corpus-dictation',
     title: '语料库章节听写',
     subtitle: '章节词库 · 错词本',
-    legacy: ['listening-word/王璐语料库_源码.html'],
+    legacy: ['legacy/listening-word/王璐语料库_源码.html'],
     summary:
       '章节化语料听写训练：章节词库匹配、听写/听音模式、错词本、词级与章节统计、备份导入导出、IndexedDB 音频缓存。',
     features: [
@@ -108,7 +108,7 @@ export const modules: IeltsModule[] = [
     id: 'listen-dictation',
     title: '只听循环听写',
     subtitle: '只听循环 · 中文过滤 · 一键乱序',
-    legacy: ['发音/发音和听写.html'],
+    legacy: ['legacy/发音/发音和听写.html'],
     summary:
       '只听循环模式学习器：每个单词可设置播放次数与间隔，自动过滤含中文单词，支持一键乱序、英音 TTS / 百度发音源，进度本地缓存。',
     features: [
@@ -126,7 +126,7 @@ export const modules: IeltsModule[] = [
     id: 'vocabulary',
     title: '词汇学习',
     subtitle: '章节分组 · 三模式 · 难词复习',
-    legacy: ['words/study_words.html'],
+    legacy: ['legacy/words/study_words.html'],
     summary:
       '词汇学习主模块：章节与分组学习、标准/选择题/拼写三种练习、多维搜索、难词阶段复习、同义词与关联词、统计与热力图。',
     features: [
@@ -147,7 +147,7 @@ export const modules: IeltsModule[] = [
     id: 'synonyms',
     title: '同义替换学习',
     subtitle: '极简学习 · 手动导航',
-    legacy: ['同义词学习/同义词学习.html'],
+    legacy: ['legacy/同义词学习/同义词学习.html'],
     summary: 'IELTS 同义替换词学习页：极简交互、手动导航，辅助写作与阅读替换词积累。',
     features: [
       '同义词组卡片（主词 + 同义词标签）',
@@ -164,7 +164,7 @@ export const modules: IeltsModule[] = [
     id: 'audio-player',
     title: '音频顺序播放器',
     subtitle: '本地音频 · 倍速次数 · 定时暂停',
-    legacy: ['audio-playlist-player/音频顺序播放器.html'],
+    legacy: ['legacy/audio-playlist-player/音频顺序播放器.html'],
     summary:
       '本地音频顺序播放与复读工具：上传音频自动成清单，逐项配置倍速与次数，支持定时自动暂停。',
     features: [
