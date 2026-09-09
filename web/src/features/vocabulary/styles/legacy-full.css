@@ -1,22 +1,4 @@
 .vocab-app {
-      min-height: calc(100vh - 60px);
-      font-family: "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 12% 0%, rgba(20, 115, 255, 0.26), transparent 24%),
-        radial-gradient(circle at 88% 8%, rgba(97, 95, 255, 0.22), transparent 20%),
-        radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.85), transparent 28%),
-        linear-gradient(180deg, #f8fbff 0%, #ecf2f9 40%, #dee7f2 100%);
-      overflow-x: hidden;
-      width:auto;
-      margin:-20px;
-      padding:16px 20px 36px;
-      position:relative;
-      isolation:isolate;
-}
-
-  
-    .vocab-app {
       color-scheme: light;
       --bg: #dfe7f3;
       --bg-strong: #d7e1ef;
@@ -44,39 +26,52 @@
       --radius-sm: 10px;
       --max-width: 1480px;
     }
+.vocab-app {
+      margin: 0;
+      min-height: 100%;
+      font-family: "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(20, 115, 255, 0.26), transparent 24%),
+        radial-gradient(circle at 88% 8%, rgba(97, 95, 255, 0.22), transparent 20%),
+        radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.85), transparent 28%),
+        linear-gradient(180deg, #f8fbff 0%, #ecf2f9 40%, #dee7f2 100%);
+      overflow-x: hidden;
+    }
 
-    * {
+
+    .vocab-app * {
       box-sizing: border-box;
     }
 
-    html {
+    .vocab-app html {
       scroll-behavior: smooth;
     }
 
-    
-
-    
-
-    body::before {
+    .vocab-app body::before {
       top: -110px;
       right: -90px;
       background: rgba(20, 115, 255, 0.26);
     }
 
-    
+    .vocab-app body::after {
+      left: -80px;
+      bottom: 10%;
+      background: rgba(97, 95, 255, 0.16);
+    }
 
-    button,
-    input,
-    select {
+    .vocab-app button,
+    .vocab-app input,
+    .vocab-app select {
       font: inherit;
     }
 
-    button {
+    .vocab-app button {
       border: 0;
       cursor: pointer;
     }
 
-    .shell {
+    .vocab-app .shell {
       position: relative;
       z-index: 1;
       width: min(calc(100% - 20px), var(--max-width));
@@ -85,7 +80,7 @@
       gap: 12px;
     }
 
-    .glass {
+    .vocab-app .glass {
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(250, 252, 255, 0.64));
       border: 1px solid rgba(255, 255, 255, 0.6);
       box-shadow: var(--shadow);
@@ -93,7 +88,7 @@
       -webkit-backdrop-filter: blur(26px) saturate(1.1);
     }
 
-    .hero {
+    .vocab-app .hero {
       padding: 18px 20px;
       border-radius: var(--radius-xl);
       display: grid;
@@ -105,8 +100,8 @@
       min-height: auto;
     }
 
-    .hero::before,
-    .hero::after {
+    .vocab-app .hero::before,
+    .vocab-app .hero::after {
       content: "";
       position: absolute;
       inset: auto;
@@ -114,7 +109,7 @@
       z-index: -1;
     }
 
-    .hero::before {
+    .vocab-app .hero::before {
       width: 420px;
       height: 420px;
       top: -180px;
@@ -124,7 +119,7 @@
       filter: blur(10px);
     }
 
-    .hero::after {
+    .vocab-app .hero::after {
       left: 8%;
       right: 8%;
       bottom: 0;
@@ -132,7 +127,7 @@
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.88), transparent);
     }
 
-    .hero-top {
+    .vocab-app .hero-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -140,11 +135,11 @@
       flex-wrap: wrap;
     }
 
-    .hero-title-wrap {
+    .vocab-app .hero-title-wrap {
       max-width: 680px;
     }
 
-    .eyebrow {
+    .vocab-app .eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -158,7 +153,7 @@
       text-transform: uppercase;
     }
 
-    h1 {
+    .vocab-app h1 {
       margin: 8px 0 6px;
       font-size: clamp(24px, 3.8vw, 42px);
       line-height: 1;
@@ -166,7 +161,7 @@
       font-weight: 700;
     }
 
-    .hero-copy {
+    .vocab-app .hero-copy {
       margin: 0;
       max-width: 58ch;
       color: var(--muted);
@@ -174,7 +169,7 @@
       font-size: 13px;
     }
 
-    .hero-search {
+    .vocab-app .hero-search {
       display: grid;
       gap: 10px;
       padding: 12px;
@@ -184,14 +179,14 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.74), var(--shadow-soft);
     }
 
-    .search-bar {
+    .vocab-app .search-bar {
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(150px, 0.7fr) auto auto;
       gap: 8px;
       align-items: center;
     }
 
-    .search-input {
+    .vocab-app .search-input {
       width: 100%;
       padding: 11px 12px;
       border-radius: 12px;
@@ -203,26 +198,26 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.82);
     }
 
-    .search-input:focus {
+    .vocab-app .search-input:focus {
       border-color: rgba(20, 115, 255, 0.36);
       box-shadow: 0 0 0 3px rgba(20, 115, 255, 0.12);
     }
 
-    .search-meta-row,
-    .search-item-actions {
+    .vocab-app .search-meta-row,
+    .vocab-app .search-item-actions {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
       align-items: center;
     }
 
-    .search-results {
+    .vocab-app .search-results {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
     }
 
-    .search-item {
+    .vocab-app .search-item {
       padding: 12px 13px;
       border-radius: 14px;
       background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(245,249,255,0.82));
@@ -232,99 +227,99 @@
       gap: 7px;
     }
 
-    .search-item-word {
+    .vocab-app .search-item-word {
       font-size: 16px;
       font-weight: 700;
       letter-spacing: -0.03em;
     }
 
-    .search-item-meaning {
+    .vocab-app .search-item-meaning {
       color: var(--muted);
       line-height: 1.7;
     }
 
-    mark {
+    .vocab-app mark {
       background: rgba(241, 181, 61, 0.32);
       color: inherit;
       padding: 0 0.18em;
       border-radius: 0.35em;
     }
 
-    .hero-side {
+    .vocab-app .hero-side {
       min-width: 240px;
       flex: 1;
       display: grid;
       gap: 8px;
     }
 
-    .hero-badges,
-    .metrics-grid,
-    .compact-grid,
-    .setting-grid,
-    .transport-grid,
-    .stat-grid,
-    .difficulty-actions,
-    .queue-list,
-    .chapter-grid {
+    .vocab-app .hero-badges,
+    .vocab-app .metrics-grid,
+    .vocab-app .compact-grid,
+    .vocab-app .setting-grid,
+    .vocab-app .transport-grid,
+    .vocab-app .stat-grid,
+    .vocab-app .difficulty-actions,
+    .vocab-app .queue-list,
+    .vocab-app .chapter-grid {
       display: grid;
       gap: 8px;
     }
 
-    .hero-badges {
+    .vocab-app .hero-badges {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .badge-card,
-    .metric-card,
-    .compact-card,
-    .chapter-card,
-    .word-card,
-    .queue-card,
-    .difficulty-card,
-    .settings-card,
-    .transport-card,
-    .footer-card {
+    .vocab-app .badge-card,
+    .vocab-app .metric-card,
+    .vocab-app .compact-card,
+    .vocab-app .chapter-card,
+    .vocab-app .word-card,
+    .vocab-app .queue-card,
+    .vocab-app .difficulty-card,
+    .vocab-app .settings-card,
+    .vocab-app .transport-card,
+    .vocab-app .footer-card {
       border-radius: var(--radius-lg);
     }
 
-    .badge-card,
-    .metric-card,
-    .compact-card,
-    .chapter-card,
-    .queue-item,
-    .difficulty-item,
-    .setting-box,
-    .secondary-panel {
+    .vocab-app .badge-card,
+    .vocab-app .metric-card,
+    .vocab-app .compact-card,
+    .vocab-app .chapter-card,
+    .vocab-app .queue-item,
+    .vocab-app .difficulty-item,
+    .vocab-app .setting-box,
+    .vocab-app .secondary-panel {
       background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,250,254,0.86));
       border: 1px solid var(--line);
       box-shadow: var(--shadow-soft);
     }
 
-    .badge-card,
-    .metric-card,
-    .compact-card,
-    .setting-box,
-    .queue-item,
-    .difficulty-item {
+    .vocab-app .badge-card,
+    .vocab-app .metric-card,
+    .vocab-app .compact-card,
+    .vocab-app .setting-box,
+    .vocab-app .queue-item,
+    .vocab-app .difficulty-item {
       padding: 10px 11px;
     }
 
-    .badge-label,
-    .metric-label,
-    .compact-label,
-    .section-label,
-    .setting-caption,
-    .small-text,
-    .meta-text {
+    .vocab-app .badge-label,
+    .vocab-app .metric-label,
+    .vocab-app .compact-label,
+    .vocab-app .section-label,
+    .vocab-app .setting-caption,
+    .vocab-app .small-text,
+    .vocab-app .meta-text {
       color: var(--subtle);
       font-size: 11px;
       letter-spacing: 0.04em;
       text-transform: uppercase;
     }
 
-    .badge-value,
-    .metric-value,
-    .compact-value {
+    .vocab-app .badge-value,
+    .vocab-app .metric-value,
+    .vocab-app .compact-value {
       display: block;
       margin-top: 4px;
       font-size: 14px;
@@ -332,31 +327,31 @@
       letter-spacing: -0.03em;
     }
 
-    .metrics-grid {
+    .vocab-app .metrics-grid {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    .main-layout {
+    .vocab-app .main-layout {
       display: grid;
       grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.95fr);
       gap: 10px;
       align-items: start;
     }
 
-    .left-column,
-    .right-column {
+    .vocab-app .left-column,
+    .vocab-app .right-column {
       display: grid;
       gap: 10px;
     }
 
-    .word-card,
-    .difficulty-card,
-    .settings-card,
-    .footer-card {
+    .vocab-app .word-card,
+    .vocab-app .difficulty-card,
+    .vocab-app .settings-card,
+    .vocab-app .footer-card {
       padding: 12px;
     }
 
-    .word-card {
+    .vocab-app .word-card {
       display: grid;
       gap: 12px;
       min-height: 420px;
@@ -365,7 +360,7 @@
       overflow: hidden;
     }
 
-    .word-card::before {
+    .vocab-app .word-card::before {
       content: "";
       position: absolute;
       top: -120px;
@@ -377,7 +372,7 @@
       pointer-events: none;
     }
 
-    .word-top {
+    .vocab-app .word-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -385,23 +380,23 @@
       flex-wrap: wrap;
     }
 
-    .pill-row,
-    .detail-row,
-    .toggle-row,
-    .chapter-actions,
-    .difficulty-toolbar,
-    .queue-toolbar,
-    .footer-toolbar {
+    .vocab-app .pill-row,
+    .vocab-app .detail-row,
+    .vocab-app .toggle-row,
+    .vocab-app .chapter-actions,
+    .vocab-app .difficulty-toolbar,
+    .vocab-app .queue-toolbar,
+    .vocab-app .footer-toolbar {
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
       align-items: center;
     }
 
-    .pill,
-    .icon-pill,
-    .mode-pill,
-    .chip {
+    .vocab-app .pill,
+    .vocab-app .icon-pill,
+    .vocab-app .mode-pill,
+    .vocab-app .chip {
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -414,27 +409,27 @@
       font-weight: 600;
     }
 
-    .pill.active,
-    .mode-pill.active,
-    .chip.active {
+    .vocab-app .pill.active,
+    .vocab-app .mode-pill.active,
+    .vocab-app .chip.active {
       background: var(--blue-soft);
       border-color: rgba(22, 119, 255, 0.18);
       color: var(--blue-strong);
     }
 
-    .pill.gold-badge,
-    .source-badge {
+    .vocab-app .pill.gold-badge,
+    .vocab-app .source-badge {
       background: rgba(241, 181, 61, 0.16);
       border-color: rgba(241, 181, 61, 0.34);
       color: #8a5a00;
     }
 
-    .word-heading {
+    .vocab-app .word-heading {
       display: grid;
       gap: 6px;
     }
 
-    .word-title-row {
+    .vocab-app .word-title-row {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
@@ -442,11 +437,11 @@
       row-gap: 8px;
     }
 
-    .word-title-row .phonetic {
+    .vocab-app .word-title-row .phonetic {
       align-self: baseline;
     }
 
-    .word-title-row .pill-row {
+    .vocab-app .word-title-row .pill-row {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
@@ -454,7 +449,7 @@
       align-self: center;
     }
 
-    .word-title {
+    .vocab-app .word-title {
       margin: 0;
       font-size: clamp(28px, 5.2vw, 56px);
       line-height: 0.95;
@@ -462,25 +457,25 @@
       font-weight: 700;
     }
 
-    .word-title.hidden {
+    .vocab-app .word-title.hidden {
       color: transparent;
       user-select: none;
       position: relative;
     }
 
-    .phonetic {
+    .vocab-app .phonetic {
       font-size: 14px;
       color: var(--blue-strong);
       font-weight: 600;
     }
 
-    .phonetic.hidden {
+    .vocab-app .phonetic.hidden {
       color: transparent;
       user-select: none;
       position: relative;
     }
 
-    .phonetic.hidden::after {
+    .vocab-app .phonetic.hidden::after {
       content: "/ • • • /";
       position: absolute;
       left: 0;
@@ -489,7 +484,7 @@
       letter-spacing: 0.12em;
     }
 
-    .meaning-box {
+    .vocab-app .meaning-box {
       padding: 12px 14px;
       border-radius: 16px;
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 246, 255, 0.82));
@@ -501,7 +496,7 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.86);
     }
 
-    .meaning-text {
+    .vocab-app .meaning-text {
       margin: 0;
       font-size: clamp(16px, 2vw, 22px);
       line-height: 1.35;
@@ -509,39 +504,39 @@
       letter-spacing: -0.03em;
     }
 
-    .meaning-text.hidden,
-    .word-title.hidden::after {
+    .vocab-app .meaning-text.hidden,
+    .vocab-app .word-title.hidden::after {
       content: "• • • • •";
       letter-spacing: 0.2em;
     }
 
-    .meaning-text.hidden {
+    .vocab-app .meaning-text.hidden {
       color: transparent;
       user-select: none;
       position: relative;
       min-height: 32px;
     }
 
-    .meaning-text.hidden::after {
+    .vocab-app .meaning-text.hidden::after {
       position: absolute;
       left: 0;
       top: 0;
       color: rgba(17, 24, 39, 0.22);
     }
 
-    .spell-panel {
+    .vocab-app .spell-panel {
       display: grid;
       gap: 14px;
     }
 
-    .spell-actions {
+    .vocab-app .spell-actions {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto auto;
       gap: 12px;
       align-items: center;
     }
 
-    .spell-input {
+    .vocab-app .spell-input {
       width: 100%;
       min-height: 48px;
       border-radius: 14px;
@@ -556,79 +551,79 @@
       transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
     }
 
-    .spell-input:focus {
+    .vocab-app .spell-input:focus {
       border-color: rgba(20, 115, 255, 0.28);
       box-shadow: 0 0 0 3px rgba(20, 115, 255, 0.1);
     }
 
-    .spell-input:disabled {
+    .vocab-app .spell-input:disabled {
       color: rgba(15, 23, 42, 0.45);
       background: rgba(241, 245, 249, 0.92);
       cursor: not-allowed;
     }
 
-    .transport-card {
+    .vocab-app .transport-card {
       padding: 12px;
     }
 
-    .transport-grid {
+    .vocab-app .transport-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .control-btn,
-    .mini-btn,
-    .group-btn,
-    .segment-btn,
-    .danger-btn,
-    .ghost-btn,
-    .play-btn,
-    .toggle-btn {
+    .vocab-app .control-btn,
+    .vocab-app .mini-btn,
+    .vocab-app .group-btn,
+    .vocab-app .segment-btn,
+    .vocab-app .danger-btn,
+    .vocab-app .ghost-btn,
+    .vocab-app .play-btn,
+    .vocab-app .toggle-btn {
       border-radius: 18px;
       transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease, opacity 160ms ease;
     }
 
-    .control-btn:hover,
-    .mini-btn:hover,
-    .group-btn:hover,
-    .segment-btn:hover,
-    .danger-btn:hover,
-    .ghost-btn:hover,
-    .play-btn:hover,
-    .toggle-btn:hover {
+    .vocab-app .control-btn:hover,
+    .vocab-app .mini-btn:hover,
+    .vocab-app .group-btn:hover,
+    .vocab-app .segment-btn:hover,
+    .vocab-app .danger-btn:hover,
+    .vocab-app .ghost-btn:hover,
+    .vocab-app .play-btn:hover,
+    .vocab-app .toggle-btn:hover {
       transform: translateY(-1px);
     }
 
-    .control-btn:active,
-    .mini-btn:active,
-    .group-btn:active,
-    .segment-btn:active,
-    .danger-btn:active,
-    .ghost-btn:active,
-    .play-btn:active,
-    .toggle-btn:active,
-    .tab-btn:active,
-    .term-chip:active {
+    .vocab-app .control-btn:active,
+    .vocab-app .mini-btn:active,
+    .vocab-app .group-btn:active,
+    .vocab-app .segment-btn:active,
+    .vocab-app .danger-btn:active,
+    .vocab-app .ghost-btn:active,
+    .vocab-app .play-btn:active,
+    .vocab-app .toggle-btn:active,
+    .vocab-app .tab-btn:active,
+    .vocab-app .term-chip:active {
       transform: translateY(0) scale(0.985);
     }
 
-    .control-btn:focus-visible,
-    .mini-btn:focus-visible,
-    .group-btn:focus-visible,
-    .segment-btn:focus-visible,
-    .danger-btn:focus-visible,
-    .ghost-btn:focus-visible,
-    .play-btn:focus-visible,
-    .toggle-btn:focus-visible,
-    .tab-btn:focus-visible,
-    .term-chip:focus-visible,
-    .search-input:focus-visible,
-    .note-input:focus-visible,
-    select:focus-visible {
+    .vocab-app .control-btn:focus-visible,
+    .vocab-app .mini-btn:focus-visible,
+    .vocab-app .group-btn:focus-visible,
+    .vocab-app .segment-btn:focus-visible,
+    .vocab-app .danger-btn:focus-visible,
+    .vocab-app .ghost-btn:focus-visible,
+    .vocab-app .play-btn:focus-visible,
+    .vocab-app .toggle-btn:focus-visible,
+    .vocab-app .tab-btn:focus-visible,
+    .vocab-app .term-chip:focus-visible,
+    .vocab-app .search-input:focus-visible,
+    .vocab-app .note-input:focus-visible,
+    .vocab-app select:focus-visible {
       outline: none;
       box-shadow: 0 0 0 3px rgba(20, 115, 255, 0.14), var(--shadow-soft);
     }
 
-    .control-btn {
+    .vocab-app .control-btn {
       padding: 16px 18px;
       font-size: 16px;
       font-weight: 700;
@@ -639,58 +634,58 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), var(--shadow-soft);
     }
 
-    .control-btn.primary,
-    .segment-btn.primary,
-    .play-btn.primary,
-    .group-btn.active {
+    .vocab-app .control-btn.primary,
+    .vocab-app .segment-btn.primary,
+    .vocab-app .play-btn.primary,
+    .vocab-app .group-btn.active {
       background: linear-gradient(180deg, #2e90ff 0%, #1677ff 100%);
       color: #fff;
       border: 1px solid rgba(22, 119, 255, 0.48);
       box-shadow: 0 18px 36px rgba(22, 119, 255, 0.28);
     }
 
-    .control-btn.warn,
-    .toggle-btn.active {
+    .vocab-app .control-btn.warn,
+    .vocab-app .toggle-btn.active {
       background: linear-gradient(180deg, #ffd66e, #f1b53d);
       color: #5a3b00;
       border: 1px solid rgba(241, 181, 61, 0.5);
     }
 
-    .control-btn.soft,
-    .ghost-btn,
-    .toggle-btn,
-    .mini-btn,
-    .segment-btn {
+    .vocab-app .control-btn.soft,
+    .vocab-app .ghost-btn,
+    .vocab-app .toggle-btn,
+    .vocab-app .mini-btn,
+    .vocab-app .segment-btn {
       background: rgba(255, 255, 255, 0.9);
       color: var(--text);
       border: 1px solid var(--line);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.68);
     }
 
-    .segment-btn,
-    .ghost-btn,
-    .toggle-btn,
-    .play-btn,
-    .mini-btn,
-    .danger-btn {
+    .vocab-app .segment-btn,
+    .vocab-app .ghost-btn,
+    .vocab-app .toggle-btn,
+    .vocab-app .play-btn,
+    .vocab-app .mini-btn,
+    .vocab-app .danger-btn {
       padding: 11px 14px;
       font-size: 14px;
       font-weight: 600;
     }
 
-    .danger-btn {
+    .vocab-app .danger-btn {
       background: rgba(236, 91, 91, 0.08);
       color: #b42318;
       border: 1px solid rgba(236, 91, 91, 0.18);
     }
 
-    .play-btn {
+    .vocab-app .play-btn {
       background: rgba(22, 119, 255, 0.08);
       color: var(--blue-strong);
       border: 1px solid rgba(22, 119, 255, 0.16);
     }
 
-    .group-btn {
+    .vocab-app .group-btn {
       padding: 8px 9px;
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -704,7 +699,7 @@
       position: relative;
     }
 
-    .group-btn::after {
+    .vocab-app .group-btn::after {
       content: "";
       position: absolute;
       inset: auto 10px 0;
@@ -716,27 +711,27 @@
       opacity: 0.7;
     }
 
-    .group-main {
+    .vocab-app .group-main {
       min-width: 0;
       display: grid;
       gap: 3px;
     }
 
-    .group-side {
+    .vocab-app .group-side {
       display: grid;
       gap: 3px;
       justify-items: end;
       text-align: right;
     }
 
-    .group-name {
+    .vocab-app .group-name {
       font-size: 13px;
       font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.2;
     }
 
-    .group-meta {
+    .vocab-app .group-meta {
       display: flex;
       justify-content: flex-end;
       gap: 6px;
@@ -745,24 +740,24 @@
       white-space: nowrap;
     }
 
-    .group-foot {
+    .vocab-app .group-foot {
       color: var(--subtle);
       font-size: 10px;
       line-height: 1.25;
     }
 
-    .group-btn.active .group-meta,
-    .group-btn.active .group-foot {
+    .vocab-app .group-btn.active .group-meta,
+    .vocab-app .group-btn.active .group-foot {
       color: rgba(255, 255, 255, 0.9);
     }
 
-    .group-btn.active::after {
+    .vocab-app .group-btn.active::after {
       background: rgba(255,255,255,0.92);
       transform: scaleX(1);
       opacity: 1;
     }
 
-    .chapter-card {
+    .vocab-app .chapter-card {
       padding: 12px;
       display: grid;
       gap: 10px;
@@ -770,7 +765,7 @@
       overflow: hidden;
     }
 
-    .chapter-card::before {
+    .vocab-app .chapter-card::before {
       content: "";
       position: absolute;
       left: 12px;
@@ -780,11 +775,11 @@
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.92), transparent);
     }
 
-    .chapter-grid {
+    .vocab-app .chapter-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .chapter-header {
+    .vocab-app .chapter-header {
       display: flex;
       justify-content: space-between;
       gap: 16px;
@@ -792,66 +787,66 @@
       flex-wrap: wrap;
     }
 
-    .chapter-picker-wrap {
+    .vocab-app .chapter-picker-wrap {
       min-width: min(100%, 340px);
       display: grid;
       gap: 8px;
     }
 
-    .chapter-select {
+    .vocab-app .chapter-select {
       min-width: 240px;
       background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,249,255,0.9));
       box-shadow: var(--shadow-soft);
     }
 
-    .chapter-title {
+    .vocab-app .chapter-title {
       margin: 0;
       font-size: 17px;
       letter-spacing: -0.04em;
     }
 
-    .chapter-subtitle {
+    .vocab-app .chapter-subtitle {
       margin: 4px 0 0;
       color: var(--muted);
       font-size: 12px;
     }
 
-    .chapter-actions {
+    .vocab-app .chapter-actions {
       justify-content: flex-end;
     }
 
-    .secondary-panel {
+    .vocab-app .secondary-panel {
       padding: 14px;
       border-radius: 16px;
       box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
     }
 
-    .queue-card {
+    .vocab-app .queue-card {
       padding: 14px;
     }
 
-    .queue-list {
+    .vocab-app .queue-list {
       margin-top: 12px;
     }
 
-    .queue-item,
-    .difficulty-item {
+    .vocab-app .queue-item,
+    .vocab-app .difficulty-item {
       display: grid;
       gap: 10px;
     }
 
-    .quiz-options,
-    .group-word-list {
+    .vocab-app .quiz-options,
+    .vocab-app .group-word-list {
       display: grid;
       gap: 8px;
     }
 
-    .quiz-options {
+    .vocab-app .quiz-options {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       margin-top: 10px;
     }
 
-    .quiz-option {
+    .vocab-app .quiz-option {
       padding: 10px 12px;
       border-radius: 12px;
       border: 1px solid var(--line);
@@ -863,26 +858,26 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
     }
 
-    .quiz-option.correct {
+    .vocab-app .quiz-option.correct {
       background: rgba(23, 178, 106, 0.12);
       border-color: rgba(23, 178, 106, 0.4);
       color: #0d6b3f;
     }
 
-    .quiz-option.wrong {
+    .vocab-app .quiz-option.wrong {
       background: rgba(236, 91, 91, 0.1);
       border-color: rgba(236, 91, 91, 0.35);
       color: #a62d2d;
     }
 
-    .group-word-item,
-    .difficulty-item-select {
+    .vocab-app .group-word-item,
+    .vocab-app .difficulty-item-select {
       display: flex;
       gap: 10px;
       align-items: center;
     }
 
-    .group-word-item {
+    .vocab-app .group-word-item {
       justify-content: space-between;
       padding: 7px 9px;
       border-radius: 12px;
@@ -890,35 +885,35 @@
       background: rgba(255,255,255,0.72);
     }
 
-    .group-word-item.active {
+    .vocab-app .group-word-item.active {
       border-color: rgba(20, 115, 255, 0.32);
       background: rgba(20, 115, 255, 0.08);
     }
 
-    .group-word-main {
+    .vocab-app .group-word-main {
       min-width: 0;
       display: grid;
       gap: 2px;
     }
 
-    .group-word-title {
+    .vocab-app .group-word-title {
       font-size: 13px;
       font-weight: 700;
       letter-spacing: -0.02em;
     }
 
-    .difficulty-item-select {
+    .vocab-app .difficulty-item-select {
       justify-content: space-between;
       align-items: flex-start;
     }
 
-    .difficulty-item.due {
+    .vocab-app .difficulty-item.due {
       border-color: rgba(20, 115, 255, 0.2);
       background: linear-gradient(180deg, rgba(247,250,255,0.98), rgba(236,244,255,0.92));
       box-shadow: 0 18px 34px rgba(20, 115, 255, 0.12), inset 0 1px 0 rgba(255,255,255,0.92);
     }
 
-    .difficulty-item {
+    .vocab-app .difficulty-item {
       gap: 5px;
       padding: 6px 7px;
       border-radius: 20px;
@@ -929,26 +924,26 @@
       transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
     }
 
-    .difficulty-item:hover {
+    .vocab-app .difficulty-item:hover {
       transform: translateY(-1px);
       border-color: rgba(20, 115, 255, 0.12);
       box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255,255,255,0.94);
     }
 
-    .difficulty-review-row,
-    .source-path-grid {
+    .vocab-app .difficulty-review-row,
+    .vocab-app .source-path-grid {
       display: grid;
       gap: 8px;
     }
 
-    .difficulty-review-row {
+    .vocab-app .difficulty-review-row {
       display: flex;
       gap: 4px;
       flex-wrap: wrap;
       align-items: center;
     }
 
-    .difficulty-stat {
+    .vocab-app .difficulty-stat {
       display: inline-flex;
       align-items: center;
       gap: 4px;
@@ -961,7 +956,7 @@
       line-height: 1;
     }
 
-    .difficulty-stat strong {
+    .vocab-app .difficulty-stat strong {
       display: inline;
       margin-top: 0;
       font-size: 10px;
@@ -970,7 +965,7 @@
       letter-spacing: -0.01em;
     }
 
-    .source-path-card {
+    .vocab-app .source-path-card {
       padding: 12px 13px;
       border-radius: 14px;
       border: 1px solid rgba(20, 115, 255, 0.14);
@@ -980,11 +975,11 @@
       gap: 8px;
     }
 
-    .source-path-grid {
+    .vocab-app .source-path-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .difficulty-select-box {
+    .vocab-app .difficulty-select-box {
       width: 14px;
       height: 14px;
       margin-top: 2px;
@@ -992,13 +987,13 @@
       flex: 0 0 auto;
     }
 
-    .queue-item.active {
+    .vocab-app .queue-item.active {
       background: linear-gradient(180deg, rgba(22, 119, 255, 0.14), rgba(22, 119, 255, 0.08));
       border-color: rgba(22, 119, 255, 0.16);
     }
 
-    .queue-top,
-    .difficulty-top {
+    .vocab-app .queue-top,
+    .vocab-app .difficulty-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -1006,19 +1001,19 @@
       flex-wrap: wrap;
     }
 
-    .queue-word,
-    .difficulty-word {
+    .vocab-app .queue-word,
+    .vocab-app .difficulty-word {
       font-size: 20px;
       font-weight: 700;
       letter-spacing: -0.03em;
     }
 
-    .difficulty-word {
+    .vocab-app .difficulty-word {
       font-size: 19px;
       line-height: 0.98;
     }
 
-    .difficulty-word-row {
+    .vocab-app .difficulty-word-row {
       display: inline-flex;
       align-items: center;
       gap: 10px;
@@ -1026,43 +1021,43 @@
       flex-wrap: wrap;
     }
 
-    .difficulty-word-inline-action {
+    .vocab-app .difficulty-word-inline-action {
       flex: 0 0 auto;
       margin-top: 0;
       margin-left: 2px;
     }
 
-    .difficulty-source {
+    .vocab-app .difficulty-source {
       margin-top: 3px;
       font-size: 11px;
       line-height: 1.3;
       color: var(--subtle);
     }
 
-    .difficulty-source-inline {
+    .vocab-app .difficulty-source-inline {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       margin-left: 8px;
     }
 
-    .difficulty-source-inline .source-badge {
+    .vocab-app .difficulty-source-inline .source-badge {
       padding: 4px 8px;
       font-size: 10px;
       letter-spacing: 0.01em;
     }
 
-    .difficulty-meta-line {
+    .vocab-app .difficulty-meta-line {
       display: block;
     }
 
-    .difficulty-meaning {
+    .vocab-app .difficulty-meaning {
       font-size: 14px;
       line-height: 1.45;
       color: var(--text);
     }
 
-    .difficulty-note {
+    .vocab-app .difficulty-note {
       font-size: 9px;
       line-height: 1.2;
       color: var(--blue-strong);
@@ -1073,14 +1068,14 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
     }
 
-    .icon-action-row {
+    .vocab-app .icon-action-row {
       display: flex;
       justify-content: flex-end;
       gap: 3px;
       flex-wrap: wrap;
     }
 
-    .icon-btn {
+    .vocab-app .icon-btn {
       width: 26px;
       height: 26px;
       padding: 0;
@@ -1098,46 +1093,46 @@
       transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
     }
 
-    .icon-btn:hover {
+    .vocab-app .icon-btn:hover {
       transform: translateY(-1px) scale(1.01);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.94), 0 8px 18px rgba(15, 23, 42, 0.09);
     }
 
-    .icon-btn.play {
+    .vocab-app .icon-btn.play {
       color: var(--blue-strong);
     }
 
-    .icon-btn.delete {
+    .vocab-app .icon-btn.delete {
       color: #b42318;
       background: linear-gradient(180deg, rgba(255,245,245,0.98), rgba(252,235,235,0.94));
       border-color: rgba(236, 91, 91, 0.12);
     }
 
-    .difficulty-toolbar {
+    .vocab-app .difficulty-toolbar {
       justify-content: space-between;
       align-items: center;
     }
 
-    .difficulty-search-row {
+    .vocab-app .difficulty-search-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 8px;
       align-items: center;
     }
 
-    .insight-card,
-    .related-panel {
+    .vocab-app .insight-card,
+    .vocab-app .related-panel {
       display: grid;
       gap: 12px;
     }
 
-    .daily-stats-grid {
+    .vocab-app .daily-stats-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
     }
 
-    .daily-mini-card {
+    .vocab-app .daily-mini-card {
       padding: 8px 10px;
       border-radius: 14px;
       background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(245,249,255,0.84));
@@ -1145,7 +1140,7 @@
       box-shadow: var(--shadow-soft);
     }
 
-    .daily-mini-value {
+    .vocab-app .daily-mini-value {
       display: block;
       margin-top: 4px;
       font-size: 18px;
@@ -1153,7 +1148,7 @@
       letter-spacing: -0.05em;
     }
 
-    .daily-chart {
+    .vocab-app .daily-chart {
       min-height: 190px;
       border-radius: 16px;
       border: 1px solid rgba(20, 115, 255, 0.12);
@@ -1161,7 +1156,7 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
     }
 
-    .daily-chart-empty {
+    .vocab-app .daily-chart-empty {
       min-height: 190px;
       display: grid;
       place-items: center;
@@ -1169,19 +1164,19 @@
       font-size: 13px;
     }
 
-    .overview-card,
-    .footprint-card,
-    .learning-footprint,
-    .insight-card {
+    .vocab-app .overview-card,
+    .vocab-app .footprint-card,
+    .vocab-app .learning-footprint,
+    .vocab-app .insight-card {
       display: grid;
       gap: 10px;
     }
 
-    .overview-card {
+    .vocab-app .overview-card {
       padding: 16px;
     }
 
-    .footprint-card {
+    .vocab-app .footprint-card {
       padding: 10px;
       border-radius: 16px;
       border: 1px solid rgba(20, 115, 255, 0.12);
@@ -1189,12 +1184,12 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
     }
 
-    .footprint-grid-wrap {
+    .vocab-app .footprint-grid-wrap {
       overflow-x: auto;
       padding-bottom: 2px;
     }
 
-    .footprint-grid {
+    .vocab-app .footprint-grid {
       display: grid;
       grid-auto-flow: column;
       grid-auto-columns: 14px;
@@ -1205,7 +1200,7 @@
       min-height: 134px;
     }
 
-    .footprint-grid.compact-month {
+    .vocab-app .footprint-grid.compact-month {
       grid-auto-flow: row;
       grid-auto-columns: auto;
       grid-template-columns: repeat(6, 16px);
@@ -1217,28 +1212,28 @@
       margin: 0 auto;
     }
 
-    .footprint-grid.compact-month .footprint-cell {
+    .vocab-app .footprint-grid.compact-month .footprint-cell {
       width: 16px;
       height: 16px;
       border-radius: 5px;
     }
 
-    .queue-toolbar.clickable {
+    .vocab-app .queue-toolbar.clickable {
       cursor: pointer;
       user-select: none;
       justify-content: space-between;
       align-items: center;
     }
 
-    .queue-card.collapsed .queue-list {
+    .vocab-app .queue-card.collapsed .queue-list {
       display: none;
     }
 
-    .queue-card.collapsed #queueHint {
+    .vocab-app .queue-card.collapsed #queueHint {
       opacity: 0.8;
     }
 
-    .footprint-cell {
+    .vocab-app .footprint-cell {
       width: 14px;
       height: 14px;
       border-radius: 4px;
@@ -1249,45 +1244,45 @@
       outline: none;
     }
 
-    .footprint-cell.in-range:hover,
-    .footprint-cell.in-range:focus-visible {
+    .vocab-app .footprint-cell.in-range:hover,
+    .vocab-app .footprint-cell.in-range:focus-visible {
       transform: translateY(-1px) scale(1.08);
       border-color: rgba(20, 115, 255, 0.28);
       box-shadow: 0 0 0 3px rgba(20, 115, 255, 0.12);
     }
 
-    .footprint-cell.level-0 {
+    .vocab-app .footprint-cell.level-0 {
       background: rgba(226, 232, 240, 0.85);
     }
 
-    .footprint-cell.level-1 {
+    .vocab-app .footprint-cell.level-1 {
       background: rgba(147, 197, 253, 0.76);
     }
 
-    .footprint-cell.level-2 {
+    .vocab-app .footprint-cell.level-2 {
       background: rgba(96, 165, 250, 0.86);
     }
 
-    .footprint-cell.level-3 {
+    .vocab-app .footprint-cell.level-3 {
       background: rgba(37, 99, 235, 0.92);
     }
 
-    .footprint-cell.level-4 {
+    .vocab-app .footprint-cell.level-4 {
       background: rgba(30, 64, 175, 0.96);
     }
 
-    .footprint-cell.recent-window {
+    .vocab-app .footprint-cell.recent-window {
       border-color: rgba(241, 181, 61, 0.7);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 0 0 1px rgba(241, 181, 61, 0.42);
     }
 
-    .footprint-cell.outside-range {
+    .vocab-app .footprint-cell.outside-range {
       background: rgba(241, 245, 249, 0.55);
       border-color: rgba(15, 23, 42, 0.04);
       opacity: 0.42;
     }
 
-    .footprint-legend {
+    .vocab-app .footprint-legend {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -1296,13 +1291,13 @@
       font-size: 12px;
     }
 
-    .footprint-legend-scale {
+    .vocab-app .footprint-legend-scale {
       display: inline-flex;
       align-items: center;
       gap: 6px;
     }
 
-    .footprint-tooltip {
+    .vocab-app .footprint-tooltip {
       position: fixed;
       z-index: 60;
       max-width: 220px;
@@ -1316,17 +1311,17 @@
       box-shadow: 0 16px 40px rgba(15, 23, 42, 0.24);
     }
 
-    .related-list {
+    .vocab-app .related-list {
       display: grid;
       gap: 10px;
     }
 
-    .session-panel {
+    .vocab-app .session-panel {
       display: grid;
       gap: 12px;
     }
 
-    .session-panel-top {
+    .vocab-app .session-panel-top {
       display: flex;
       justify-content: space-between;
       gap: 10px;
@@ -1334,24 +1329,24 @@
       flex-wrap: wrap;
     }
 
-    .session-focus {
+    .vocab-app .session-focus {
       font-size: 18px;
       font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.2;
     }
 
-    .progress-stack {
+    .vocab-app .progress-stack {
       display: grid;
       gap: 10px;
     }
 
-    .progress-strip {
+    .vocab-app .progress-strip {
       display: grid;
       gap: 7px;
     }
 
-    .progress-meta {
+    .vocab-app .progress-meta {
       display: flex;
       justify-content: space-between;
       gap: 8px;
@@ -1361,7 +1356,7 @@
       color: var(--muted);
     }
 
-    .progress-track {
+    .vocab-app .progress-track {
       position: relative;
       height: 10px;
       border-radius: 999px;
@@ -1370,7 +1365,7 @@
       border: 1px solid rgba(20, 115, 255, 0.12);
     }
 
-    .progress-fill {
+    .vocab-app .progress-fill {
       display: block;
       height: 100%;
       width: 0%;
@@ -1380,19 +1375,19 @@
       transition: width 220ms ease;
     }
 
-    .progress-fill.gold {
+    .vocab-app .progress-fill.gold {
       background: linear-gradient(90deg, #f3b33f 0%, #ffd978 100%);
       box-shadow: 0 8px 16px rgba(241, 181, 61, 0.18);
     }
 
-    .shortcut-list {
+    .vocab-app .shortcut-list {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
       align-items: center;
     }
 
-    .related-item {
+    .vocab-app .related-item {
       display: grid;
       gap: 8px;
       padding: 12px 13px;
@@ -1402,17 +1397,17 @@
       box-shadow: var(--shadow-soft);
     }
 
-    .related-item:hover,
-    .search-item:hover,
-    .queue-item:hover,
-    .source-path-card:hover,
-    .difficulty-item:hover {
+    .vocab-app .related-item:hover,
+    .vocab-app .search-item:hover,
+    .vocab-app .queue-item:hover,
+    .vocab-app .source-path-card:hover,
+    .vocab-app .difficulty-item:hover {
       border-color: rgba(20, 115, 255, 0.18);
       box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
     }
 
-    .related-item-top,
-    .related-actions {
+    .vocab-app .related-item-top,
+    .vocab-app .related-actions {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1420,13 +1415,13 @@
       flex-wrap: wrap;
     }
 
-    .related-word-name {
+    .vocab-app .related-word-name {
       font-size: 14px;
       font-weight: 700;
       letter-spacing: -0.03em;
     }
 
-    .related-section-label {
+    .vocab-app .related-section-label {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -1441,24 +1436,24 @@
       text-transform: uppercase;
     }
 
-    .related-group-card {
+    .vocab-app .related-group-card {
       gap: 10px;
       background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,247,255,0.88));
     }
 
-    .related-chip-grid {
+    .vocab-app .related-chip-grid {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
       align-items: center;
     }
 
-    .listening-corpus-list {
+    .vocab-app .listening-corpus-list {
       display: grid;
       gap: 8px;
     }
 
-    .listening-corpus-row {
+    .vocab-app .listening-corpus-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
@@ -1469,21 +1464,21 @@
       background: rgba(255, 255, 255, 0.86);
     }
 
-    .listening-corpus-text {
+    .vocab-app .listening-corpus-text {
       font-size: 13px;
       color: var(--text);
       line-height: 1.45;
       word-break: break-word;
     }
 
-    .listening-corpus-meta {
+    .vocab-app .listening-corpus-meta {
       font-size: 12px;
       color: var(--muted);
       justify-self: end;
       white-space: nowrap;
     }
 
-    .term-chip {
+    .vocab-app .term-chip {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -1500,29 +1495,29 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.84);
     }
 
-    .term-chip.linked {
+    .vocab-app .term-chip.linked {
       background: rgba(20,115,255,0.08);
       border-color: rgba(20,115,255,0.18);
       color: var(--blue-strong);
     }
 
-    .term-chip.current {
+    .vocab-app .term-chip.current {
       background: linear-gradient(180deg, #ffd66e, #f1b53d);
       border-color: rgba(241,181,61,0.5);
       color: #5a3b00;
       box-shadow: 0 10px 18px rgba(241,181,61,0.18);
     }
 
-    .term-chip.external {
+    .vocab-app .term-chip.external {
       opacity: 0.9;
     }
 
-    .related-external {
+    .vocab-app .related-external {
       border-style: dashed;
       background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(248,250,254,0.7));
     }
 
-    .synonym-popover {
+    .vocab-app .synonym-popover {
       position: fixed;
       z-index: 30;
       width: min(320px, calc(100vw - 24px));
@@ -1537,13 +1532,13 @@
       gap: 10px;
     }
 
-    .synonym-popover.hidden-visual {
+    .vocab-app .synonym-popover.hidden-visual {
       display: none !important;
     }
 
-    .synonym-popover-head,
-    .synonym-popover-meta,
-    .synonym-popover-actions {
+    .vocab-app .synonym-popover-head,
+    .vocab-app .synonym-popover-meta,
+    .vocab-app .synonym-popover-actions {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
@@ -1551,20 +1546,20 @@
       justify-content: space-between;
     }
 
-    .synonym-popover-title {
+    .vocab-app .synonym-popover-title {
       font-size: 18px;
       font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.1;
     }
 
-    .synonym-popover-title-row {
+    .vocab-app .synonym-popover-title-row {
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    .synonym-copy-btn {
+    .vocab-app .synonym-copy-btn {
       width: 24px;
       height: 24px;
       border-radius: 999px;
@@ -1579,12 +1574,12 @@
       transition: transform 160ms ease, box-shadow 160ms ease;
     }
 
-    .synonym-copy-btn:hover {
+    .vocab-app .synonym-copy-btn:hover {
       transform: translateY(-1px);
       box-shadow: 0 6px 14px rgba(20, 115, 255, 0.18);
     }
 
-    .synonym-copy-btn svg {
+    .vocab-app .synonym-copy-btn svg {
       width: 14px;
       height: 14px;
       display: block;
@@ -1592,25 +1587,25 @@
       pointer-events: none;
     }
 
-    .synonym-popover-phonetic {
+    .vocab-app .synonym-popover-phonetic {
       color: var(--blue-strong);
       font-size: 13px;
       font-weight: 600;
     }
 
-    .synonym-popover-meaning {
+    .vocab-app .synonym-popover-meaning {
       color: var(--muted);
       font-size: 13px;
       line-height: 1.5;
     }
 
-    .synonym-popover-source {
+    .vocab-app .synonym-popover-source {
       color: var(--text-soft);
       font-size: 11px;
       line-height: 1.3;
     }
 
-    .difficulty-list {
+    .vocab-app .difficulty-list {
       display: grid;
       gap: 10px;
       margin-top: 14px;
@@ -1619,7 +1614,7 @@
       padding-right: 2px;
     }
 
-    .difficulty-list-footer {
+    .vocab-app .difficulty-list-footer {
       display: flex;
       justify-content: space-between;
       gap: 8px;
@@ -1628,45 +1623,45 @@
       margin-top: 10px;
     }
 
-    .settings-card {
+    .vocab-app .settings-card {
       display: grid;
       gap: 16px;
     }
 
-    .setting-grid {
+    .vocab-app .setting-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .workspace-settings {
+    .vocab-app .workspace-settings {
       display: grid;
       gap: 16px;
       padding: 14px;
     }
 
-    .setting-box {
+    .vocab-app .setting-box {
       display: grid;
       gap: 10px;
     }
 
-    .setting-head {
+    .vocab-app .setting-head {
       display: flex;
       justify-content: space-between;
       gap: 12px;
       align-items: center;
     }
 
-    .setting-value {
+    .vocab-app .setting-value {
       font-size: 24px;
       font-weight: 700;
       letter-spacing: -0.04em;
     }
 
-    input[type="range"] {
+    .vocab-app input[type="range"] {
       width: 100%;
       accent-color: var(--blue);
     }
 
-    select {
+    .vocab-app select {
       width: 100%;
       padding: 12px 14px;
       border-radius: 14px;
@@ -1676,18 +1671,18 @@
       outline: none;
     }
 
-    .status-line {
+    .vocab-app .status-line {
       color: var(--muted);
       font-size: 12px;
       line-height: 1.45;
       min-height: 18px;
     }
 
-    .status-line.error {
+    .vocab-app .status-line.error {
       color: #b42318;
     }
 
-    .empty {
+    .vocab-app .empty {
       padding: 18px;
       border-radius: 18px;
       background: rgba(255, 255, 255, 0.62);
@@ -1696,7 +1691,7 @@
       line-height: 1.7;
     }
 
-    .footer-card {
+    .vocab-app .footer-card {
       display: flex;
       justify-content: space-between;
       gap: 16px;
@@ -1704,7 +1699,7 @@
       flex-wrap: wrap;
     }
 
-    .footer-copy {
+    .vocab-app .footer-copy {
       margin: 0;
       color: var(--muted);
       line-height: 1.7;
@@ -1712,25 +1707,25 @@
       font-size: 14px;
     }
 
-    .page-tabs,
-    .chapters-panel,
-    .practice-workspace,
-    .backup-banner {
+    .vocab-app .page-tabs,
+    .vocab-app .chapters-panel,
+    .vocab-app .practice-workspace,
+    .vocab-app .backup-banner {
       padding: 12px 14px;
       border-radius: var(--radius-lg);
     }
 
-    .tab-row,
-    .backup-actions,
-    .meta-stack,
-    .action-row {
+    .vocab-app .tab-row,
+    .vocab-app .backup-actions,
+    .vocab-app .meta-stack,
+    .vocab-app .action-row {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
       align-items: center;
     }
 
-    .page-tabs {
+    .vocab-app .page-tabs {
       display: flex;
       justify-content: space-between;
       gap: 10px;
@@ -1741,7 +1736,7 @@
       overflow: visible;
     }
 
-    .page-tabs-right {
+    .vocab-app .page-tabs-right {
       flex: 1;
       min-width: min(100%, 420px);
       display: flex;
@@ -1751,7 +1746,7 @@
       flex-wrap: wrap;
     }
 
-    .top-actions {
+    .vocab-app .top-actions {
       display: flex;
       gap: 8px;
       align-items: center;
@@ -1759,12 +1754,12 @@
       justify-content: flex-end;
     }
 
-    .top-settings {
+    .vocab-app .top-settings {
       position: relative;
       z-index: 90;
     }
 
-    .top-settings-btn {
+    .vocab-app .top-settings-btn {
       width: 40px;
       height: 40px;
       display: grid;
@@ -1778,18 +1773,18 @@
       transition: transform 160ms ease, box-shadow 160ms ease, color 160ms ease;
     }
 
-    .top-settings-btn:hover {
+    .vocab-app .top-settings-btn:hover {
       transform: translateY(-1px);
       color: var(--blue-strong);
     }
 
-    .top-settings-btn svg {
+    .vocab-app .top-settings-btn svg {
       width: 18px;
       height: 18px;
       fill: currentColor;
     }
 
-    .top-settings-panel {
+    .vocab-app .top-settings-panel {
       position: absolute;
       left: 0;
       top: calc(100% + 8px);
@@ -1804,7 +1799,7 @@
       gap: 8px;
     }
 
-    .top-settings-title {
+    .vocab-app .top-settings-title {
       margin: 0;
       color: var(--subtle);
       font-size: 11px;
@@ -1812,7 +1807,7 @@
       text-transform: uppercase;
     }
 
-    .top-settings-option {
+    .vocab-app .top-settings-option {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -1826,13 +1821,13 @@
       cursor: pointer;
     }
 
-    .top-settings-option input {
+    .vocab-app .top-settings-option input {
       width: 16px;
       height: 16px;
       accent-color: var(--blue);
     }
 
-    .modal-settings {
+    .vocab-app .modal-settings {
       position: fixed;
       z-index: 2000;
       left: 0;
@@ -1846,11 +1841,11 @@
       transition: opacity 0.2s;
     }
 
-    .modal-settings.hidden-visual {
+    .vocab-app .modal-settings.hidden-visual {
       display: none !important;
     }
 
-    .modal-settings-content {
+    .vocab-app .modal-settings-content {
       background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(243,248,255,0.96));
       border-radius: 18px;
       box-shadow: 0 24px 56px rgba(10, 24, 48, 0.18);
@@ -1863,7 +1858,7 @@
       animation: rise 320ms ease-out;
     }
 
-    .modal-settings-header {
+    .vocab-app .modal-settings-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1871,44 +1866,44 @@
       border-bottom: 1px solid var(--line);
     }
 
-    .modal-settings-title {
+    .vocab-app .modal-settings-title {
       font-size: 18px;
       font-weight: 700;
       color: var(--blue-strong);
     }
 
-    .modal-settings-body {
+    .vocab-app .modal-settings-body {
       padding: 18px 22px 0 22px;
       display: flex;
       flex-direction: column;
       gap: 14px;
     }
 
-    .modal-settings-divider {
+    .vocab-app .modal-settings-divider {
       height: 1px;
       background: var(--line);
       margin: 2px 0;
     }
 
-    .modal-settings-subtitle-row {
+    .vocab-app .modal-settings-subtitle-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 10px;
     }
 
-    .modal-settings-subtitle {
+    .vocab-app .modal-settings-subtitle {
       font-size: 13px;
       font-weight: 700;
       color: var(--subtle);
     }
 
-    .modal-settings-subtitle-actions {
+    .vocab-app .modal-settings-subtitle-actions {
       display: flex;
       gap: 6px;
     }
 
-    .synonym-source-list {
+    .vocab-app .synonym-source-list {
       max-height: min(34vh, 280px);
       overflow: auto;
       display: grid;
@@ -1916,11 +1911,11 @@
       padding-right: 4px;
     }
 
-    .synonym-source-option {
+    .vocab-app .synonym-source-option {
       font-weight: 500;
     }
 
-    .tab-btn {
+    .vocab-app .tab-btn {
       padding: 11px 18px;
       border-radius: 999px;
       border: 1px solid var(--line);
@@ -1931,19 +1926,19 @@
       letter-spacing: -0.02em;
     }
 
-    .tab-btn.active {
+    .vocab-app .tab-btn.active {
       background: linear-gradient(180deg, #2e90ff 0%, #1677ff 100%);
       color: #fff;
       border-color: rgba(20,115,255,0.42);
       box-shadow: 0 12px 24px rgba(20,115,255,0.2);
     }
 
-    .page-section {
+    .vocab-app .page-section {
       display: grid;
       gap: 10px;
     }
 
-    .backup-banner {
+    .vocab-app .backup-banner {
       display: flex;
       justify-content: space-between;
       gap: 10px;
@@ -1953,22 +1948,22 @@
       background: linear-gradient(180deg, rgba(255,248,228,0.96), rgba(255,243,211,0.86));
     }
 
-    .backup-banner-text {
+    .vocab-app .backup-banner-text {
       font-size: 14px;
       font-weight: 700;
       letter-spacing: -0.03em;
     }
 
-    .chapters-panel {
+    .vocab-app .chapters-panel {
       display: grid;
       gap: 10px;
     }
 
-    .chapter-grid-top {
+    .vocab-app .chapter-grid-top {
       grid-template-columns: 1fr;
     }
 
-    .chapter-accordion {
+    .vocab-app .chapter-accordion {
       border-radius: 14px;
       border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(246,249,255,0.86));
@@ -1976,17 +1971,17 @@
       overflow: hidden;
     }
 
-    .chapter-accordion summary {
+    .vocab-app .chapter-accordion summary {
       list-style: none;
       cursor: pointer;
       padding: 10px 12px;
     }
 
-    .chapter-accordion summary::-webkit-details-marker {
+    .vocab-app .chapter-accordion summary::-webkit-details-marker {
       display: none;
     }
 
-    .chapter-summary {
+    .vocab-app .chapter-summary {
       display: flex;
       justify-content: space-between;
       gap: 8px;
@@ -1994,14 +1989,14 @@
       flex-wrap: wrap;
     }
 
-    .chapter-summary-main {
+    .vocab-app .chapter-summary-main {
       display: grid;
       gap: 2px;
       min-width: 0;
       flex: 1;
     }
 
-    .chapter-summary-meta {
+    .vocab-app .chapter-summary-meta {
       display: flex;
       gap: 6px;
       align-items: center;
@@ -2009,58 +2004,58 @@
       justify-content: flex-end;
     }
 
-    .chapter-count-pill {
+    .vocab-app .chapter-count-pill {
       min-width: 54px;
       justify-content: center;
       padding-inline: 8px;
     }
 
-    .chapter-groups {
+    .vocab-app .chapter-groups {
       padding: 0 12px 12px;
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 6px;
     }
 
-    .practice-workspace {
+    .vocab-app .practice-workspace {
       overflow: hidden;
     }
 
-    .practice-layout {
+    .vocab-app .practice-layout {
       display: grid;
       grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.75fr);
       gap: 10px;
       align-items: start;
     }
 
-    .practice-main,
-    .practice-side {
+    .vocab-app .practice-main,
+    .vocab-app .practice-side {
       display: grid;
       gap: 10px;
     }
 
-    .practice-main.word-card {
+    .vocab-app .practice-main.word-card {
       padding: 0;
       min-height: auto;
       background: transparent;
       box-shadow: none;
     }
 
-    .action-panel {
+    .vocab-app .action-panel {
       padding: 10px 12px;
     }
 
-    .action-row {
+    .vocab-app .action-row {
       justify-content: flex-start;
     }
 
-    .note-editor {
+    .vocab-app .note-editor {
       display: grid;
       gap: 8px;
       margin-top: 10px;
     }
 
-    .note-input {
+    .vocab-app .note-input {
       width: 100%;
       min-height: 84px;
       resize: vertical;
@@ -2074,16 +2069,16 @@
       line-height: 1.45;
     }
 
-    .note-input:focus {
+    .vocab-app .note-input:focus {
       border-color: rgba(20, 115, 255, 0.28);
       box-shadow: 0 0 0 3px rgba(20, 115, 255, 0.1);
     }
 
-    .mono {
+    .vocab-app .mono {
       font-variant-numeric: tabular-nums;
     }
 
-    .hidden-visual {
+    .vocab-app .hidden-visual {
       display: none !important;
     }
 
@@ -2099,155 +2094,158 @@
     }
 
     @media (max-width: 1220px) {
-      .main-layout {
+      .vocab-app .main-layout {
         grid-template-columns: 1fr;
       }
 
-      .practice-layout,
-      .chapter-groups {
+      .vocab-app .practice-layout,
+      .vocab-app .chapter-groups {
         grid-template-columns: 1fr;
       }
 
-      .setting-grid,
-      .metrics-grid,
-      .hero-badges,
-      .chapter-grid,
-      .search-results {
+      .vocab-app .setting-grid,
+      .vocab-app .metrics-grid,
+      .vocab-app .hero-badges,
+      .vocab-app .chapter-grid,
+      .vocab-app .search-results {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
     @media (max-width: 760px) {
-      .shell {
+      .vocab-app .shell {
         width: min(calc(100% - 18px), var(--max-width));
         margin: 10px auto 20px;
       }
 
-      .hero,
-      .word-card,
-      .settings-card,
-      .workspace-settings,
-      .difficulty-card,
-      .footer-card,
-      .transport-card,
-      .queue-card,
-      .chapter-card {
+      .vocab-app .hero,
+      .vocab-app .word-card,
+      .vocab-app .settings-card,
+      .vocab-app .workspace-settings,
+      .vocab-app .difficulty-card,
+      .vocab-app .footer-card,
+      .vocab-app .transport-card,
+      .vocab-app .queue-card,
+      .vocab-app .chapter-card {
         border-radius: 24px;
       }
 
-      .hero,
-      .word-card,
-      .settings-card,
-      .workspace-settings,
-      .difficulty-card,
-      .footer-card,
-      .chapter-card {
+      .vocab-app .hero,
+      .vocab-app .word-card,
+      .vocab-app .settings-card,
+      .vocab-app .workspace-settings,
+      .vocab-app .difficulty-card,
+      .vocab-app .footer-card,
+      .vocab-app .chapter-card {
         padding: 18px;
       }
 
-      .control-btn {
+      .vocab-app .control-btn {
         padding: 14px 16px;
       }
 
-      .segment-btn,
-      .ghost-btn,
-      .toggle-btn,
-      .play-btn,
-      .mini-btn,
-      .danger-btn,
-      .term-chip {
+      .vocab-app .segment-btn,
+      .vocab-app .ghost-btn,
+      .vocab-app .toggle-btn,
+      .vocab-app .play-btn,
+      .vocab-app .mini-btn,
+      .vocab-app .danger-btn,
+      .vocab-app .term-chip {
         padding: 10px 12px;
         font-size: 13px;
       }
 
-      .secondary-panel,
-      .queue-card,
-      .transport-card,
-      .action-panel,
-      .source-path-card,
-      .related-item {
+      .vocab-app .secondary-panel,
+      .vocab-app .queue-card,
+      .vocab-app .transport-card,
+      .vocab-app .action-panel,
+      .vocab-app .source-path-card,
+      .vocab-app .related-item {
         padding: 12px;
       }
 
-      .related-list,
-      .practice-main,
-      .practice-side,
-      .page-section,
-      .shell {
+      .vocab-app .related-list,
+      .vocab-app .practice-main,
+      .vocab-app .practice-side,
+      .vocab-app .page-section,
+      .vocab-app .shell {
         gap: 8px;
       }
 
-      .spell-actions {
+      .vocab-app .spell-actions {
         grid-template-columns: 1fr;
       }
 
-      .metrics-grid,
-      .daily-stats-grid,
-      .hero-badges,
-      .setting-grid,
-      .transport-grid,
-      .chapter-grid,
-      .search-results,
-      .quiz-options,
-      .difficulty-review-row,
-      .source-path-grid {
+      .vocab-app .metrics-grid,
+      .vocab-app .daily-stats-grid,
+      .vocab-app .hero-badges,
+      .vocab-app .setting-grid,
+      .vocab-app .transport-grid,
+      .vocab-app .chapter-grid,
+      .vocab-app .search-results,
+      .vocab-app .quiz-options,
+      .vocab-app .difficulty-review-row,
+      .vocab-app .source-path-grid {
         grid-template-columns: 1fr;
       }
 
-      .page-tabs,
-      .backup-banner,
-      .chapter-summary {
+      .vocab-app .page-tabs,
+      .vocab-app .backup-banner,
+      .vocab-app .chapter-summary {
         align-items: stretch;
       }
 
-      .page-tabs-right,
-      .top-actions {
+      .vocab-app .page-tabs-right,
+      .vocab-app .top-actions {
         justify-content: stretch;
       }
 
-      .search-bar {
+      .vocab-app .search-bar {
         grid-template-columns: 1fr;
       }
 
-      .word-title {
+      .vocab-app .word-title {
         font-size: clamp(36px, 12vw, 64px);
       }
 
-      .difficulty-toolbar,
-      .chapter-header,
-      .word-top,
-      .footer-card {
+      .vocab-app .difficulty-toolbar,
+      .vocab-app .chapter-header,
+      .vocab-app .word-top,
+      .vocab-app .footer-card {
         align-items: stretch;
       }
 
-      .difficulty-search-row {
+      .vocab-app .difficulty-search-row {
         grid-template-columns: 1fr;
       }
 
-      .footprint-grid {
+      .vocab-app .footprint-grid {
         gap: 5px;
       }
     }
+  
+
 .vocab-app::before,
-.vocab-app::after {
-  content: "";
-  position: fixed;
-  inset: auto;
-  width: 320px;
-  height: 320px;
-  border-radius: 50%;
-  filter: blur(22px);
-  opacity: 0.55;
-  pointer-events: none;
-  z-index: 0;
-}
-.vocab-app::before {
-  top: -110px;
-  right: -90px;
-  background: rgba(20, 115, 255, 0.26);
-}
-.vocab-app::after {
-  left: -80px;
-  bottom: 10%;
-  background: rgba(97, 95, 255, 0.16);
+    .vocab-app::after {
+      content: "";
+      position: fixed;
+      inset: auto;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      filter: blur(22px);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+
+/* 角落光斑（原 body::before/::after，容器化） — 若上面已由合并规则生成则忽略 */
+/* 容器占满主区：负 margin 抵消 Element Plus main 的 padding */
+.vocab-app {
+  position: relative;
+  isolation: isolate;
+  margin: -20px;
+  padding: 16px 20px 36px;
+  overflow: clip;
 }
