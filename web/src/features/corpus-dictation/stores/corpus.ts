@@ -47,6 +47,7 @@ export interface ChapterRunStat {
   at: string
   total: number
   correct: number
+  accuracy: number
 }
 
 export type ChapterStats = Record<string, ChapterRunStat[]>
@@ -255,7 +256,7 @@ export const useCorpusStore = defineStore('corpusDictation', {
       /** 单章完整练习结束后追加一条章节统计历史 */
       recordChapterRun(chapterId: string, total: number, correct: number) {
         const list = this.chapterStats[chapterId] ?? []
-        list.push({ at: new Date().toISOString(), total, correct })
+        list.push({ at: new Date().toISOString(), total, correct, accuracy: total ? (correct / total) * 100 : 0 })
         this.chapterStats[chapterId] = list.slice(-60)
         this.persistChapterStats()
       },

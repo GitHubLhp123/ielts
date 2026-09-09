@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import ModulePlaceholder from '@/components/ModulePlaceholder.vue'
+/**
+ * 语料库章节听写 —— 忠实还原 listening-word/王璐语料库_源码.html。
+ */
+import CorpusDictationModule from '@/features/corpus-dictation/CorpusDictationModule.vue'
 </script>
 
 <template>
-  <ModulePlaceholder module-id="corpus-dictation" />
+  <CorpusDictationModule />
 </template>
