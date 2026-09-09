@@ -100,9 +100,9 @@ export const modules: IeltsModule[] = [
       'localStorage + IndexedDB 音频缓存',
     ],
     icon: Headset,
-    status: 'todo',
+    status: 'active',
     notes:
-      '数据来源：listening-word/word.json（章节 → 词条）与 listening-word/assets/audio（本地音频）。',
+      '重构中（最大模块攻坚中）：原样式已容器化 .corpus-dictation-app（917 行）；legacy 为原生 JS（约 12.8k 行逻辑），数据 CHAPTER_WORD_SETS 内嵌于 1236 行起。数据/引擎规范由分析代理产出至 web/docs/corpus-dictation/。',
   },
   {
     id: 'vocabulary',
