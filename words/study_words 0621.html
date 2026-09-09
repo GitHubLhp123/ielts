@@ -2440,10 +2440,6 @@
           </div>
         </div>
         <div class="footer-toolbar">
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input id="startIndexInput" type="number" min="1" placeholder="起始序号" style="width:110px;padding:8px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,0.92);">
-            <button class="segment-btn" id="setStartIndexButton">从此序号开始</button>
-          </div>
           <button class="segment-btn" id="resetPositionButton">重置当前位置</button>
           <button class="segment-btn" id="muteButton">静音</button>
         </div>
@@ -2905,8 +2901,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       rateValue: document.getElementById("rateValue"),
       intervalValue: document.getElementById("intervalValue"),
       repeatValue: document.getElementById("repeatValue"),
-      startIndexInput: document.getElementById("startIndexInput"),
-      setStartIndexButton: document.getElementById("setStartIndexButton"),
       resetPositionButton: document.getElementById("resetPositionButton"),
       muteButton: document.getElementById("muteButton"),
       statusText: document.getElementById("statusText"),
@@ -3255,45 +3249,6 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
       elements.repeatInput.addEventListener("input", () => updateSetting("repeatCount", Number(elements.repeatInput.value), 1, 5, 1, 0));
 
       elements.resetPositionButton.addEventListener("click", resetGroupPosition);
-      elements.setStartIndexButton.addEventListener("click", () => {
-        const raw = (elements.startIndexInput && elements.startIndexInput.value) ? elements.startIndexInput.value.trim() : "";
-        const val = Number(raw);
-        if (!Number.isFinite(val) || val < 1) {
-          setStatus("请输入有效的起始序号（从 1 开始）。", false);
-          return;
-        }
-        const overrideIndex = Math.max(0, Math.floor(val) - 1);
-
-        // If there's an active non-group session (e.g. preset source like 核心词汇), set index inside it
-        if (currentSession && Array.isArray(currentSession.items) && currentSession.items.length) {
-          const idx = clampIndex(overrideIndex, currentSession.items.length);
-          currentSession.currentIndex = idx;
-          resetQuizState();
-          if (state.practice.mode === "quiz") {
-            ensureQuizRound();
-          }
-          saveState(false);
-          renderAll();
-          setStatus(`已将练习位置设置为 ${idx + 1} / ${currentSession.items.length}（来源：${currentSession.label}）。`, false);
-          return;
-        }
-
-        // Fallback: if a group is selected, set group session from that index
-        if (state.selectedGroupId) {
-          setGroupSession(state.selectedGroupId, true, overrideIndex);
-          return;
-        }
-
-        setStatus("请先选择一个章节分组或开始来源练习（例如：学习核心词汇）。", false);
-      });
-      if (elements.startIndexInput) {
-        elements.startIndexInput.addEventListener("keydown", (ev) => {
-          if (ev.key === "Enter") {
-            ev.preventDefault();
-            elements.setStartIndexButton.click();
-          }
-        });
-      }
       elements.muteButton.addEventListener("click", () => {
         state.settings.muted = !state.settings.muted;
         saveState(false);
@@ -5628,36 +5583,15 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
     }
 
     function handleKeyboardShortcuts(event) {
-      if (state.practice.mode === "spell" && event.code === "Space" && event.ctrlKey) {
-        event.preventDefault();
-        void replaySpellAudio();
-        return;
-      }
-      const tag = event.target?.tagName;
-      const isTextInput = ["INPUT", "TEXTAREA"].includes(tag) || event.target?.isContentEditable;
-      const isControlButton = ["BUTTON", "A", "SELECT"].includes(tag);
-      if (isTextInput) {
-        return;
-      }
-      if (event.code === "ArrowLeft") {
-        event.preventDefault();
-        moveRelative(-1, true);
-        return;
-      }
-      if (event.code === "ArrowRight") {
-        event.preventDefault();
-        moveRelative(1, true);
-        return;
-      }
-      if (event.code === "ArrowUp") {
-        event.preventDefault();
-        const currentWord = getCurrentWord();
-        if (currentWord) {
-          void speakWord(currentWord, false, playbackToken, true);
+      if (state.practice.mode === "spell") {
+        if (event.code === "Space" && event.ctrlKey) {
+          event.preventDefault();
+          void replaySpellAudio();
         }
         return;
       }
-      if (isControlButton) {
+      const tag = event.target?.tagName;
+      if (["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(tag) || event.target?.isContentEditable) {
         return;
       }
       if (event.code === "Enter") {

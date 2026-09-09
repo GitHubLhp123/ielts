@@ -5628,36 +5628,15 @@ const EMBEDDED_DATA = {"chapters":[{"chapter":"Chapter 1 自然地理","chapterN
     }
 
     function handleKeyboardShortcuts(event) {
-      if (state.practice.mode === "spell" && event.code === "Space" && event.ctrlKey) {
-        event.preventDefault();
-        void replaySpellAudio();
-        return;
-      }
-      const tag = event.target?.tagName;
-      const isTextInput = ["INPUT", "TEXTAREA"].includes(tag) || event.target?.isContentEditable;
-      const isControlButton = ["BUTTON", "A", "SELECT"].includes(tag);
-      if (isTextInput) {
-        return;
-      }
-      if (event.code === "ArrowLeft") {
-        event.preventDefault();
-        moveRelative(-1, true);
-        return;
-      }
-      if (event.code === "ArrowRight") {
-        event.preventDefault();
-        moveRelative(1, true);
-        return;
-      }
-      if (event.code === "ArrowUp") {
-        event.preventDefault();
-        const currentWord = getCurrentWord();
-        if (currentWord) {
-          void speakWord(currentWord, false, playbackToken, true);
+      if (state.practice.mode === "spell") {
+        if (event.code === "Space" && event.ctrlKey) {
+          event.preventDefault();
+          void replaySpellAudio();
         }
         return;
       }
-      if (isControlButton) {
+      const tag = event.target?.tagName;
+      if (["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(tag) || event.target?.isContentEditable) {
         return;
       }
       if (event.code === "Enter") {

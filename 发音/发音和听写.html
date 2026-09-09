@@ -414,12 +414,60 @@
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
         }
 
+        .meaning-box.dictation-mode {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 232, 0.95));
+            border-color: rgba(241, 181, 61, 0.26);
+        }
+
         .meaning-text {
             margin: 0;
             font-size: clamp(16px, 2vw, 22px);
             line-height: 1.35;
             font-weight: 600;
             letter-spacing: -0.03em;
+        }
+
+        .dictation-panel {
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 255, 0.88));
+            border: 1px solid var(--line);
+            display: grid;
+            gap: 10px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+        }
+
+        .dictation-hint {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .dictation-input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 14px;
+        }
+
+        .dictation-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .dictation-feedback {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+            min-height: 18px;
+        }
+
+        .dictation-feedback.success {
+            color: var(--green);
+        }
+
+        .dictation-feedback.error {
+            color: var(--red);
         }
 
         .settings-card {
@@ -746,7 +794,7 @@
                         <div>
                             <div class="section-label">当前单词</div>
                             <div class="pill-row" style="margin-top:10px;">
-                                <span class="mode-pill active">🎧 只听模式</span>
+                                <button type="button" class="mode-pill active" id="modeToggleBtn">🎧 只听模式</button>
                                 <span class="pill" id="currentWordIndex">0 / 0</span>
                             </div>
                         </div>
@@ -758,6 +806,16 @@
                     <div class="meaning-box" id="currentMeaningBox">
                         <div class="section-label">释义</div>
                         <p class="meaning-text" id="currentMeaningText">加载单词后，这里会显示当前单词释义。</p>
+                    </div>
+                    <div class="dictation-panel hidden-visual" id="dictationPanel">
+                        <div class="section-label">听写练习</div>
+                        <div class="dictation-hint" id="dictationHint">听完单词后，输入你听到的单词。</div>
+                        <input type="text" class="search-input dictation-input" id="dictationInput" placeholder="请输入你听到的单词">
+                        <div class="dictation-actions">
+                            <button class="segment-btn primary" id="checkDictationBtn" type="button">✅ 检查答案</button>
+                            <button class="segment-btn" id="showDictationAnswerBtn" type="button">👁 显示答案</button>
+                        </div>
+                        <div class="dictation-feedback" id="dictationFeedback">当前处于听写模式，先听一次再输入。</div>
                     </div>
                 </section>
 
@@ -856,6 +914,7 @@
             let isSpeaking = false;
             let currentWordObj = null;
             let activeIndex = -1;
+            let dictationMode = false;
 
             // 语音设置
             let availableVoices = [];
@@ -883,6 +942,7 @@
             const currentWordIndexSpan = document.getElementById('currentWordIndex');
             const currentWordText = document.getElementById('currentWordText');
             const currentPhonetic = document.getElementById('currentPhonetic');
+            const currentMeaningBox = document.getElementById('currentMeaningBox');
             const currentMeaningText = document.getElementById('currentMeaningText');
             const wordListContainer = document.getElementById('wordListContainer');
             const remainingCountSpan = document.getElementById('remainingCount');
@@ -891,6 +951,13 @@
             const totalWordsBadge = document.getElementById('totalWordsBadge');
             const progressBadge = document.getElementById('progressBadge');
             const shuffleBtn = document.getElementById('shuffleBtn');
+            const modeToggleBtn = document.getElementById('modeToggleBtn');
+            const dictationPanel = document.getElementById('dictationPanel');
+            const dictationHint = document.getElementById('dictationHint');
+            const dictationInput = document.getElementById('dictationInput');
+            const checkDictationBtn = document.getElementById('checkDictationBtn');
+            const showDictationAnswerBtn = document.getElementById('showDictationAnswerBtn');
+            const dictationFeedback = document.getElementById('dictationFeedback');
 
             // 辅助函数
             function setStatus(msg, isError = false) {
@@ -904,6 +971,37 @@
                         loadStatus.classList.remove('error');
                     }
                 }, 2500);
+            }
+
+            function setDictationFeedback(msg, kind = '') {
+                if (!dictationFeedback) return;
+                dictationFeedback.textContent = msg;
+                dictationFeedback.className = 'dictation-feedback';
+                if (kind === 'success') dictationFeedback.classList.add('success');
+                else if (kind === 'error') dictationFeedback.classList.add('error');
+            }
+
+            function resetDictationInput() {
+                if (dictationInput) dictationInput.value = '';
+                if (dictationMode) setDictationFeedback('当前处于听写模式，先听一次再输入。');
+                else setDictationFeedback('听写模式已关闭，保持只听模式。');
+            }
+
+            function updateDictationModeUI() {
+                if (!modeToggleBtn || !dictationPanel || !currentMeaningBox || !dictationHint) return;
+                modeToggleBtn.textContent = dictationMode ? '✍ 听写模式' : '🎧 只听模式';
+                modeToggleBtn.classList.toggle('active', dictationMode);
+                dictationPanel.classList.toggle('hidden-visual', !dictationMode);
+                currentMeaningBox.classList.toggle('dictation-mode', dictationMode);
+                if (!dictationMode) {
+                    setDictationFeedback('听写模式已关闭，保持只听模式。');
+                    if (dictationInput) dictationInput.value = '';
+                    return;
+                }
+                dictationHint.textContent = currentWordObj ? `请听清楚后输入“${currentWordObj.text}”的拼写。` : '听完单词后，输入你听到的单词。';
+                if (!dictationInput || !dictationInput.value) {
+                    setDictationFeedback('当前处于听写模式，先听一次再输入。');
+                }
             }
 
             function cancelSpeechAndTimer() {
@@ -1031,6 +1129,7 @@
                 cancelSpeechAndTimer();
                 activeIndex = index;
                 currentWordObj = wordObj;
+                resetDictationInput();
                 renderWordList();
                 updateCurrentWordDisplay();
                 const wasActive = practiceActive;
@@ -1049,15 +1148,18 @@
                     currentPhonetic.textContent = '/ -- /';
                     currentMeaningText.textContent = '加载单词后，这里会显示当前单词释义。';
                     currentWordIndexSpan.textContent = '0 / 0';
+                    progressBadge.textContent = '0 / 0';
+                    updateDictationModeUI();
                     return;
                 }
                 const total = wordItems.length;
                 const displayIndex = activeIndex >= 0 ? activeIndex + 1 : 0;
-                currentWordText.textContent = currentWordObj.text;
+                currentWordText.textContent = dictationMode ? '__________' : currentWordObj.text;
                 currentPhonetic.textContent = '/ -- /';
-                currentMeaningText.textContent = '释义功能待实现';
+                currentMeaningText.textContent = dictationMode ? '听写模式：先听一次，再输入你听到的单词。' : '释义功能待实现';
                 currentWordIndexSpan.textContent = `${displayIndex} / ${total}`;
                 progressBadge.textContent = `${displayIndex} / ${total}`;
+                updateDictationModeUI();
             }
 
             function scheduleNextListen() {
@@ -1086,6 +1188,7 @@
                 if (activeIndex < 0 || activeIndex >= active.length) activeIndex = 0;
                 const word = active[activeIndex];
                 currentWordObj = word;
+                resetDictationInput();
                 updateCurrentWordDisplay();
                 renderWordList();
                 updatePlayPauseButton();
@@ -1178,6 +1281,7 @@
                 wordItems = list;
                 activeIndex = -1;
                 currentWordObj = null;
+                resetDictationInput();
                 renderWordList();
                 updateCurrentWordDisplay();
                 updatePlayPauseButton();
@@ -1213,6 +1317,7 @@
                 wordItems = filtered;
                 currentWordObj = null;
                 activeIndex = -1;
+                resetDictationInput();
                 persistData();
                 updateCurrentWordDisplay();
                 renderWordList();
@@ -1227,11 +1332,54 @@
                 practiceActive = false;
                 cancelSpeechAndTimer();
                 currentWordObj = null;
+                resetDictationInput();
                 activeIndex = -1;
                 updateCurrentWordDisplay();
                 renderWordList();
                 updatePlayPauseButton();
                 setStatus("🗑 缓存已清除", false);
+            }
+
+            function toggleDictationMode() {
+                dictationMode = !dictationMode;
+                updateCurrentWordDisplay();
+                if (!dictationMode) {
+                    resetDictationInput();
+                }
+                persistData();
+                setStatus(dictationMode ? '✍ 已进入听写模式' : '🎧 已切换回只听模式');
+            }
+
+            function checkDictationAnswer() {
+                if (!currentWordObj) {
+                    setDictationFeedback('先加载或选择一个单词，再检查答案。', 'error');
+                    return;
+                }
+                const expected = currentWordObj.text.trim().toLowerCase();
+                const actual = (dictationInput ? dictationInput.value.trim() : '').toLowerCase();
+                if (!actual) {
+                    setDictationFeedback('请输入你听到的单词后再检查。', 'error');
+                    return;
+                }
+                if (actual === expected) {
+                    currentWordText.textContent = currentWordObj.text;
+                    setDictationFeedback('✅ 回答正确', 'success');
+                    setStatus(`✅ 正确：${currentWordObj.text}`);
+                } else {
+                    currentWordText.textContent = currentWordObj.text;
+                    setDictationFeedback(`❌ 答案不对，正确答案是 ${currentWordObj.text}`, 'error');
+                    setStatus(`❌ 答案不对，正确答案是 ${currentWordObj.text}`, true);
+                }
+            }
+
+            function showDictationAnswer() {
+                if (!currentWordObj) {
+                    setDictationFeedback('当前没有可显示的单词。', 'error');
+                    return;
+                }
+                currentWordText.textContent = currentWordObj.text;
+                setDictationFeedback(`答案已显示：${currentWordObj.text}`, 'success');
+                setStatus(`👁 已显示答案：${currentWordObj.text}`);
             }
 
             function persistData() {
@@ -1240,7 +1388,8 @@
                     selectedVoiceURI: selectedVoiceURI,
                     speechRate: rateSlider.value,
                     repeatCount: repeatSlider.value,
-                    ttsSource: ttsSource
+                    ttsSource: ttsSource,
+                    dictationMode: dictationMode
                 };
                 localStorage.setItem('ielts_listen_repeat', JSON.stringify(store));
             }
@@ -1258,6 +1407,7 @@
                     if (data.speechRate) { rateSlider.value = data.speechRate; rateValue.textContent = data.speechRate; speechRate = parseFloat(data.speechRate); }
                     if (data.repeatCount) { repeatSlider.value = data.repeatCount; repeatValue.textContent = data.repeatCount; repeatCount = parseInt(data.repeatCount); }
                     if (data.ttsSource) { ttsSource = data.ttsSource; ttsSourceSelect.value = ttsSource; }
+                    if (typeof data.dictationMode === 'boolean') dictationMode = data.dictationMode;
                     currentWordObj = null;
                     activeIndex = -1;
                     return true;
@@ -1279,6 +1429,7 @@
                 rateValue.textContent = rateSlider.value;
                 intervalValue.textContent = intervalInput.value + 's';
                 repeatValue.textContent = repeatSlider.value;
+                updateDictationModeUI();
 
                 loadWordsBtn.addEventListener('click', loadAndReset);
                 clearCacheBtn.addEventListener('click', fullClearCache);
@@ -1287,6 +1438,10 @@
                 togglePlayPauseBtn.addEventListener('click', togglePlayPause);
                 nextWordBtn.addEventListener('click', goToNextWord);
                 shuffleBtn.addEventListener('click', shuffleWordList);
+                modeToggleBtn.addEventListener('click', toggleDictationMode);
+                checkDictationBtn.addEventListener('click', checkDictationAnswer);
+                showDictationAnswerBtn.addEventListener('click', showDictationAnswer);
+                dictationInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); checkDictationAnswer(); } });
 
                 rateSlider.addEventListener('input', () => { rateValue.textContent = rateSlider.value; speechRate = parseFloat(rateSlider.value); persistData(); });
                 intervalInput.addEventListener('input', () => { intervalValue.textContent = intervalInput.value + 's'; });

@@ -1029,9 +1029,8 @@
               <strong>使用提示</strong>
               <p>1. 章节选择后只匹配该章节音频；手动输入时，系统会先去重再匹配语料库。</p>
               <p>2. 听写模式会记录练习次数、正确次数、错词本与章节统计；听音模式仅顺序播放，不写入听写数据。</p>
-              <p>3. 听音模式下可用键盘快捷键：上键重播当前单词，左键切换到上一个单词，右键切换到下一个单词。</p>
-              <p>4. 若发现不存在于语料库的单词，系统会在开始前自动移除，并在页面内显示处理结果。</p>
-              <p>5. 错词本支持直接按当前筛选结果开始练习；如果另外勾选了单词，则优先练习勾选内容。</p>
+              <p>3. 若发现不存在于语料库的单词，系统会在开始前自动移除，并在页面内显示处理结果。</p>
+              <p>4. 错词本支持直接按当前筛选结果开始练习；如果另外勾选了单词，则优先练习勾选内容。</p>
             </div>
             <div class="tool-grid">
               <div class="tool-card">
@@ -1231,7 +1230,6 @@
     </div>
   </div>
 
-	<script src="./scripts/listen_navigation.js"></script>
 	<script>
 const CHAPTER_WORD_SETS = 
 {
@@ -13229,15 +13227,9 @@ const EXPORT_FILE_PREFIX = "语料库";
 			state.currentAudioFinished = false;
       state.currentListenRepeatIndex = 0;
 
-      elements.answerInput.disabled = isListenMode();
+      elements.answerInput.disabled = false;
 			elements.answerInput.value = "";
-      if (isListenMode()) {
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
-      } else {
-			  elements.answerInput.focus();
-      }
+			elements.answerInput.focus();
 			if (isListenMode()) {
         const wordText = getPracticeWord(state.currentWord);
         elements.wordDisplayText.textContent = wordText;
@@ -13377,25 +13369,6 @@ const EXPORT_FILE_PREFIX = "语料库";
 			moveToNextWord().catch((error) => {
 				setFeedback(error.message || "播放上一个单词失败。", "error");
 			});
-		}
-
-		function handleListenNavigationAction(action) {
-			if (!action) {
-				return;
-			}
-			if (action === "previous") {
-				goToPreviousWordManually();
-				return;
-			}
-			if (action === "next") {
-				goToNextWordManually();
-				return;
-			}
-			if (action === "repeat") {
-				replayCurrentWord().catch((error) => {
-					setFeedback(error.message || "重播失败。", "error");
-				});
-			}
 		}
 
 		function pauseOrResume() {
@@ -13900,21 +13873,6 @@ const EXPORT_FILE_PREFIX = "语料库";
         }
       });
       document.addEventListener("keydown", (event) => {
-        const listenAction = window.listenNavigation?.resolveListenNavigationAction({
-          eventType: "keydown",
-          key: event.key,
-          target: event.target,
-          isListenMode: isListenMode(),
-          sessionStarted: state.sessionStarted,
-          isFinished: state.isFinished,
-          currentWord: state.currentWord,
-        });
-        if (listenAction) {
-          event.preventDefault();
-          handleListenNavigationAction(listenAction);
-          return;
-        }
-
         if (event.key === "Escape" && !elements.confirmDialog.hidden) {
           event.preventDefault();
           closeConfirmDialog(false);
@@ -13933,39 +13891,6 @@ const EXPORT_FILE_PREFIX = "语料库";
           event.preventDefault();
           goToNextWordManually();
         }
-      });
-
-      document.addEventListener("mousedown", (event) => {
-        const listenAction = window.listenNavigation?.resolveListenNavigationAction({
-          eventType: "mousedown",
-          button: event.button,
-          target: event.target,
-          isListenMode: isListenMode(),
-          sessionStarted: state.sessionStarted,
-          isFinished: state.isFinished,
-          currentWord: state.currentWord,
-        });
-        if (!listenAction) {
-          return;
-        }
-        event.preventDefault();
-        handleListenNavigationAction(listenAction);
-      });
-
-      document.addEventListener("contextmenu", (event) => {
-        const listenAction = window.listenNavigation?.resolveListenNavigationAction({
-          eventType: "contextmenu",
-          target: event.target,
-          isListenMode: isListenMode(),
-          sessionStarted: state.sessionStarted,
-          isFinished: state.isFinished,
-          currentWord: state.currentWord,
-        });
-        if (!listenAction) {
-          return;
-        }
-        event.preventDefault();
-        handleListenNavigationAction(listenAction);
       });
 
       elements.clearMistakeBookBtn.addEventListener("click", () => {

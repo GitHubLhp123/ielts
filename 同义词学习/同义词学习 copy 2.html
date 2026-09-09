@@ -478,12 +478,6 @@
                 this.loadNotes();
                 this.initVoices();
             },
-            mounted() {
-                window.addEventListener('keydown', this.handleGlobalKeydown);
-            },
-            beforeDestroy() {
-                window.removeEventListener('keydown', this.handleGlobalKeydown);
-            },
             methods: {
                 // ========== 发音核心 ==========
                 hasChinese(text) {
@@ -668,26 +662,6 @@
                     const { word } = this.activeHighlight;
                     if (word && !this.hasChinese(word)) {
                         this.playWord(word, null, null);
-                    }
-                },
-
-                // 全局快捷键处理：右箭头 下一词，向上箭头 重复播放当前
-                handleGlobalKeydown(e) {
-                    try {
-                        if (e.key === 'ArrowRight') {
-                            e.preventDefault();
-                            this.goNextWord();
-                        } else if (e.key === 'ArrowUp') {
-                            e.preventDefault();
-                            const pos = this.getCurrentActivePosition();
-                            if (pos.groupIdx !== null && pos.word) {
-                                if (this.isAutoPlaying || this.isPaused) this.stopAutoPlay(true);
-                                // 重新播放当前高亮词
-                                this.playWord(pos.word, null, null);
-                            }
-                        }
-                    } catch (err) {
-                        // ignore
                     }
                 },
                 // ========== 自动播放逻辑 (完全兼容手动导航，从当前高亮开始) ==========
