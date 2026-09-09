@@ -65,9 +65,10 @@ export const modules: IeltsModule[] = [
     subtitle: '纯正英音 · 批量播放',
     legacy: ['dictionary/发音.html'],
     summary: '轻量发音练习入口：按词批量播放英音，适合快速练耳与口语模仿。',
-    features: ['词表批量播放', '英音朗读', '练耳 / 口语模仿入口'],
+    features: ['批量粘贴词表（换行/逗号分隔）', '本地 TTS 精听（英音优先选声）', '语速可调 / 暂停 / 任意跳词', '单词清单点击即播'],
     icon: Mic,
-    status: 'todo',
+    status: 'done',
+    notes: '已忠实还原 dictionary/发音.html：原样式容器级移植（styles/legacy-full.css）+ 原结构重写。',
   },
   {
     id: 'dictation',
