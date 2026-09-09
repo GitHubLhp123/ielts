@@ -1,19 +1,81 @@
 <script setup lang="ts">
 /**
- * 词汇学习模块外壳 —— 顶栏（tab / 模式 / 状态 / 备份与设置入口）+ 内容面板。
- * 装载时初始化 store（load → hydrate → 初始会话）。
+ * 词汇学习模块外壳 —— 结构复刻 legacy study_words.html：
+ * .vocab-app（渐变底）> .shell > [.page-tabs | backup-banner | page-section* | footer-card]
  */
-import { onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { useVocabularyStore } from './stores/vocabulary'
-import { MODE_LABELS } from './constants'
-import './styles/legacy-theme.css'
+import { library } from './data/library'
+import { SESSION_MODE_LABELS } from './constants'
+import './styles/legacy-full.css'
 import OverviewPane from './components/OverviewPane.vue'
 import StudyPane from './components/StudyPane.vue'
 import DifficultPane from './components/DifficultPane.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
 
 const store = useVocabularyStore()
+const importFileInput = ref<HTMLInputElement | null>(null)
+
+const heroModeStat = computed(() => {
+  if (!store.session) return '待选择'
+  return SESSION_MODE_LABELS[store.session.mode] ?? '待选择'
+})
+
+const heroSelection = computed(() => store.session?.label ?? '请选择一个组开始')
+
+const heroDatasetStat = computed(() => (store.session?.items.length ? String(store.session.items.length) : String(library.totalWords)))
+
+const savedBadgeVisible = computed(() => store.ui.savedFlash)
+const updatedBadgeText = computed(() => {
+  const last = store.data.backup.lastBackupAt
+  return last ? `上次备份 ${new Date(last).toLocaleDateString()}` : '尚未开始'
+})
+
+function triggerImport() {
+  importFileInput.value?.click()
+}
+
+async function onFilePicked(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) await store.importBackup(file)
+  input.value = ''
+}
+
+const editableTag = (target: EventTarget | null) => {
+  const el = target as HTMLElement | null
+  if (!el) return false
+  return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable
+}
+
+function onKeydown(event: KeyboardEvent) {
+  if (!store.ready) return
+  if ((event.ctrlKey || event.metaKey) && event.code === 'Space' && store.data.practice.mode === 'spell') {
+    event.preventDefault()
+    const word = store.currentWord
+    if (word?.eng_sound) void store.speakWord(word, true)
+    return
+  }
+  if (event.isComposing || editableTag(event.target)) return
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    store.moveRelative(-1, true)
+  } else if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    store.moveRelative(1, true)
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    const word = store.currentWord
+    if (word) void store.speakWord(word, false, undefined, true)
+  } else if (event.key === 'Enter') {
+    event.preventDefault()
+    store.moveRelative(1, true)
+  } else if (event.key === ' ') {
+    event.preventDefault()
+    store.togglePlayback()
+  }
+}
 
 onMounted(() => {
   if (!store.ready) void store.init()
@@ -25,180 +87,67 @@ onBeforeUnmount(() => {
   store.stopPlayback(false)
 })
 
-const editableTag = (target: EventTarget | null) => {
-  const el = target as HTMLElement | null
-  if (!el) return false
-  return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable
-}
-
-function onKeydown(event: KeyboardEvent) {
-  if (!store.ready) return
-  const inEditable = editableTag(event.target)
-  // spell 模式下 Ctrl/Cmd+Space 重听（任意焦点，最优先）
-  if ((event.ctrlKey || event.metaKey) && event.code === 'Space' && store.data.practice.mode === 'spell') {
-    event.preventDefault()
-    const word = store.currentWord
-    if (word?.eng_sound) void store.speakWord(word, true)
-    return
-  }
-  if (event.isComposing) return
-  if (inEditable) return
-  const key = event.key
-  if (key === 'ArrowLeft') {
-    event.preventDefault()
-    store.moveRelative(-1, true)
-  } else if (key === 'ArrowRight') {
-    event.preventDefault()
-    store.moveRelative(1, true)
-  } else if (key === 'ArrowUp') {
-    event.preventDefault()
-    const word = store.currentWord
-    if (word) void store.speakWord(word, false, undefined, true)
-  } else if (key === 'Enter') {
-    event.preventDefault()
-    store.moveRelative(1, true)
-  } else if (key === ' ') {
-    event.preventDefault()
-    store.togglePlayback()
-  }
+function selectTab(tab: 'overview' | 'study' | 'difficult') {
+  store.setActiveTab(tab)
 }
 </script>
 
 <template>
-  <div class="vocab vocab-app" v-loading="!store.ready">
-    <el-alert
-      v-if="store.ui.hasBackupBanner"
-      type="warning"
-      show-icon
-      title="距离上次备份已超过 7 天"
-      description="建议及时导出备份，避免本地数据丢失。"
-      class="backup-banner"
-      :closable="false"
-    />
-
-    <el-card shadow="never" class="toolbar panel">
-      <div class="toolbar-row">
-        <el-radio-group :model-value="store.data.activeTab" size="small" @update:model-value="store.setActiveTab($event)">
-          <el-radio-button value="overview">总览</el-radio-button>
-          <el-radio-button value="study">学习页</el-radio-button>
-          <el-radio-button value="difficult">难词页</el-radio-button>
-        </el-radio-group>
-
-        <el-button-group class="mode-group">
-          <el-button
-            size="small"
-            :type="store.data.practice.mode === 'standard' ? 'primary' : 'default'"
-            @click="store.setPracticeMode('standard')"
-          >
-            单词模式
-          </el-button>
-          <el-button
-            size="small"
-            :type="store.data.practice.mode === 'quiz' ? 'primary' : 'default'"
-            @click="store.setPracticeMode('quiz')"
-          >
-            选中文
-          </el-button>
-          <el-button
-            size="small"
-            :type="store.data.practice.mode === 'spell' ? 'primary' : 'default'"
-            @click="store.setPracticeMode('spell')"
-          >
-            拼写模式
-          </el-button>
-        </el-button-group>
-
-        <div class="spacer" />
-
-        <div class="status-area">
-          <span v-if="store.data.practice.autoRunning" class="pill running">● 自动播放中</span>
-          <span v-if="store.ui.savedFlash" class="pill saved">✓ 已保存到浏览器</span>
-          <span v-if="store.ui.statusText" class="pill status" :class="{ error: store.ui.statusError }">{{ store.ui.statusText }}</span>
-          <el-button size="small" circle title="设置与备份" @click="store.ui.modalSettings = true">
-            <el-icon><Setting /></el-icon>
-          </el-button>
+  <div class="vocab-app" v-loading="!store.ready">
+    <div class="shell">
+      <!-- 顶栏：页签 + 状态 pills + 导入导出/设置 -->
+      <section class="page-tabs glass">
+        <div class="tab-row">
+          <button class="tab-btn" :class="{ active: store.data.activeTab === 'overview' }" type="button" @click="selectTab('overview')">总览</button>
+          <button class="tab-btn" :class="{ active: store.data.activeTab === 'study' }" type="button" @click="selectTab('study')">学习页</button>
+          <button class="tab-btn" :class="{ active: store.data.activeTab === 'difficult' }" type="button" @click="selectTab('difficult')">难词页</button>
         </div>
-      </div>
-      <div class="toolbar-sub dim">
-        {{ store.session ? `${store.session.label} · ${MODE_LABELS[store.data.practice.mode]}` : '未选择内容' }}
-      </div>
-    </el-card>
+        <div class="page-tabs-right">
+          <div class="pill-row">
+            <span class="pill" :title="store.session ? '当前会话词数' : '词库总词数'">{{ heroDatasetStat }}</span>
+            <span class="pill">{{ heroModeStat }}</span>
+            <span class="pill active">{{ heroSelection }}</span>
+            <span v-if="store.ui.statusText" class="chip" :class="{ error: store.ui.statusError }">{{ store.ui.statusText }}</span>
+          </div>
+          <div class="top-actions">
+            <button class="top-settings-btn" type="button" aria-label="打开设置" @click="store.ui.modalSettings = true">⚙</button>
+            <button class="segment-btn" type="button" @click="triggerImport">导入记录</button>
+            <button class="control-btn primary" type="button" @click="store.exportBackup">导出记录</button>
+            <input ref="importFileInput" type="file" accept="application/json,.json" hidden @change="onFilePicked" />
+          </div>
+        </div>
+      </section>
 
-    <OverviewPane v-if="store.data.activeTab === 'overview'" />
-    <StudyPane v-else-if="store.data.activeTab === 'study'" />
-    <DifficultPane v-else-if="store.data.activeTab === 'difficult'" />
+      <!-- 备份提醒 -->
+      <section v-if="store.ui.hasBackupBanner" class="backup-banner glass">
+        <div>
+          <div class="section-label">Backup Reminder</div>
+          <div class="backup-banner-text">备份时间已超过 7 天，请先导出学习记录。</div>
+        </div>
+        <div class="backup-actions">
+          <button class="control-btn primary" type="button" @click="store.exportBackup">立即备份</button>
+          <button class="segment-btn" type="button" @click="triggerImport">导入备份</button>
+        </div>
+      </section>
+
+      <!-- 三个页签 -->
+      <OverviewPane v-if="store.data.activeTab === 'overview'" />
+      <StudyPane v-else-if="store.data.activeTab === 'study'" />
+      <DifficultPane v-else-if="store.data.activeTab === 'difficult'" />
+
+      <!-- 页脚 -->
+      <section class="footer-card glass">
+        <p class="footer-copy">
+          学习计数、当前组位置、显示状态、播放设置、难词列表全部保存在浏览器。所有数据可随时导出备份 JSON。
+        </p>
+        <div class="pill-row">
+          <span v-if="savedBadgeVisible" class="chip active">✓ 已保存到浏览器</span>
+          <span v-else class="chip">已自动保存</span>
+          <span class="chip">{{ updatedBadgeText }}</span>
+        </div>
+      </section>
+    </div>
 
     <SettingsDialog />
   </div>
 </template>
-
-<style scoped>
-/* .vocab 负责全幅渐变底（见 legacy-theme.css 中 .vocab-app）；内容容器由各 pane 限宽 */
-.vocab {
-  width: auto;
-}
-
-.backup-banner {
-  margin-bottom: 10px;
-  border-radius: 8px;
-}
-
-.toolbar {
-  border-radius: 10px;
-  margin-bottom: 12px;
-}
-
-.toolbar-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.mode-group {
-  margin-left: 4px;
-}
-
-.spacer {
-  flex: 1;
-}
-
-.status-area {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.pill {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #f0f2f5;
-  color: #606266;
-}
-
-.pill.running {
-  background: #ecf5ff;
-  color: #1473ff;
-}
-
-.pill.saved {
-  background: #e8f8f0;
-  color: #17b26a;
-}
-
-.pill.status.error {
-  background: #fef0f0;
-  color: #f56c6c;
-}
-
-.toolbar-sub {
-  margin-top: 6px;
-}
-
-.dim {
-  color: #909399;
-  font-size: 12px;
-}
-</style>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 难词页 —— 对应 legacy renderDifficultyFilterOptions/renderDifficultyList(5250–5390)。
+ * 难词页 —— 复刻 legacy #difficultPage 结构。
  */
 import { computed, ref } from 'vue'
 
@@ -8,12 +8,13 @@ import { useVocabularyStore } from '../stores/vocabulary'
 import { library } from '../data/library'
 import { getFilteredDifficultWords, countMatchingDifficultWords } from '../domain/search'
 import { isDifficultyDue } from '../domain/review'
-import { formatReviewDate, formatReviewDueText } from '../utils'
+import { formatReviewDueText, formatReviewDate } from '../utils'
+import type { DifficultWordEntry } from '../types'
 
 const store = useVocabularyStore()
 
 const chapterNames = computed(() => library.chapters.map((c) => c.chapter))
-const chapterFilter = ref<string>(store.data.selectedLibraryChapter || '全部章节')
+const chapterFilter = ref<string>('all')
 
 const difficultyQuery = computed({
   get: () => store.data.difficultyQuery,
@@ -31,22 +32,16 @@ const sortMode = computed({
   },
 })
 
-const visibleCount = computed(() => store.data.difficultyVisibleCount)
-
 const filterOptions = computed(() => ({
-  chapter: chapterFilter.value === '全部章节' ? null : chapterFilter.value,
+  chapter: chapterFilter.value === 'all' ? null : chapterFilter.value,
   query: difficultyQuery.value,
   sortMode: sortMode.value,
 }))
 
 const totalMatches = computed(() => countMatchingDifficultWords(store.data.difficultWords, filterOptions.value))
-
-const visibleItems = computed(() => {
-  const all = getFilteredDifficultWords(store.data.difficultWords, filterOptions.value)
-  return all.slice(0, store.data.difficultyVisibleCount)
-})
-
+const visibleItems = computed(() => getFilteredDifficultWords(store.data.difficultWords, filterOptions.value).slice(0, store.data.difficultyVisibleCount))
 const totalItems = computed(() => Object.keys(store.data.difficultWords).length)
+
 const dueOnlyCount = computed(() => {
   let due = 0
   for (const key of Object.keys(store.data.difficultWords)) {
@@ -54,6 +49,7 @@ const dueOnlyCount = computed(() => {
   }
   return due
 })
+
 const selectedCount = computed(() => store.data.selectedDifficultKeys.length)
 
 function toggleSelect(key: string) {
@@ -69,170 +65,138 @@ function removeWord(key: string) {
 function loadMore() {
   store.data.difficultyVisibleCount += 24
 }
+
+function practiceSelected() {
+  if (!selectedCount.value) {
+    store.setStatus('请先勾选难词', true)
+    return
+  }
+  store.startSelectedDifficultPractice()
+}
+
+function practiceDue() {
+  store.startDifficultPractice(chapterFilter.value === 'all' ? null : chapterFilter.value, { onlyDue: true })
+}
+
+function practiceFiltered() {
+  store.startDifficultPractice(chapterFilter.value === 'all' ? null : chapterFilter.value)
+}
+
+function practiceAll() {
+  store.startDifficultPractice(null)
+}
+
+function entryStage(entry: DifficultWordEntry): string {
+  return `第 ${entry.reviewStage + 1} 轮`
+}
 </script>
 
 <template>
-  <div class="difficult">
-    <el-card shadow="never" class="panel">
-      <div class="filter-row">
-        <el-select v-model="chapterFilter" size="small" class="chapter-select">
-          <el-option value="全部章节" label="全部章节" />
-          <el-option v-for="c in chapterNames" :key="c" :value="c" :label="c" />
-        </el-select>
-        <el-input v-model="difficultyQuery" size="small" placeholder="搜索难词 / 释义 / 章节 / 分组" clearable class="query-input" />
-        <el-select v-model="sortMode" size="small" class="sort-select">
-          <el-option value="default" label="默认排序" />
-          <el-option value="levelDesc" label="难度从高到低" />
-          <el-option value="levelAsc" label="难度从低到高" />
-        </el-select>
+  <section class="page-section">
+    <section class="difficulty-card glass">
+      <div class="difficulty-toolbar">
+        <div>
+          <div class="section-label">Difficult Words</div>
+          <h2 class="chapter-title" style="margin: 8px 0 0;">难词列表</h2>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <select v-model="chapterFilter" class="difficulty-select-box" aria-label="章节筛选">
+            <option value="all">全部章节</option>
+            <option v-for="c in chapterNames" :key="c" :value="c">{{ c }}</option>
+          </select>
+          <select v-model="sortMode" aria-label="排序方式">
+            <option value="default">默认（到期优先）</option>
+            <option value="levelDesc">难度等级 高→低</option>
+            <option value="levelAsc">难度等级 低→高</option>
+          </select>
+        </div>
       </div>
 
-      <div class="action-row">
-        <el-button size="small" type="primary" :disabled="!selectedCount" @click="store.startSelectedDifficultPractice()">
-          练习选中难词（{{ selectedCount }}）
-        </el-button>
-        <el-button size="small" :disabled="!dueOnlyCount" @click="store.startDifficultPractice(chapterFilter === '全部章节' ? null : chapterFilter, { onlyDue: true })">
-          到期复习（{{ dueOnlyCount }}）
-        </el-button>
-        <el-button size="small" :disabled="!totalMatches" @click="store.startDifficultPractice(chapterFilter === '全部章节' ? null : chapterFilter)">
-          练习筛选结果（{{ totalMatches }}）
-        </el-button>
-        <el-button size="small" :disabled="!totalItems" @click="store.startDifficultPractice(null)">全部难词（{{ totalItems }}）</el-button>
+      <div class="difficulty-search-row" style="margin-top: 14px;">
+        <input v-model="difficultyQuery" class="search-input" type="search" placeholder="搜索难词：英文 / 中文 / 章节 / 分组" aria-label="搜索难词" />
+        <button class="segment-btn" type="button" @click="difficultyQuery = ''">清空搜索</button>
       </div>
 
-      <div class="list-head dim">
-        难词总数 {{ totalItems }} · 已显示 {{ Math.min(visibleCount, visibleItems.length) }} / {{ visibleItems.length }}
-        <template v-if="filterOptions.chapter || difficultyQuery">（筛选后 {{ totalMatches }}）</template>
+      <div class="difficulty-actions" style="margin-top: 12px;">
+        <button class="control-btn primary" type="button" :disabled="!selectedCount" @click="practiceSelected">练习选中难词（{{ selectedCount }}）</button>
+        <button class="control-btn primary" type="button" :disabled="!dueOnlyCount" @click="practiceDue">复习今日到期难词（{{ dueOnlyCount }}）</button>
+        <button class="control-btn soft" type="button" :disabled="!totalMatches" @click="practiceFiltered">练习当前筛选难词（{{ totalMatches }}）</button>
+        <button class="control-btn soft" type="button" :disabled="!totalItems" @click="practiceAll">练习全部难词（{{ totalItems }}）</button>
       </div>
 
-      <div class="word-list">
-        <div v-for="entry in visibleItems" :key="entry.key" class="word-row" :class="{ due: isDifficultyDue(entry) }">
-          <el-checkbox
-            :model-value="store.data.selectedDifficultKeys.includes(entry.key)"
-            @change="toggleSelect(entry.key)"
-          />
-          <div class="word-main">
-            <div class="line1">
-              <b>{{ entry.word }}</b>
-              <el-tag v-if="isDifficultyDue(entry)" size="small" type="danger" effect="light">今日到期</el-tag>
-              <el-tag size="small" type="warning" effect="plain">Lv{{ entry.difficultyLevel }}</el-tag>
-              <el-tag size="small" type="info" effect="plain">第 {{ entry.reviewStage + 1 }} 轮</el-tag>
-              <el-tag size="small" type="info" effect="plain">已学 {{ entry.count }} 次</el-tag>
-              <el-tag v-if="entry.reviewFailures" size="small" type="danger" effect="plain">失败 {{ entry.reviewFailures }}</el-tag>
+      <div class="status-line" style="margin-top: 10px;" aria-live="polite">
+        共 {{ totalItems }} 个难词，当前显示 {{ Math.min(visibleItems.length, store.data.difficultyVisibleCount) }} 个。
+      </div>
+
+      <div class="difficulty-list" style="margin-top: 12px;">
+        <div v-for="entry in visibleItems" :key="entry.key" class="difficulty-item" :class="{ due: isDifficultyDue(entry) }">
+          <label class="difficulty-item-select">
+            <input type="checkbox" :checked="store.data.selectedDifficultKeys.includes(entry.key)" @change="toggleSelect(entry.key)" />
+          </label>
+          <div class="difficulty-word-row">
+            <div class="difficulty-top">
+              <div class="difficulty-word">{{ entry.word }}</div>
+              <span v-if="isDifficultyDue(entry)" class="pill" style="background: rgba(236, 91, 91, 0.14); color: var(--red);">今日到期</span>
+              <span class="pill">Lv{{ entry.difficultyLevel }}</span>
+              <span class="pill">{{ entryStage(entry) }}</span>
+              <span class="pill">已学 {{ entry.count }}</span>
+              <span v-if="entry.reviewFailures" class="pill">失败 {{ entry.reviewFailures }}</span>
             </div>
-            <div class="line2 dim">{{ entry.meaning }}</div>
-            <div class="line3 dim">
+            <div class="difficulty-meaning">{{ entry.meaning }}</div>
+            <div class="difficulty-meta-line">
               {{ entry.chapter }} · {{ entry.group }} · 下次：{{ formatReviewDueText(entry.nextReviewAt) }}（{{ formatReviewDate(entry.nextReviewAt) }}）
             </div>
+            <div class="difficulty-note" v-if="entry.note">📝 {{ entry.note }}</div>
           </div>
-          <div class="row-actions">
-            <el-button size="small" text @click="store.toggleWordMastered(entry.key)">{{ entry.mastered ? '取消学会' : '标记学会' }}</el-button>
-            <el-button size="small" text type="danger" @click="removeWord(entry.key)">移出</el-button>
+          <div class="difficulty-word-inline-action">
+            <button class="segment-btn" type="button" @click="store.toggleWordMastered(entry.key)">{{ entry.mastered ? '取消学会' : '已学会' }}</button>
+            <button class="segment-btn" type="button" @click="removeWord(entry.key)">移出</button>
           </div>
         </div>
-        <el-empty v-if="!visibleItems.length" description="暂无难词" />
+        <div v-if="!visibleItems.length" class="small-text" style="padding: 18px 4px;">暂无难词，学习时点击「加入难词」开始积累。</div>
       </div>
 
-      <div v-if="visibleItems.length < totalMatches" class="more-row">
-        <el-button size="small" @click="loadMore">加载更多（+24）</el-button>
+      <div class="difficulty-list-footer">
+        <span class="small-text">{{ Math.min(visibleItems.length, store.data.difficultyVisibleCount) }} / {{ totalMatches }}</span>
+        <button v-if="visibleItems.length < totalMatches" class="segment-btn" type="button" @click="loadMore">加载更多</button>
       </div>
-    </el-card>
-  </div>
+    </section>
+  </section>
 </template>
 
 <style scoped>
-.difficult {
-  max-width: 960px;
-  margin: 0 auto;
+.difficulty-card {
+  padding: 16px 18px;
 }
 
-.panel {
-  border-radius: 10px;
-}
-
-.filter-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.chapter-select {
-  width: 260px;
-}
-
-.query-input {
-  width: 300px;
-}
-
-.sort-select {
-  width: 160px;
-}
-
-.action-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.list-head {
-  margin: 12px 0 6px;
-}
-
-.word-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.word-row {
-  display: flex;
-  align-items: flex-start;
+.difficulty-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #ebeef5;
-  background: #fff;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 250, 255, 0.82));
 }
 
-.word-row.due {
-  border-color: #f56c6c;
-  background: #fef9f9;
+.difficulty-item.due {
+  border-color: rgba(236, 91, 91, 0.4);
+  box-shadow: 0 0 0 1px rgba(236, 91, 91, 0.12);
 }
 
-.word-main {
-  flex: 1;
-  min-width: 0;
+.difficulty-item-select {
+  padding-top: 2px;
 }
 
-.line1 {
+.difficulty-word-inline-action {
   display: flex;
+  gap: 4px;
+}
+
+.difficulty-top {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
-}
-
-.line2 {
-  margin-top: 4px;
-}
-
-.line3 {
-  margin-top: 2px;
-}
-
-.row-actions {
-  flex: none;
-  display: flex;
-  gap: 2px;
-}
-
-.more-row {
-  text-align: center;
-  margin-top: 12px;
-}
-
-.dim {
-  color: #909399;
-  font-size: 12px;
 }
 </style>
