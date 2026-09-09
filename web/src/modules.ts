@@ -105,6 +105,24 @@ export const modules: IeltsModule[] = [
       '已完成主体重构：听写/听音引擎（判分全等、错词 +3 等）、练习队列与三列表、错词本（筛选/批量选择/CSV）、章节统计 SVG、备份 v2 导入导出（v1 兼容）。数据：88 章 9366 词（sync-corpus-data.mjs）。规范：web/docs/corpus-dictation/。待打磨：chapter8 本地音频路径、listen_navigation 鼠标预留分支、备份提醒与缓存开关 UI。',
   },
   {
+    id: 'listen-dictation',
+    title: '只听循环听写',
+    subtitle: '只听循环 · 中文过滤 · 一键乱序',
+    legacy: ['发音/发音和听写.html'],
+    summary:
+      '只听循环模式学习器：每个单词可设置播放次数与间隔，自动过滤含中文单词，支持一键乱序、英音 TTS / 百度发音源，进度本地缓存。',
+    features: [
+      '只听循环：每词播放次数 1-5 + 间隔（0.5–5s）自动切换',
+      '自动过滤含中文单词',
+      '一键乱序 + 点击词条跳转',
+      'Web TTS / 百度翻译发音源 · 语速可调',
+      '本地进度缓存（ielts_listen_repeat）',
+    ],
+    icon: Headset,
+    status: 'todo',
+    notes: '收编 legacy 变体 发音/发音和听写.html（独立于 /dictation 的只听循环工具）。原样式已容器化 .listen-dictation-app；实现中。',
+  },
+  {
     id: 'vocabulary',
     title: '词汇学习',
     subtitle: '章节分组 · 三模式 · 难词复习',
