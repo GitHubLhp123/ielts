@@ -31,4 +31,9 @@ router.beforeEach((to) => {
   if (!to.matched.length) return { path: '/' }
 })
 
+router.afterEach((to) => {
+  const title = typeof to.meta.title === 'string' ? to.meta.title : ''
+  document.title = title && title !== '总览' ? `${title} · IELTS Dev` : 'IELTS Dev · 本地优先学习工具集'
+})
+
 export default router

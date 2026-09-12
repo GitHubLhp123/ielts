@@ -2,9 +2,15 @@
 import { computed } from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
 
-import { modules } from '@/modules'
+import { modules, type ModuleStatus } from '@/modules'
 
 const doneCount = computed(() => modules.filter((module) => module.status === 'done').length)
+
+function statusLabel(status: ModuleStatus): string {
+  if (status === 'done') return 'READY'
+  if (status === 'active') return 'IN PROGRESS'
+  return 'PLANNED'
+}
 
 const principles = [
   {
@@ -71,8 +77,8 @@ const principles = [
 
       <div class="hero-stats">
         <div><strong>{{ modules.length }}</strong><span>学习模块</span></div>
-        <div><strong>84</strong><span>自动化测试</span></div>
-        <div><strong>3</strong><span>核心学习场景</span></div>
+        <div><strong>5</strong><span>核心训练场景</span></div>
+        <div><strong>本地</strong><span>学习数据优先</span></div>
         <div><strong>1</strong><span>统一学习入口</span></div>
       </div>
     </section>
@@ -113,7 +119,7 @@ const principles = [
         >
           <div class="module-topline">
             <span class="mono">MODULE / {{ String(index + 1).padStart(2, '0') }}</span>
-            <span class="module-status"><i></i> READY</span>
+            <span class="module-status" :class="module.status"><i></i> {{ statusLabel(module.status) }}</span>
           </div>
 
           <div class="module-title-row">
@@ -585,6 +591,14 @@ const principles = [
   gap: 6px;
   color: #62a878;
   font-family: var(--font-mono);
+}
+
+.module-status.active {
+  color: #c68a27;
+}
+
+.module-status.todo {
+  color: #96938b;
 }
 
 .module-status i {

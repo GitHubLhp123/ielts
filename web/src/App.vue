@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { modules } from '@/modules'
@@ -22,6 +22,26 @@ function closeNavigation() {
   mobileOpen.value = false
   if (toolMenu.value) toolMenu.value.open = false
 }
+
+function closeToolMenuOnOutsidePress(event: PointerEvent) {
+  if (event.target instanceof Node && toolMenu.value?.open && !toolMenu.value.contains(event.target)) {
+    toolMenu.value.open = false
+  }
+}
+
+function closeMenusOnEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape') closeNavigation()
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', closeToolMenuOnOutsidePress)
+  document.addEventListener('keydown', closeMenusOnEscape)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', closeToolMenuOnOutsidePress)
+  document.removeEventListener('keydown', closeMenusOnEscape)
+})
 
 watch(() => route.path, closeNavigation)
 </script>
@@ -116,7 +136,8 @@ watch(() => route.path, closeNavigation)
 
 <style scoped>
 .site-shell {
-  min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--color-canvas);
@@ -336,17 +357,17 @@ watch(() => route.path, closeNavigation)
 
 .route-masthead-inner {
   width: min(calc(100% - 48px), var(--site-width));
-  min-height: 188px;
+  min-height: 132px;
   margin: 0 auto;
-  padding: 44px 0;
+  padding: 26px 0;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 40px;
 }
 
 .section-kicker {
-  margin: 0 0 14px;
+  margin: 0 0 9px;
   color: #8997ff;
   font-family: var(--font-mono);
   font-size: 10px;
@@ -355,14 +376,14 @@ watch(() => route.path, closeNavigation)
 
 .route-masthead h1 {
   margin: 0;
-  font-size: clamp(30px, 4vw, 50px);
+  font-size: clamp(26px, 3vw, 36px);
   letter-spacing: -0.05em;
 }
 
 .route-masthead p:last-child {
-  margin: 9px 0 0;
+  margin: 6px 0 0;
   color: rgba(255, 255, 255, 0.54);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .back-home {
@@ -465,6 +486,15 @@ watch(() => route.path, closeNavigation)
     height: 1px;
     display: block;
     background: var(--color-ink);
+    transition: transform 180ms ease;
+  }
+
+  .nav-toggle[aria-expanded='true'] span:first-child {
+    transform: translateY(3.5px) rotate(45deg);
+  }
+
+  .nav-toggle[aria-expanded='true'] span:last-child {
+    transform: translateY(-3.5px) rotate(-45deg);
   }
 
   .navigation {
@@ -518,11 +548,23 @@ watch(() => route.path, closeNavigation)
   }
 
   .route-masthead-inner {
-    min-height: 166px;
-    padding: 32px 0;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 24px;
+    min-height: 126px;
+    padding: 24px 0;
+    align-items: center;
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .back-home {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0;
+  }
+
+  .back-home span {
+    font-size: 14px;
   }
 
   .site-main {

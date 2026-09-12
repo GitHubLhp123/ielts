@@ -9,6 +9,17 @@
   --shadow-float: 0 24px 70px rgba(24, 28, 45, 0.14);
   --font-sans: Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  --el-color-primary: #5867e7;
+  --el-color-primary-rgb: 88, 103, 231;
+  --el-color-primary-light-3: #8a95ee;
+  --el-color-primary-light-5: #abb3f3;
+  --el-color-primary-light-7: #cdd1f8;
+  --el-color-primary-light-8: #dee1fa;
+  --el-color-primary-light-9: #eef0fd;
+  --el-color-primary-dark-2: #4652b8;
+  --el-font-family: var(--font-sans);
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
   font-family: var(--font-sans);
   font-synthesis: none;
   color-scheme: light;
@@ -20,9 +31,9 @@ html {
   scroll-padding-top: 72px;
 }
 
-body,
 #app {
-  min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 body {
