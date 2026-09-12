@@ -7,6 +7,13 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import './styles/legacy-full.css'
+import {
+  clampRate,
+  clampRepeats,
+  getNextPlaylistIndex as getNextPlaylistIndexByRule,
+  pickRandomIndex as pickRandomIndexByRule,
+} from './domain/playback'
+import type { PlayMode } from './domain/playback'
 
 const HISTORY_DB_NAME = 'audio_playlist_history_db'
 const HISTORY_STORE_NAME = 'history_files'
@@ -58,7 +65,7 @@ const currentTimeLabel = ref('00:00')
 const durationLabel = ref('00:00')
 const progressPercent = ref('0%')
 const volume = ref(1)
-const playModeValue = ref('sequence')
+const playModeValue = ref<PlayMode>('sequence')
 
 const globalRate = ref(1)
 const globalRepeats = ref(1)
@@ -99,22 +106,6 @@ function formatFileSize(bytes: number | null): string {
   const kb = value / 1024
   if (kb < 1024) return `${kb.toFixed(1)} KB`
   return `${(kb / 1024).toFixed(1)} MB`
-}
-
-function clampRate(value: number): number {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return 1
-  const min = 0.6
-  const max = 2
-  const step = 0.2
-  const rounded = Math.round((numeric - min) / step) * step + min
-  return Math.min(max, Math.max(min, Number(rounded.toFixed(1))))
-}
-
-function clampRepeats(value: number): number {
-  const numeric = Math.round(Number(value))
-  if (!Number.isFinite(numeric)) return 1
-  return Math.min(10, Math.max(1, numeric))
 }
 
 function getFileById(fileId: string): PlaylistFile | undefined {
@@ -465,24 +456,11 @@ function updatePlaylistField(item: PlaylistItem, field: 'fileId' | 'rate' | 'rep
 
 /* ---------- 播放引擎 ---------- */
 function pickRandomIndex(excludeIndex: number): number {
-  const total = playlist.value.length
-  if (!total) return -1
-  if (total === 1) return 0
-  let candidate = Math.floor(Math.random() * total)
-  while (candidate === excludeIndex) {
-    candidate = Math.floor(Math.random() * total)
-  }
-  return candidate
+  return pickRandomIndexByRule(playlist.value.length, excludeIndex)
 }
 
 function getNextPlaylistIndex(current: number): number {
-  const total = playlist.value.length
-  if (!total) return -1
-  const mode = playModeValue.value
-  if (mode === 'loop') return (current + 1 + total) % total
-  if (mode === 'shuffle') return pickRandomIndex(current)
-  const next = current + 1
-  return next >= total ? -1 : next
+  return getNextPlaylistIndexByRule(playlist.value.length, current, playModeValue.value)
 }
 
 function validatePlaylist(): boolean {

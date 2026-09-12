@@ -5,7 +5,10 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import { cancelSpeech, formatEnglishVoiceLabel, observeSpeechVoices } from '@/shared/speech/voices'
+
 import './styles/legacy-full.css'
+import { parseWordList } from './model/words'
 
 const wordListInput = ref(
   'adequate, beneficial, consequence\nenvironment\nsignificant\ntherefore\nanalyse',
@@ -19,6 +22,7 @@ const statusError = ref(false)
 
 let availableVoices: SpeechSynthesisVoice[] = []
 let currentUtterance: SpeechSynthesisUtterance | null = null
+let stopVoiceObserver: () => void = () => undefined
 
 const indexCounter = computed(() =>
   words.value.length ? `第${currentIndex.value + 1} / ${words.value.length}个单词` : '第0 / 0个单词',
@@ -40,7 +44,7 @@ function setStatus(text: string, isError = false) {
 }
 
 function stopSpeaking() {
-  if (window.speechSynthesis) window.speechSynthesis.cancel()
+  cancelSpeech()
   if (currentUtterance) {
     currentUtterance.onend = null
     currentUtterance.onerror = null
@@ -101,24 +105,6 @@ function playCurrentWord() {
   const word = words.value[currentIndex.value]
   if (!word) return
   speakWord(word)
-}
-
-function parseWordList(rawText: string): string[] {
-  if (!rawText.trim()) return []
-  const lines = rawText.split(/\r?\n/)
-  const result: string[] = []
-  for (const line of lines) {
-    if (line.includes(',') || line.includes('，')) {
-      for (const part of line.split(/[,，]+/)) {
-        const trimmed = part.trim()
-        if (trimmed) result.push(trimmed)
-      }
-    } else {
-      const trimmed = line.trim()
-      if (trimmed) result.push(trimmed)
-    }
-  }
-  return result
 }
 
 function loadWordList() {
@@ -189,8 +175,7 @@ function pauseSpeaking() {
 }
 
 function voiceLabel(voice: SpeechSynthesisVoice): string {
-  const mark = voice.lang === 'en-GB' ? '🇬🇧 ' : voice.lang.toLowerCase().startsWith('en') ? '🇺🇸 ' : ''
-  return `${mark}${voice.name} (${voice.lang})`
+  return formatEnglishVoiceLabel(voice)
 }
 
 const voiceOptions = ref<SpeechSynthesisVoice[]>([])
@@ -213,37 +198,17 @@ function updateVoiceDropdown(voices: SpeechSynthesisVoice[]) {
   else if (voices.length) selectedVoiceURI.value = voices[0].voiceURI
 }
 
-function populateVoiceList() {
-  return new Promise<void>((resolve) => {
-    if (!window.speechSynthesis) {
-      resolve()
-      return
-    }
-    const load = () => {
-      const voices = window.speechSynthesis.getVoices()
-      if (voices && voices.length) {
-        availableVoices = voices
-        updateVoiceDropdown(voices)
-        resolve()
-      } else {
-        setTimeout(load, 100)
-      }
-    }
-    if (window.speechSynthesis.getVoices().length) load()
-    else {
-      window.speechSynthesis.addEventListener('voiceschanged', load, { once: true })
-      setTimeout(load, 300)
-    }
+onMounted(() => {
+  stopVoiceObserver = observeSpeechVoices((voices) => {
+    availableVoices = voices
+    updateVoiceDropdown(voices)
   })
-}
-
-onMounted(async () => {
-  await populateVoiceList()
   setStatus('🔊 雅思模式就绪，英音引擎已优先启用')
 })
 
 onBeforeUnmount(() => {
-  if (window.speechSynthesis) window.speechSynthesis.cancel()
+  stopVoiceObserver()
+  cancelSpeech()
 })
 </script>
 

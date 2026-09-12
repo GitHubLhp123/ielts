@@ -1,9 +1,35 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
-import ElementPlus from 'element-plus'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import {
+  ElAlert,
+  ElAside,
+  ElButton,
+  ElCard,
+  ElCheckbox,
+  ElCol,
+  ElContainer,
+  ElDescriptions,
+  ElDescriptionsItem,
+  ElDialog,
+  ElDivider,
+  ElEmpty,
+  ElForm,
+  ElFormItem,
+  ElHeader,
+  ElIcon,
+  ElInput,
+  ElLoading,
+  ElMain,
+  ElMenu,
+  ElMenuItem,
+  ElOption,
+  ElRow,
+  ElSelect,
+  ElSlider,
+  ElSwitch,
+  ElTag,
+} from 'element-plus'
 
 import 'element-plus/dist/index.css'
 import '@/style.css'
@@ -15,10 +41,37 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
-app.use(ElementPlus, { locale: zhCn })
 
-for (const [name, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(name, component)
+for (const component of [
+  ElAlert,
+  ElAside,
+  ElButton,
+  ElCard,
+  ElCheckbox,
+  ElCol,
+  ElContainer,
+  ElDescriptions,
+  ElDescriptionsItem,
+  ElDialog,
+  ElDivider,
+  ElEmpty,
+  ElForm,
+  ElFormItem,
+  ElHeader,
+  ElIcon,
+  ElInput,
+  ElLoading,
+  ElMain,
+  ElMenu,
+  ElMenuItem,
+  ElOption,
+  ElRow,
+  ElSelect,
+  ElSlider,
+  ElSwitch,
+  ElTag,
+]) {
+  app.use(component)
 }
 
 app.mount('#app')

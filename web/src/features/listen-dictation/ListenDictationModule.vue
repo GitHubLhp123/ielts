@@ -4,13 +4,24 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import {
+  cancelSpeech,
+  formatEnglishVoiceLabel,
+  isEnglishVoice,
+  observeSpeechVoices,
+} from '@/shared/speech/voices'
+import {
+  readLocalStorageValue,
+  removeLocalStorageValue,
+  writeLocalStorageValue,
+} from '@/shared/storage/chunked-local-storage'
+
 import './styles/legacy-full.css'
+import { buildListenDictationCache, parseListenDictationCache } from './model/cache'
+import type { ListenTtsSource, ListenWordItem as WordItem } from './model/cache'
+import { nextSequentialIndex, nextWrappedIndex, parseListenWordList, previousWrappedIndex } from './model/words'
 
 const CACHE_KEY = 'ielts_listen_repeat'
-
-interface WordItem {
-  text: string
-}
 
 const wordRawInput = ref('')
 const wordItems = ref<WordItem[]>([])
@@ -29,9 +40,10 @@ const selectedVoiceURI = ref('')
 const speechRate = ref(1)
 const repeatCount = ref(1)
 const intervalSec = ref(1.5)
-const ttsSource = ref<'web' | 'baidu'>('web')
+const ttsSource = ref<ListenTtsSource>('web')
 
 let timer: ReturnType<typeof setTimeout> | null = null
+let stopVoiceObserver: () => void = () => undefined
 
 const activeList = computed(() => wordItems.value)
 const totalWordsText = computed(() => String(wordItems.value.length))
@@ -43,10 +55,6 @@ const currentWordText = computed(() => currentWordObj.value?.text ?? 'Ready')
 const phonetic = ref('/ -- /')
 const meaningText = ref('加载单词后，这里会显示当前单词释义。')
 
-function containsChinese(text: string): boolean {
-  return /[\u4e00-\u9fff]/.test(text)
-}
-
 function setStatus(text: string, isError = false) {
   statusText.value = text
   statusError.value = isError
@@ -57,42 +65,38 @@ function cancelSpeechAndTimer() {
     clearTimeout(timer)
     timer = null
   }
-  if (window.speechSynthesis) window.speechSynthesis.cancel()
+  cancelSpeech()
 }
 
 function persistData() {
-  localStorage.setItem(
+  const result = writeLocalStorageValue(
     CACHE_KEY,
-    JSON.stringify({
+    JSON.stringify(buildListenDictationCache({
       wordItems: wordItems.value,
       selectedVoiceURI: selectedVoiceURI.value,
       speechRate: speechRate.value,
       repeatCount: repeatCount.value,
+      intervalSec: intervalSec.value,
       ttsSource: ttsSource.value,
       dictationMode: dictationMode.value,
-    }),
+    })),
   )
+  if (!result.ok) setStatus('本地保存失败，请清理浏览器空间后重试', true)
 }
 
 function loadCache(): boolean {
-  const raw = localStorage.getItem(CACHE_KEY)
-  if (!raw) return false
-  try {
-    const data = JSON.parse(raw)
-    if (Array.isArray(data.wordItems)) {
-      wordItems.value = data.wordItems.filter((item: any) => item?.text && !containsChinese(item.text))
-    }
-    if (data.selectedVoiceURI) selectedVoiceURI.value = data.selectedVoiceURI
-    if (data.speechRate !== undefined) speechRate.value = Number(data.speechRate) || 1
-    if (data.repeatCount !== undefined) repeatCount.value = Math.min(5, Math.max(1, Number(data.repeatCount) || 1))
-    if (data.ttsSource === 'baidu' || data.ttsSource === 'web') ttsSource.value = data.ttsSource
-    if (typeof data.dictationMode === 'boolean') dictationMode.value = data.dictationMode
-    activeIndex.value = -1
-    currentWordObj.value = null
-    return true
-  } catch {
-    return false
-  }
+  const data = parseListenDictationCache(readLocalStorageValue(CACHE_KEY))
+  if (!data) return false
+  wordItems.value = data.wordItems
+  selectedVoiceURI.value = data.selectedVoiceURI
+  speechRate.value = data.speechRate
+  repeatCount.value = data.repeatCount
+  intervalSec.value = data.intervalSec
+  ttsSource.value = data.ttsSource
+  dictationMode.value = data.dictationMode
+  activeIndex.value = -1
+  currentWordObj.value = null
+  return true
 }
 
 /* ---------- 发音 ---------- */
@@ -165,33 +169,12 @@ function speakWordWithRepeat(word: string, times: number, onComplete: (() => voi
 
 /* ---------- 加载/列表 ---------- */
 function loadAndReset() {
-  const parsed: string[] = []
-  for (const line of wordRawInput.value.split(/\r?\n/)) {
-    if (line.includes(',') || line.includes('，')) {
-      for (const part of line.split(/[,，]+/)) {
-        const trimmed = part.trim()
-        if (trimmed) parsed.push(trimmed)
-      }
-    } else {
-      const trimmed = line.trim()
-      if (trimmed) parsed.push(trimmed)
-    }
-  }
-  if (!parsed.length) {
+  const { words, skippedChinese } = parseListenWordList(wordRawInput.value)
+  if (!words.length && !skippedChinese) {
     setStatus('未检测到有效单词', true)
     return
   }
-  const filtered: WordItem[] = []
-  let skipped = 0
-  for (const w of parsed) {
-    if (containsChinese(w)) {
-      skipped += 1
-      continue
-    }
-    const low = w.toLowerCase()
-    if (!filtered.some((item) => item.text.toLowerCase() === low)) filtered.push({ text: w })
-  }
-  if (!filtered.length) {
+  if (!words.length) {
     setStatus('⚠️ 所有单词都包含中文，已全部过滤', true)
     return
   }
@@ -200,18 +183,18 @@ function loadAndReset() {
     practiceActive.value = false
     isPaused.value = false
   }
-  wordItems.value = filtered
+  wordItems.value = words
   currentWordObj.value = null
   activeIndex.value = -1
   dictationInput.value = ''
   persistData()
   renderWordList()
   updatePlayPauseButton()
-  setStatus(`✅ 加载 ${wordItems.value.length} 个单词${skipped ? `，已过滤 ${skipped} 个含中文词` : ''}`)
+  setStatus(`✅ 加载 ${wordItems.value.length} 个单词${skippedChinese ? `，已过滤 ${skippedChinese} 个含中文词` : ''}`)
 }
 
 function fullClearCache() {
-  localStorage.removeItem(CACHE_KEY)
+  removeLocalStorageValue(CACHE_KEY)
   if (practiceActive.value) cancelSpeechAndTimer()
   wordItems.value = []
   activeIndex.value = -1
@@ -256,11 +239,12 @@ function finishPractice(message: string) {
 function scheduleNextListen() {
   if (!practiceActive.value) return
   const active = activeList.value
-  if (!active.length || activeIndex.value >= active.length - 1) {
+  const nextIndex = nextSequentialIndex(active.length, activeIndex.value)
+  if (nextIndex === null) {
     finishPractice('🏁 所有单词播放完毕！')
     return
   }
-  activeIndex.value += 1
+  activeIndex.value = nextIndex
   currentWordObj.value = active[activeIndex.value]
   updateCurrentWordDisplay()
   timer = setTimeout(() => {
@@ -331,8 +315,7 @@ function goToNextWord() {
   if (!active.length) return
   cancelSpeechAndTimer()
   if (practiceActive.value) practiceActive.value = false
-  if (activeIndex.value < active.length - 1) activeIndex.value += 1
-  else activeIndex.value = 0
+  activeIndex.value = nextWrappedIndex(active.length, activeIndex.value)
   currentWordObj.value = active[activeIndex.value]
   updateCurrentWordDisplay()
   speakWordWithRepeat(currentWordObj.value.text, repeatCount.value)
@@ -343,8 +326,7 @@ function goToPreviousWord() {
   if (!active.length) return
   cancelSpeechAndTimer()
   if (practiceActive.value) practiceActive.value = false
-  if (activeIndex.value > 0) activeIndex.value -= 1
-  else activeIndex.value = active.length - 1
+  activeIndex.value = previousWrappedIndex(active.length, activeIndex.value)
   currentWordObj.value = active[activeIndex.value]
   updateCurrentWordDisplay()
   speakWordWithRepeat(currentWordObj.value.text, repeatCount.value)
@@ -396,47 +378,36 @@ function updateCurrentWordDisplay() {
 
 function updatePlayPauseButton() {}
 
-function loadVoices() {
-  return new Promise<void>((resolve) => {
-    if (!window.speechSynthesis) {
-      resolve()
-      return
+function initVoices() {
+  stopVoiceObserver = observeSpeechVoices((list) => {
+    voices.value = list
+    const preferred =
+      list.find((v) => v.lang.toLowerCase() === 'en-gb' && /Google UK|Microsoft George|Daniel/.test(v.name)) ??
+      list.find((v) => v.lang.toLowerCase() === 'en-gb') ??
+      list[0]
+    if (preferred && !list.some((v) => v.voiceURI === selectedVoiceURI.value)) {
+      selectedVoiceURI.value = preferred.voiceURI
     }
-    const load = () => {
-      const list = window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('en'))
-      if (!list.length) {
-        setTimeout(load, 150)
-        return
-      }
-      voices.value = list
-      const preferred =
-        list.find((v) => v.lang === 'en-GB' && /Google UK|Microsoft George|Daniel/.test(v.name)) ??
-        list.find((v) => v.lang === 'en-GB') ??
-        list[0]
-      if (preferred && !list.some((v) => v.voiceURI === selectedVoiceURI.value)) {
-        selectedVoiceURI.value = preferred.voiceURI
-      }
-      resolve()
-    }
-    if (window.speechSynthesis.getVoices().length) load()
-    else window.speechSynthesis.addEventListener('voiceschanged', load, { once: true })
+  }, {
+    filter: isEnglishVoice,
   })
 }
 
 function voiceLabel(voice: SpeechSynthesisVoice): string {
-  const mark = voice.lang === 'en-GB' ? '🇬🇧 ' : '🇺🇸 '
-  return `${mark}${voice.name} (${voice.lang})`
+  return formatEnglishVoiceLabel(voice)
 }
 
-onMounted(async () => {
-  await loadVoices()
-  if (loadCache()) {
+onMounted(() => {
+  const cached = loadCache()
+  initVoices()
+  if (cached) {
     setStatus('💾 恢复缓存进度')
   }
   updateCurrentWordDisplay()
 })
 
 onBeforeUnmount(() => {
+  stopVoiceObserver()
   cancelSpeechAndTimer()
 })
 </script>

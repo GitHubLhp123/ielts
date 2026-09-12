@@ -6,9 +6,18 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessageBox } from 'element-plus'
 
+import { downloadJson, downloadText } from '@/shared/files/download'
+
 import './styles/legacy-full.css'
 import { chapterEntries, resolveWordMeta, matchAnyChapter, buildAudioUrl } from './data/corpus'
-import { useCorpusStore, entryKey, sanitizeSettings, sanitizeMistakeBook } from './stores/corpus'
+import {
+  useCorpusStore,
+  entryKey,
+  sanitizeSettings,
+  sanitizeMistakeBook,
+  sanitizeWordStats,
+  sanitizeChapterStats,
+} from './stores/corpus'
 import type { Settings } from './stores/corpus'
 
 type TabKey = 'practice' | 'mistakes' | 'stats'
@@ -556,13 +565,7 @@ function exportSelectedMistakeCsv() {
   for (const { entry } of pool) {
     rows.push([entry.word, entry.chapterId, entry.errorLevel, entry.wrongCount, entry.lastErrorAt].join(','))
   }
-  const blob = new Blob(['\ufeff' + rows.join('\n')], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = '错词本导出.csv'
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadText('错词本导出.csv', '\ufeff' + rows.join('\n'), 'text/csv;charset=utf-8')
 }
 
 /* ---------- 备份导入导出（v2，兼容 v1） ---------- */
@@ -575,13 +578,7 @@ function exportBackup() {
     wordStats: store.wordStats,
     chapterStats: store.chapterStats,
   }
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `语料库听写备份-${new Date().toISOString().slice(0, 10)}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadJson(`语料库听写备份-${new Date().toISOString().slice(0, 10)}.json`, payload)
 }
 
 const importFileEl = ref<HTMLInputElement | null>(null)
@@ -624,8 +621,8 @@ function confirmImport() {
   const src = pendingImport
   if (src.settings && typeof src.settings === 'object') store.settings = sanitizeSettingsRef(src.settings)
   if (src.mistakeBook && typeof src.mistakeBook === 'object') store.mistakeBook = sanitizeMistakeBookRef(src.mistakeBook)
-  if (src.wordStats && typeof src.wordStats === 'object') store.wordStats = { ...src.wordStats }
-  if (src.chapterStats && typeof src.chapterStats === 'object') store.chapterStats = { ...src.chapterStats }
+  if (src.wordStats && typeof src.wordStats === 'object') store.wordStats = sanitizeWordStats(src.wordStats)
+  if (src.chapterStats && typeof src.chapterStats === 'object') store.chapterStats = sanitizeChapterStats(src.chapterStats)
   store.persistSettings()
   store.persistMistakeBook()
   store.persistWordStats()
@@ -711,6 +708,7 @@ onBeforeUnmount(() => {
               </div>
               <label>单词列表<textarea v-model="wordInput" placeholder="almost&#10;currently&#10;directly"></textarea></label>
               <div class="status-bar" :class="{ error: cacheStatus.includes('移除') }">{{ cacheStatus }}</div>
+              <div v-if="store.storageError" class="status-bar error">{{ store.storageError }}</div>
               <div class="tool-grid">
                 <div class="tool-card">
                   <div><h3>备份与迁移</h3><p>导出或导入学习记录（设置/错词/词统计/章节统计，兼容 v1）。</p></div>

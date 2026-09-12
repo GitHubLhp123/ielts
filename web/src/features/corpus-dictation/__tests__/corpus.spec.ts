@@ -5,7 +5,14 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
-import { useCorpusStore, sanitizeSettings, sanitizeMistakeBook } from '../stores/corpus'
+import legacyV1Backup from '../../../../test-fixtures/legacy/corpus-dictation-v1.json'
+import {
+  useCorpusStore,
+  sanitizeSettings,
+  sanitizeMistakeBook,
+  sanitizeWordStats,
+  sanitizeChapterStats,
+} from '../stores/corpus'
 
 function makeStore() {
   setActivePinia(createPinia())
@@ -104,5 +111,30 @@ describe('word stats & chapter stats', () => {
     expect(runs.length).toBe(2)
     expect(runs[0].accuracy).toBe(70)
     expect(runs[1].accuracy).toBe(100)
+  })
+
+  it('导入词统计时过滤非法条目并收敛计数', () => {
+    expect(sanitizeWordStats({
+      '31::ability': { practiceCount: 2.6, correctCount: 9, lastAt: 1, chapterId: null },
+      junk: 'bad',
+    })).toEqual({
+      '31::ability': { practiceCount: 3, correctCount: 3, lastAt: '', chapterId: '31' },
+    })
+  })
+
+  it('导入章节统计时重算 accuracy 并过滤非法历史', () => {
+    expect(sanitizeChapterStats({
+      '31': [{ at: '2026-09-12', total: 10, correct: 7, accuracy: 999 }, 'bad'],
+      '32': 'bad',
+    })).toEqual({
+      '31': [{ at: '2026-09-12', total: 10, correct: 7, accuracy: 70 }],
+    })
+  })
+
+  it('v1 脱敏备份样本可通过全部归一化入口', () => {
+    expect(sanitizeSettings(legacyV1Backup.settings).lastChapter).toBe('31')
+    expect(sanitizeMistakeBook(legacyV1Backup.mistakeBook)['31::ability'].errorLevel).toBe(3)
+    expect(sanitizeWordStats(legacyV1Backup.wordStats)['31::ability'].correctCount).toBe(1)
+    expect(sanitizeChapterStats(legacyV1Backup.chapterStats)['31'][0].accuracy).toBe(70)
   })
 })

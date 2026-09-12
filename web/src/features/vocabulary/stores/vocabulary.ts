@@ -8,6 +8,8 @@
 import { defineStore } from 'pinia'
 import { watch } from 'vue'
 
+import { downloadJson } from '@/shared/files/download'
+
 import { CORE_VOCAB_LOOKUP, LISTENING_179_LOOKUP, READING_538_LOOKUP, library } from '../data/library'
 import { getCorpusWordLookup, loadCorpus } from '../data/corpus'
 import { getSearchResults, getFilteredDifficultWords, getDueDifficultWords, hasSearchFilters } from '../domain/search'
@@ -723,14 +725,8 @@ export const useVocabularyStore = defineStore('vocabulary', {
     exportBackup() {
       this.data.backup.lastBackupAt = new Date().toISOString()
       const payload = { app: 'apple-word-trainer-v4', exportedAt: new Date().toISOString(), state: clone(this.data) }
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
       const day = new Date().toISOString().slice(0, 10)
-      anchor.href = url
-      anchor.download = `word-trainer-backup-${day}.json`
-      anchor.click()
-      URL.revokeObjectURL(url)
+      downloadJson(`word-trainer-backup-${day}.json`, payload)
       void this.save(true)
       this.refreshBackupBanner()
       this.setStatus('备份已导出')

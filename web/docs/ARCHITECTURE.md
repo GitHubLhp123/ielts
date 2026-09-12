@@ -12,6 +12,8 @@
 `web/src/views/modules/<id>.vue` 为路由入口，每模块实际实现位于
 `web/src/features/<id>/`；路由与首页卡片由 `web/src/modules.ts`（模块注册表）驱动。
 
+当前是“统一应用壳＋渐进式模块化”的混合架构：词汇模块分层最完整；语料库听写和学习跟踪已拆出部分数据、状态或组件；其余模块仍以单文件组件承载主要逻辑。下述分层是新开发和后续拆分的目标约定，不代表每个历史模块已经拥有全部目录。
+
 ## 2. 目录结构
 ```
 web/
@@ -24,11 +26,16 @@ web/
     features/
       vocabulary/ study-tracker/ pronunciation/ dictation/ synonyms/ audio-player/
       corpus-dictation/ listen-dictation/
-      # 每模块统一分层：data/ model/ domain/ persist/ stores/ lib/
-      #                components/ styles/ __tests__/
+      # 按复杂度使用：data/ model/ domain/ persist/ stores/ lib/
+      #              components/ styles/ __tests__/
     data/
       vocabulary/      # 词库/同义词/预设/听力音频索引（json，sync 生成）
       corpus/          # 语料章节词集（json，sync 生成）
+    shared/
+      speech/          # Web Speech 语音列表监听、重试与生命周期清理
+      files/           # Blob、文本与 JSON 浏览器下载
+      charts/          # ECharts 按需组件注册入口
+      storage/         # localStorage 兼容读取、分块写入、失败回滚与清理
     views/modules/     # 路由薄壳：转发到对应 features/<id>/<Id>Module.vue
   docs/                # 各模块 legacy 规格 + 移植决策 + 本架构文档
 legacy/                # 归档：旧 HTML 页 + 数据源 + 脚本 + 各模块版本文档
@@ -51,6 +58,8 @@ legacy/                # 归档：旧 HTML 页 + 数据源 + 脚本 + 各模块�
 每个模块 `legacy:` 字段保留可点击对照路径；模块内 `notes` 说明剩余打磨项。
 
 ## 4. 分层约定（features/<id>/）
+
+不要求简单模块机械创建全部目录。业务逻辑能够独立测试、持久化逻辑存在版本兼容要求，或组件已明显过大时，再按以下边界拆分：
 - `types.ts` / `constants.ts`：类型与常量（尽量沿用 legacy 字段名便于对照）
 - `data/`：从 `web/src/data/*.json` 装载 + 归一/索引（library/synonyms/corpus…）
 - `model|domain/`：纯逻辑（归一化、复习/错词/统计规则、搜索排序）
@@ -70,7 +79,7 @@ cd web
 npm run data:vocab    # legacy/words/data → src/data/vocabulary/*.json
                       # （legacy 页面仍存在时自动做深度 parity 断言）
 npm run data:corpus   # legacy listening HTML 的 CHAPTER_WORD_SETS → src/data/corpus/chapters.json
-npm run test          # vitest（当前 38 项）
+npm run test          # vitest（当前 84 项）
 npm run build         # vue-tsc + vite
 npm run dev           # http://127.0.0.1:5173
 ```
@@ -84,11 +93,13 @@ npm run dev           # http://127.0.0.1:5173
 - 沿用旧存储键：如 `apple-word-trainer-v4`（词汇）、`ielts-dictation-settings-v2` 等（语料）、
   `ielts_listen_repeat`（只听循环）、`daily-learning-tracker-state-v4`（状态跟踪）、
   IndexedDB 音频缓存等 —— 浏览器旧数据可直接延续。
+- `localStorage` 保持原主键不变：旧版普通字符串直接读取；超过 200,000 字符的新值写为版本化清单＋分块 key。新分块全部写入成功后才切换主键，失败时清理临时块并保留上一版记录。
+- 分块解决单 key 过大和长字符串读写风险，不扩大浏览器的总存储配额；达到总配额时页面会提示先导出备份并清理空间。
 - 导出文件信封遵循 legacy（如词汇备份 `{version:4,...}`、语料备份 v2、状态跟踪 `{version:4}`）。
 - 全部模块为本地数据；无账号体系。
 
 ## 7. 质量
-- 单元测试：词汇（28）+ 语料（10）= 38 项；关注数据规则（复习/错词等级/统计 accuracy/序列化）。
+- 单元测试：14 个测试文件、84 项；关注数据、状态恢复、旧版备份导入、解析、听写判分与推进、播放顺序、语音选择、文件下载、分块存储和序列化规则。
 - 检查项：`npm run build` 无 TS 错误；测试全绿；工作树干净后再提交。
 
 ## 8. 迁移/重构资料

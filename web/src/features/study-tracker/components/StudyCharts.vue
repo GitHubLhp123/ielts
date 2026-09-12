@@ -4,7 +4,8 @@
  * 分组/单列模式趋势图 + 月度综合强度热力图 + 时长趋势。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import * as echarts from 'echarts'
+
+import { init, type EChartsCoreOption, type EChartsType } from '@/shared/charts/echarts'
 
 import { getTodayText, isNumericMetric, type StudyRow, type StudyColumn } from '../model/tableModel'
 
@@ -40,7 +41,7 @@ const containerRefs = ref<Record<string, HTMLDivElement | null>>({})
 const heatmapEl = ref<HTMLDivElement | null>(null)
 const durationEl = ref<HTMLDivElement | null>(null)
 
-const charts = new Map<string, echarts.ECharts>()
+const charts = new Map<string, EChartsType>()
 
 function groupNameOf(groupId: string): string {
   return groups.value.find((g) => g.id === groupId)?.name || '未分组'
@@ -62,7 +63,7 @@ function columnKey(columnId: string): string {
   return `project-${columnId}`
 }
 
-function baseOption(title: string): echarts.EChartsOption {
+function baseOption(title: string): EChartsCoreOption {
   return {
     title: { text: title, left: 6, textStyle: { fontSize: 13, fontWeight: 600 } },
     grid: { left: 44, right: 18, top: 46, bottom: 34 },
@@ -78,7 +79,7 @@ function renderLineSeries(title: string, columnsForSeries: StudyColumn[], isGrou
   const option = baseOption(title)
   const palette = ['#1473ff', '#17b26a', '#f1b53d', '#615fff', '#ec5b5b', '#00b7c3', '#b7791f']
   const legendData: string[] = []
-  const series: echarts.SeriesOption[] = []
+  const series: any[] = []
   columnsForSeries.forEach((column, index) => {
     const values = chartRows.value.map((row) => {
       const v = row.metrics[column.id]
@@ -144,7 +145,7 @@ function renderHeatmap() {
     max = Math.max(max, intensity)
     data.push([dateKey, intensity])
   }
-  const option: echarts.EChartsOption = {
+  const option: EChartsCoreOption = {
     title: { text: `${heatmapMonth.value} 学习强度热力图（得分和+时长）`, left: 6, textStyle: { fontSize: 13 } },
     tooltip: { formatter: (p: any) => `${p.value[0]}<br/>综合强度 ${p.value[1]}` },
     visualMap: {
@@ -181,7 +182,7 @@ function renderDuration() {
   const el = durationEl.value
   if (!el) return
   const list = chartRows.value.slice(-60)
-  const option: echarts.EChartsOption = {
+  const option: EChartsCoreOption = {
     title: { text: '每日学习时长（分钟）', left: 6, textStyle: { fontSize: 13 } },
     grid: { left: 44, right: 18, top: 36, bottom: 30 },
     tooltip: { trigger: 'axis' },
@@ -202,10 +203,10 @@ function renderDuration() {
   setChart('duration', el, option)
 }
 
-function setChart(key: string, el: HTMLDivElement, option: echarts.EChartsOption) {
+function setChart(key: string, el: HTMLDivElement, option: EChartsCoreOption) {
   let chart = charts.get(key)
   if (!chart) {
-    chart = echarts.init(el, undefined, { renderer: 'canvas' })
+    chart = init(el, undefined, { renderer: 'canvas' })
     charts.set(key, chart)
   }
   chart.setOption(option, { notMerge: true })

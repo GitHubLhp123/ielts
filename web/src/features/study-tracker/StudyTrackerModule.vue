@@ -1,10 +1,12 @@
 <script setup lang="ts">
 /**
- * 学习状态跟踪 —— 忠实还原 daily-status/学习状态跟踪.html（第一版骨架）。
- * 已实现：Hero(JSON 导入导出) + 顶部 Todo + 六 Tab 容器。
- * 增量规划见 web/docs/study-tracker/PORT-NOTES.md。
+ * 学习状态跟踪 —— 迁移自 legacy/daily-status/学习状态跟踪.html。
+ * 行为规格和移植决策见 web/docs/study-tracker/。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
+import { downloadJson, downloadText } from '@/shared/files/download'
+import { readLocalStorageValue, writeLocalStorageValue } from '@/shared/storage/chunked-local-storage'
 
 import './styles/legacy-full.css'
 import StudyTable from './components/StudyTable.vue'
@@ -13,11 +15,13 @@ import StudyAccounting from './components/StudyAccounting.vue'
 import StudyCharts from './components/StudyCharts.vue'
 import { DEFAULT_GROUPS, DEFAULT_PROJECT_COLUMNS, DEFAULT_NOTE_FIELDS, SAMPLE_ROWS } from './model/defaults'
 import { deserializeRow, normalizeRows, serializeRows, createEmptyRow, getTodayText, type StudyRow, type StudyColumn, type NoteField } from './model/tableModel'
+import { unwrapStudyTrackerBackup } from './persist/backup'
 
 const STORAGE_KEY = 'daily-learning-tracker-state-v4'
 const STORAGE_META_KEY = 'daily-learning-tracker-state-meta-v1'
 const TODO_PRIORITY_OPTIONS = ['高', '中', '低', '长期'] as const
 const TODO_PRIORITY_RANK: Record<string, number> = { 高: 0, 中: 1, 低: 2, 长期: 3 }
+const storageStatus = ref('本地自动保存')
 
 type TodoPriority = (typeof TODO_PRIORITY_OPTIONS)[number]
 
@@ -124,11 +128,21 @@ function buildPersistPayload(): Record<string, any> {
 }
 
 function persistNow() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(buildPersistPayload()))
-  const meta = JSON.parse(localStorage.getItem(STORAGE_META_KEY) || '{}') as Record<string, any>
+  const stateResult = writeLocalStorageValue(STORAGE_KEY, JSON.stringify(buildPersistPayload()))
+  if (!stateResult.ok) {
+    storageStatus.value = '本地保存失败，请先导出备份并清理浏览器空间'
+    return
+  }
+  let meta: Record<string, any> = {}
+  try {
+    meta = JSON.parse(readLocalStorageValue(STORAGE_META_KEY) || '{}') as Record<string, any>
+  } catch {
+    // 元数据损坏不影响主数据保存，下一次写入会重建。
+  }
   meta.savedAt = Date.now()
   meta.app = 'daily-learning-tracker-web'
-  localStorage.setItem(STORAGE_META_KEY, JSON.stringify(meta))
+  const metaResult = writeLocalStorageValue(STORAGE_META_KEY, JSON.stringify(meta))
+  storageStatus.value = metaResult.ok ? '本地自动保存' : '主数据已保存，保存时间标记失败'
 }
 
 function schedulePersist() {
@@ -235,21 +249,11 @@ function formatDateTime(value: string): string {
 }
 
 /* ---------- 导入导出 ---------- */
-function download(filename: string, text: string, type = 'application/json') {
-  const blob = new Blob([text], { type })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = filename
-  anchor.click()
-  URL.revokeObjectURL(url)
-}
-
 function exportData() {
   state.value.lastExportAt = new Date().toISOString()
   const payload = { version: 4, exportedAt: new Date().toISOString(), state: buildPersistPayload() }
   const day = new Date().toISOString().slice(0, 10)
-  download(`学习状态跟踪-完整数据-${day}.json`, JSON.stringify(payload, null, 2))
+  downloadJson(`学习状态跟踪-完整数据-${day}.json`, payload)
   persistNow()
 }
 
@@ -277,7 +281,7 @@ function exportExcel() {
     .join('')
   const tableHtml = `<table border="1"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`
   const day = new Date().toISOString().slice(0, 10)
-  download(`学习状态跟踪-${day}.xls`, tableHtml, 'application/vnd.ms-excel')
+  downloadText(`学习状态跟踪-${day}.xls`, tableHtml, 'application/vnd.ms-excel')
   state.value.lastExportAt = new Date().toISOString()
   persistNow()
 }
@@ -408,7 +412,7 @@ function triggerDataImport() {
         const parsed = JSON.parse(String(reader.result))
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('bad')
         state.value = { ...createInitialState() }
-        deepMergeState(parsed)
+        deepMergeState(unwrapStudyTrackerBackup(parsed))
         persistNow()
       } catch {
         alert('导入失败：不是有效的状态文件')
@@ -587,7 +591,7 @@ function setupReminderTimer() {
 }
 
 onMounted(() => {
-  const raw = localStorage.getItem(STORAGE_KEY)
+  const raw = readLocalStorageValue(STORAGE_KEY)
   if (raw) {
     try {
       deepMergeState(JSON.parse(raw))
@@ -632,7 +636,7 @@ onBeforeUnmount(() => {
               <button class="ep-mini-btn" type="button" @click="exportPdfReport('month')">📄 月报 PDF</button>
             </div>
             <div class="hero-tags">
-              <span class="hero-tag">本地自动保存</span>
+              <span class="hero-tag">{{ storageStatus }}</span>
               <span class="hero-tag">动态列配置</span>
               <span class="hero-tag">复盘展览表</span>
               <span class="hero-tag">统一数据导入导出</span>

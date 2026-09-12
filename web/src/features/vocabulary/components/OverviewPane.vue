@@ -4,7 +4,8 @@
  * overview-card > metrics-grid + learning-footprint(热力图) + insight-card(7天折线)。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import * as echarts from 'echarts'
+
+import { init, type EChartsType } from '@/shared/charts/echarts'
 
 import { useVocabularyStore } from '../stores/vocabulary'
 import { library } from '../data/library'
@@ -14,7 +15,7 @@ import HeatmapGrid from './HeatmapGrid.vue'
 
 const store = useVocabularyStore()
 const chartEl = ref<HTMLDivElement | null>(null)
-let chart: echarts.ECharts | null = null
+let chart: EChartsType | null = null
 
 const wordStats = computed(() => store.data.wordStats)
 const masteredCount = computed(() => Object.values(wordStats.value).filter((s) => s.mastered).length)
@@ -48,7 +49,7 @@ function renderChart() {
   if (!chartEl.value) return
   if (!chart) {
     try {
-      chart = echarts.init(chartEl.value, undefined, { renderer: 'canvas' })
+      chart = init(chartEl.value, undefined, { renderer: 'canvas' })
     } catch {
       return
     }

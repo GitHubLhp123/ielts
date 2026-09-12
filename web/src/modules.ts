@@ -2,8 +2,8 @@
  * 模块注册表：新路由 ⇄ 旧单文件 HTML 的一一映射。
  *
  * 这是重构的“单一事实来源”：
- * - 侧边栏菜单、首页卡片、路由、占位页均由这里驱动；
- * - 每个模块逐一完成后，将对应旧 HTML 从仓库移除，并把 status 置为 'done'。
+ * - 侧边栏菜单、首页卡片和路由均由这里驱动；
+ * - legacy 字段保留旧版归档路径，用于行为、数据与样式对照。
  */
 import type { Component } from 'vue'
 
@@ -59,7 +59,7 @@ export const modules: IeltsModule[] = [
     icon: DataAnalysis,
     status: 'done',
     notes:
-      '已完成主体重构：Hero/JSON 导入导出/Todo/学习记录表(动态列编辑+历史锁定+明日计划同步)/复盘展览表/记账本(日历+周期草稿)/学习统计(ECharts 热力图+趋势)/记录建议/Excel(.xls)/PDF 周月报(html2canvas+jspdf)。原样式容器化 .study-tracker-app，持久化沿用 v4 key 与旧数据双向兼容（规格见 web/docs/study-tracker/）。待打磨：分组/栏位配置弹窗、桌面通知提醒、列宽拖拽与单元格间距滑杆（非核心路径）。',
+      '已完成主体迁移：Hero/JSON 导入导出/Todo/学习记录表（动态列编辑、分组与栏位配置、历史锁定、明日计划同步）/复盘展览表/记账本（日历与周期草稿）/学习统计（ECharts 热力图与趋势）/桌面提醒/Excel(.xls)/PDF 周月报。原样式容器化为 .study-tracker-app，持久化沿用 v4 key。待打磨：列宽拖拽与单元格间距调节；主组件和导出逻辑仍需在二开阶段继续拆分。',
   },
   {
     id: 'pronunciation',
@@ -83,7 +83,7 @@ export const modules: IeltsModule[] = [
     icon: EditPen,
     status: 'done',
     notes:
-      '基线为 README 权威稿 dictionary/发音和听写.html（原样式容器级移植）。仓库另存有更新变体 发音/发音和听写.html（只听循环模式+中文过滤+一键乱序），尚未纳入任何模块，待评估后决定独立成模块或并入本模块。',
+      '基线为 legacy/dictionary/发音和听写.html，原样式已进行容器级移植。legacy/发音/发音和听写.html 的更新变体已独立迁入 /listen-dictation 模块。',
   },
   {
     id: 'corpus-dictation',

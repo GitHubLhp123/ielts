@@ -3,6 +3,7 @@
  * hydrateState(3132)、saveStateToLocalStorage(5813)、readLocalStorageState(3092)。
  */
 import { STORAGE_KEY } from '../constants'
+import { readLocalStorageValue, writeLocalStorageValue } from '@/shared/storage/chunked-local-storage'
 import { availableSynonymSourceNames, canonicalizeSynonymSourceName } from '../data/synonyms'
 import { library } from '../data/library'
 import { createDefaultState } from './defaults'
@@ -29,7 +30,7 @@ interface SaveCallbacks {
 /** localStorage 直读（isPlainObject 校验） */
 export function readLocalStorageState(): VocabState | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = readLocalStorageValue(STORAGE_KEY)
     if (!raw) return null
     const parsed: unknown = JSON.parse(raw)
     return isPlainObject(parsed) ? (parsed as unknown as VocabState) : null
@@ -198,16 +199,13 @@ export async function saveStateToBackend(
     }
     return
   }
-  saveStateToLocalStorage(state)
-  if (flash) callbacks.onSaved?.()
+  if (saveStateToLocalStorage(state)) {
+    if (flash) callbacks.onSaved?.()
+  } else {
+    callbacks.onError?.(new Error('local_storage_write_failed'))
+  }
 }
 
 export function saveStateToLocalStorage(state: VocabState): boolean {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    return true
-  } catch (error) {
-    console.error('save_state_localstorage_failed', error)
-    return false
-  }
+  return writeLocalStorageValue(STORAGE_KEY, JSON.stringify(state)).ok
 }

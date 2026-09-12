@@ -13,7 +13,11 @@ import {
   Upload,
 } from '@element-plus/icons-vue'
 
+import { cancelSpeech, isEnglishVoice, observeSpeechVoices } from '@/shared/speech/voices'
+import { readLocalStorageValue, writeLocalStorageValue } from '@/shared/storage/chunked-local-storage'
+
 import './styles/legacy-full.css'
+import { parseSynonymGroups } from './model/groups'
 
 const NOTES_KEY = 'ielts_notes_v4'
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -47,6 +51,7 @@ const autoPlayInterval = ref(0)
 const isAutoPlaying = ref(false)
 const isPaused = ref(false)
 let autoPlayTimer: ReturnType<typeof setTimeout> | null = null
+let stopVoiceObserver: () => void = () => undefined
 let currentGroupLoopCount = 0
 let currentWordLoopCount = 0
 
@@ -80,7 +85,7 @@ function playWord(word: string, onEndCallback: (() => void) | null = null) {
     onEndCallback?.()
     return
   }
-  window.speechSynthesis.cancel()
+  cancelSpeech()
   const utterance = new SpeechSynthesisUtterance(word)
   utterance.lang = 'en-US'
   const finalRate = 0.85 * autoPlayRate.value
@@ -100,7 +105,7 @@ function stopAutoPlay() {
     clearTimeout(autoPlayTimer)
     autoPlayTimer = null
   }
-  if (window.speechSynthesis) window.speechSynthesis.cancel()
+  cancelSpeech()
   isAutoPlaying.value = false
   isPaused.value = false
 }
@@ -113,7 +118,7 @@ function pauseAutoPlay() {
     clearTimeout(autoPlayTimer)
     autoPlayTimer = null
   }
-  if (window.speechSynthesis) window.speechSynthesis.cancel()
+  cancelSpeech()
 }
 
 /* ---------- 高亮 / 导航 ---------- */
@@ -260,7 +265,7 @@ function startAutoPlayFromHighlight() {
     return
   }
   if (autoPlayTimer) clearTimeout(autoPlayTimer)
-  if (window.speechSynthesis) window.speechSynthesis.cancel()
+  cancelSpeech()
   isAutoPlaying.value = true
   isPaused.value = false
   let { groupIdx, wordIdx } = activeHighlight.value
@@ -364,15 +369,15 @@ function resumeAutoPlay() {
 /* ---------- 笔记 ---------- */
 function loadNotes() {
   try {
-    const stored = localStorage.getItem(NOTES_KEY)
+    const stored = readLocalStorageValue(NOTES_KEY)
     notes.value = stored ? (JSON.parse(stored) as Record<string, string>) : {}
   } catch {
     notes.value = {}
   }
 }
 
-function saveNotes() {
-  localStorage.setItem(NOTES_KEY, JSON.stringify(notes.value))
+function saveNotes(): boolean {
+  return writeLocalStorageValue(NOTES_KEY, JSON.stringify(notes.value)).ok
 }
 
 function getGroupNotes(group: string[]) {
@@ -394,7 +399,10 @@ async function deleteNote(word: string) {
     return
   }
   delete notes.value[word]
-  saveNotes()
+  if (!saveNotes()) {
+    ElMessage.error('本地保存失败，请清理浏览器空间后重试')
+    return
+  }
   ElMessage.success('已删除')
 }
 
@@ -420,23 +428,23 @@ function saveNote() {
   } else {
     notes.value[word] = text.trim()
   }
-  saveNotes()
+  if (!saveNotes()) {
+    ElMessage.error('本地保存失败，请清理浏览器空间后重试')
+    return
+  }
   ElMessage.success('笔记已保存')
   showNoteDialog.value = false
 }
 
 /* ---------- 导入 ---------- */
 function initVoices() {
-  const setVoices = () => {
-    if (!window.speechSynthesis) return
-    voices.value = window.speechSynthesis.getVoices().filter((v) => v.lang.startsWith('en'))
+  stopVoiceObserver = observeSpeechVoices((list) => {
+    voices.value = list
     const def = voices.value.find((v) => v.name.includes('Google') || v.name.includes('Samantha')) || voices.value[0]
     if (def) selectedVoice.value = def.name
-  }
-  setVoices()
-  if (window.speechSynthesis?.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = setVoices
-  }
+  }, {
+    filter: isEnglishVoice,
+  })
 }
 
 function handleFilesSelected(event: Event) {
@@ -463,22 +471,7 @@ function readFileAsGroups(file: { name: string; raw: File }): Promise<string[][]
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
-        let parsed: string[][]
-        if (file.name.toLowerCase().endsWith('.json')) {
-          const data = JSON.parse(String(e.target?.result)) as unknown
-          if (!Array.isArray(data)) throw new Error('bad json')
-          parsed = (data as unknown[][]).map((arr) =>
-            (arr as unknown[]).map((w) => String(w).trim()).filter(Boolean),
-          )
-        } else {
-          parsed = String(e.target?.result ?? '')
-            .split(/\r?\n/)
-            .filter((l) => l.trim())
-            .map((line) => line.split(/[,，]/).map((w) => w.trim()).filter(Boolean))
-        }
-        const groupsOut = parsed.filter((g) => g.length)
-        if (!groupsOut.length) throw new Error('empty')
-        resolve(groupsOut)
+        resolve(parseSynonymGroups(file.name, String(e.target?.result ?? '')))
       } catch {
         reject(file.name)
       }
@@ -569,6 +562,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleGlobalKeydown)
+  stopVoiceObserver()
   stopAutoPlay()
 })
 
@@ -751,4 +745,3 @@ const playStatusText = computed(() => (isAutoPlaying.value ? '⏵ 自动中' : i
   color: var(--blue, #1473ff);
 }
 </style>
-

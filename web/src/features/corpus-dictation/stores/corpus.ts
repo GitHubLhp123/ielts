@@ -3,6 +3,8 @@
  */
 import { defineStore } from 'pinia'
 
+import { readLocalStorageValue, writeLocalStorageValue } from '@/shared/storage/chunked-local-storage'
+
 export const SETTINGS_KEY = 'ielts-dictation-settings-v2'
 export const MISTAKE_BOOK_KEY = 'ielts-dictation-mistake-book-v1'
 export const WORD_STATS_KEY = 'ielts-dictation-word-stats-v1'
@@ -112,21 +114,64 @@ export function sanitizeMistakeBook(raw: unknown): Record<string, MistakeEntry> 
   return result
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function nonNegativeInteger(value: unknown): number {
+  const number = Number(value)
+  return Number.isFinite(number) ? Math.max(0, Math.round(number)) : 0
+}
+
+export function sanitizeWordStats(raw: unknown): Record<string, WordStatEntry> {
+  if (!isRecord(raw)) return {}
+  const result: Record<string, WordStatEntry> = {}
+  for (const [key, value] of Object.entries(raw)) {
+    if (!isRecord(value)) continue
+    const practiceCount = nonNegativeInteger(value.practiceCount)
+    result[key] = {
+      practiceCount,
+      correctCount: Math.min(practiceCount, nonNegativeInteger(value.correctCount)),
+      lastAt: typeof value.lastAt === 'string' ? value.lastAt : '',
+      chapterId: typeof value.chapterId === 'string' ? value.chapterId : key.split('::')[0] || '',
+    }
+  }
+  return result
+}
+
+export function sanitizeChapterStats(raw: unknown): ChapterStats {
+  if (!isRecord(raw)) return {}
+  const result: ChapterStats = {}
+  for (const [chapterId, value] of Object.entries(raw)) {
+    if (!Array.isArray(value)) continue
+    const runs: ChapterRunStat[] = []
+    for (const item of value) {
+      if (!isRecord(item)) continue
+      const total = nonNegativeInteger(item.total)
+      const correct = Math.min(total, nonNegativeInteger(item.correct))
+      runs.push({
+        at: typeof item.at === 'string' ? item.at : '',
+        total,
+        correct,
+        accuracy: total ? (correct / total) * 100 : 0,
+      })
+    }
+    if (runs.length) result[chapterId] = runs.slice(-60)
+  }
+  return result
+}
+
 function readJson<T>(key: string): T | null {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = readLocalStorageValue(key)
     return raw ? (JSON.parse(raw) as T) : null
   } catch {
     return null
   }
 }
 
-function writeJson(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* storage full / unavailable */
-  }
+function writeJson(key: string, value: unknown): boolean {
+  return writeLocalStorageValue(key, JSON.stringify(value)).ok
 }
 
 /* ---------- IndexedDB（音频缓存 / 数据 kv） ---------- */
@@ -179,25 +224,26 @@ export const useCorpusStore = defineStore('corpusDictation', {
     state: () => ({
       settings: sanitizeSettings(readJson(SETTINGS_KEY)) as Settings,
       mistakeBook: sanitizeMistakeBook(readJson(MISTAKE_BOOK_KEY)) as Record<string, MistakeEntry>,
-      wordStats: (readJson(WORD_STATS_KEY) ?? {}) as Record<string, WordStatEntry>,
-      chapterStats: (readJson(CHAPTER_STATS_KEY) ?? {}) as ChapterStats,
+      wordStats: sanitizeWordStats(readJson(WORD_STATS_KEY)) as Record<string, WordStatEntry>,
+      chapterStats: sanitizeChapterStats(readJson(CHAPTER_STATS_KEY)) as ChapterStats,
       audioCacheEnabled: false,
       cacheCount: 0,
       lastBackupAt: '',
+      storageError: '',
     }),
 
     actions: {
       persistSettings() {
-        writeJson(SETTINGS_KEY, this.settings)
+        this.storageError = writeJson(SETTINGS_KEY, this.settings) ? '' : '本地保存失败，请先导出备份并清理浏览器空间。'
       },
       persistMistakeBook() {
-        writeJson(MISTAKE_BOOK_KEY, this.mistakeBook)
+        this.storageError = writeJson(MISTAKE_BOOK_KEY, this.mistakeBook) ? '' : '本地保存失败，请先导出备份并清理浏览器空间。'
       },
       persistWordStats() {
-        writeJson(WORD_STATS_KEY, this.wordStats)
+        this.storageError = writeJson(WORD_STATS_KEY, this.wordStats) ? '' : '本地保存失败，请先导出备份并清理浏览器空间。'
       },
       persistChapterStats() {
-        writeJson(CHAPTER_STATS_KEY, this.chapterStats)
+        this.storageError = writeJson(CHAPTER_STATS_KEY, this.chapterStats) ? '' : '本地保存失败，请先导出备份并清理浏览器空间。'
       },
 
       updateSettings(patch: Partial<Settings>) {

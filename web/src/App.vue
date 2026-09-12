@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { HomeFilled } from '@element-plus/icons-vue'
 
 import { modules } from '@/modules'
 
@@ -32,7 +33,7 @@ const headerTitle = computed(() => {
       </el-menu>
 
       <div class="aside-foot">
-        <el-tag size="small" effect="dark" type="info">Vue 3 · 迁移中</el-tag>
+        <el-tag size="small" effect="dark" type="info">Vue 3 · 本地优先</el-tag>
       </div>
     </el-aside>
 
@@ -40,9 +41,9 @@ const headerTitle = computed(() => {
       <el-header class="hdr" height="60px">
         <div>
           <div class="hdr-title">{{ headerTitle }}</div>
-          <div class="hdr-sub">legacy 单文件 HTML → Vue 3 + Vite 现代应用</div>
+          <div class="hdr-sub">8 个学习模块 · 本地数据 · 二开基线</div>
         </div>
-        <el-tag size="small" effect="plain">v0.1 · web init</el-tag>
+        <el-tag size="small" effect="plain">v0.1 · 8 modules</el-tag>
       </el-header>
 
       <el-main class="main">

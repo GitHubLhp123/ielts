@@ -1,6 +1,6 @@
-# IELTS Web（重构版）
+# IELTS Web
 
-用现代 Web 技术重构「IELTS 学习工具集」仓库中的单文件 HTML 应用。
+IELTS 学习工具集的新版前端，也是后续二开的唯一业务入口。8 个旧版单文件 HTML 工具已迁入统一的 Vue 单页应用，旧实现保留在仓库根目录的 `legacy/` 中用于数据与行为对照。
 
 ## 技术栈
 
@@ -11,6 +11,7 @@ Vue 3.5 · Vite 8 · TypeScript · Pinia · Vue Router（hash 模式）· Elemen
 ```bash
 npm install
 npm run dev      # http://127.0.0.1:5173
+npm run test     # Vitest 单元测试
 npm run build    # vue-tsc 类型检查 + 产物 dist/
 npm run preview  # 预览构建产物
 ```
@@ -23,16 +24,28 @@ src/
   App.vue                 # 应用外壳：侧边栏 + 顶栏 + 内容区
   modules.ts              # ★ 模块注册表：新路由 ⇄ 旧 HTML 的映射（单一事实来源）
   router/index.ts         # 路由（hash），由 modules.ts 生成
+  features/<id>/          # 8 个模块的业务实现
+  data/                   # 由同步脚本生成的词汇与语料静态数据
   views/
-    HomeView.vue          # 总览页：全部模块卡片 + 重构进度
-    modules/<id>.vue      # 每个模块一个视图，逐一替换占位实现
-  components/
-    ModulePlaceholder.vue # 通用占位页（展示功能验收清单与旧页面）
+    HomeView.vue          # 总览页：全部模块卡片
+    modules/<id>.vue      # 路由薄壳，转发到 features/<id>/
 ```
 
-## 重构约定
+## 模块开发约定
 
-1. 每个模块对应 `src/views/modules/<id>.vue`，当前为占位实现。
-2. 重构某模块时：实现其视图 → 在 `src/modules.ts` 将 `status` 置为 `'done'` → 从仓库移除对应旧 HTML → 更新根 README 的迁移表。
-3. 数据源优先复用仓库既有 JSON 源（`words/data`、`listening-word/word.json` 等），
-   以构建期静态导入 + schema 化前端状态为准，不再内联进页面。
+1. 每个模块对应 `src/views/modules/<id>.vue`，该文件只负责挂载 `src/features/<id>/` 中的实现。
+2. 新模块必须登记在 `src/modules.ts`，侧边栏、首页和路由会从注册表生成。
+3. 复杂模块按需使用 `components/`、`data/`、`domain/`、`model/`、`persist/`、`stores/` 和 `__tests__/`；不要为了目录整齐创建空抽象。
+4. 用户状态沿用 legacy 的 localStorage、IndexedDB 键与备份格式；任何不兼容调整都必须提供迁移和测试。
+5. 生成数据不得手工维护：词汇运行 `npm run data:vocab`，语料运行 `npm run data:corpus`。
+6. 完整约定见仓库根目录 `CLAUDE.md`，真实进度见 `ROADMAP.md`，架构说明见 `docs/ARCHITECTURE.md`，回归与存储契约见 `docs/BASELINE.md`。
+
+## 当前质量基线
+
+- 当前合计 14 个测试文件、84 项测试。
+- 覆盖状态合并、旧版备份导入、词表解析、听写判分与推进、播放顺序及语料统计清洗。
+- 浏览器音频生命周期、权限降级和真实文件导入导出仍按人工冒烟清单验证。
+- 4 个 TTS 模块共用 `src/shared/speech/voices.ts` 管理语音列表监听、重试和卸载清理。
+- JSON、CSV、Excel 等浏览器下载共用 `src/shared/files/download.ts`；ECharts 与 Element Plus 采用按需注册。
+- 所有 `localStorage` 读写共用 `src/shared/storage/chunked-local-storage.ts`，大记录自动分块，并对写入失败、缺块和旧值迁移做保护。
+- 每次业务修改至少执行 `npm test` 和 `npm run build`。

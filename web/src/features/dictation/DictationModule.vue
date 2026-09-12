@@ -4,15 +4,23 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import { cancelSpeech, formatEnglishVoiceLabel, observeSpeechVoices } from '@/shared/speech/voices'
+import {
+  readLocalStorageValue,
+  removeLocalStorageValue,
+  writeLocalStorageValue,
+} from '@/shared/storage/chunked-local-storage'
+
 import './styles/legacy-full.css'
+import { firstPendingWord, isCorrectAnswer, parseUniqueWordList } from './domain/practice'
+import { buildDictationCache, parseDictationCache } from './model/cache'
+import type { DictationMode as Mode, DictationWordItem } from './model/cache'
 
 const CACHE_KEY = 'ielts_dual_apple'
 
-type Mode = 'dictate' | 'listen'
-
 /* ---------- 全局数据 ---------- */
 const currentMode = ref<Mode>('dictate')
-const wordItems = ref<{ text: string; removed: boolean }[]>([])
+const wordItems = ref<DictationWordItem[]>([])
 const wrongDict = ref<Set<string>>(new Set())
 const masteredSet = ref<Set<string>>(new Set())
 const practiceActive = ref(false)
@@ -33,6 +41,7 @@ const feedbackMsg = ref('')
 const feedbackType = ref('')
 
 let currentTimeout: ReturnType<typeof setTimeout> | null = null
+let stopVoiceObserver: () => void = () => undefined
 
 /* ---------- 派生 ---------- */
 const activeWords = computed(() => wordItems.value.filter((w) => !w.removed))
@@ -50,7 +59,7 @@ function cancelSpeechAndTimer() {
     clearTimeout(currentTimeout)
     currentTimeout = null
   }
-  if (window.speechSynthesis) window.speechSynthesis.cancel()
+  cancelSpeech()
 }
 
 function speakWord(word: string, onEndCallback: (() => void) | null = null) {
@@ -79,7 +88,7 @@ function speakWord(word: string, onEndCallback: (() => void) | null = null) {
 const playIndicatorText = ref('⚪ 等待开始')
 
 function getNextPending() {
-  return wordItems.value.find((w) => !w.removed) ?? null
+  return firstPendingWord(wordItems.value)
 }
 
 function prepareDictateWord(wordObj: { text: string; removed: boolean }) {
@@ -117,9 +126,7 @@ function handleSubmit() {
     setStatus('没有当前单词', true)
     return
   }
-  const answer = userSpelling.value.trim().toLowerCase()
-  const correct = current.text.toLowerCase()
-  if (answer === correct) {
+  if (isCorrectAnswer(current.text, userSpelling.value)) {
     current.removed = true
     wrongDict.value.delete(current.text)
     persistData()
@@ -270,37 +277,16 @@ function replayCurrent() {
 }
 
 function loadAndReset() {
-  const parsed: string[] = []
-  const lines = wordRawInput.value.split(/\r?\n/)
-  for (const line of lines) {
-    if (line.includes(',') || line.includes('，')) {
-      for (const p of line.split(/[,，]+/)) {
-        const trimmed = p.trim()
-        if (trimmed) parsed.push(trimmed)
-      }
-    } else {
-      const trimmed = line.trim()
-      if (trimmed) parsed.push(trimmed)
-    }
-  }
+  const parsed = parseUniqueWordList(wordRawInput.value)
   if (!parsed.length) {
     setStatus('未检测到有效单词', true)
     return
-  }
-  const unique: string[] = []
-  const seen = new Set<string>()
-  for (const w of parsed) {
-    const low = w.toLowerCase()
-    if (!seen.has(low)) {
-      seen.add(low)
-      unique.push(w)
-    }
   }
   if (practiceActive.value) {
     cancelSpeechAndTimer()
     practiceActive.value = false
   }
-  wordItems.value = unique.map((text) => ({ text, removed: false }))
+  wordItems.value = parsed.map((text) => ({ text, removed: false }))
   wrongDict.value = new Set()
   masteredSet.value = new Set()
   currentWordObj.value = null
@@ -311,7 +297,7 @@ function loadAndReset() {
 }
 
 function fullClearCache() {
-  localStorage.removeItem(CACHE_KEY)
+  removeLocalStorageValue(CACHE_KEY)
   wordItems.value = []
   wrongDict.value = new Set()
   masteredSet.value = new Set()
@@ -332,72 +318,45 @@ const recordWords = computed(() =>
 const showRecordPanel = computed(() => recordWords.value.length > 0)
 
 function persistData() {
-  const store = {
+  const store = buildDictationCache({
     mode: currentMode.value,
     wordItems: wordItems.value,
     wrongDict: Array.from(wrongDict.value),
     masteredSet: Array.from(masteredSet.value),
     selectedVoiceURI: selectedVoiceURI.value,
     speechRate: speechRate.value,
-  }
-  localStorage.setItem(CACHE_KEY, JSON.stringify(store))
+    intervalSec: intervalSec.value,
+  })
+  const result = writeLocalStorageValue(CACHE_KEY, JSON.stringify(store))
+  if (!result.ok) setStatus('本地保存失败，请清理浏览器空间后重试', true)
 }
 
 function loadCache(): boolean {
-  const raw = localStorage.getItem(CACHE_KEY)
-  if (!raw) return false
-  try {
-    const data = JSON.parse(raw) as {
-      mode?: Mode
-      wordItems?: { text: string; removed: boolean }[]
-      wrongDict?: string[]
-      masteredSet?: string[]
-      selectedVoiceURI?: string
-      speechRate?: string | number
-    }
-    if (data.mode === 'listen' || data.mode === 'dictate') currentMode.value = data.mode
-    wordItems.value = data.wordItems ?? []
-    wrongDict.value = new Set(data.wrongDict ?? [])
-    masteredSet.value = new Set(data.masteredSet ?? [])
-    if (data.selectedVoiceURI) selectedVoiceURI.value = data.selectedVoiceURI
-    if (data.speechRate) {
-      const val = Number(data.speechRate)
-      speechRate.value = Number.isFinite(val) ? val : 0.9
-    }
-    return true
-  } catch {
-    return false
-  }
+  const data = parseDictationCache(readLocalStorageValue(CACHE_KEY))
+  if (!data) return false
+  currentMode.value = data.mode
+  wordItems.value = data.wordItems
+  wrongDict.value = new Set(data.wrongDict)
+  masteredSet.value = new Set(data.masteredSet)
+  selectedVoiceURI.value = data.selectedVoiceURI
+  speechRate.value = data.speechRate
+  intervalSec.value = data.intervalSec
+  return true
 }
 
-function loadVoices() {
-  return new Promise<void>((resolve) => {
-    if (!window.speechSynthesis) {
-      resolve()
-      return
+function initVoices() {
+  stopVoiceObserver = observeSpeechVoices((list) => {
+    voices.value = list
+    let preferred = voices.value.find((v) => v.lang.toLowerCase() === 'en-gb')?.voiceURI
+    if (!preferred) preferred = voices.value[0]?.voiceURI ?? ''
+    if (preferred && !voices.value.some((v) => v.voiceURI === selectedVoiceURI.value)) {
+      selectedVoiceURI.value = preferred
     }
-    const update = () => {
-      const list = window.speechSynthesis.getVoices()
-      if (list && list.length) {
-        voices.value = list
-        let preferred = voices.value.find((v) => v.lang === 'en-GB')?.voiceURI
-        if (!preferred) preferred = voices.value[0]?.voiceURI ?? ''
-        if (preferred && !voices.value.some((v) => v.voiceURI === selectedVoiceURI.value)) {
-          selectedVoiceURI.value = preferred
-        }
-        resolve()
-      } else {
-        setTimeout(update, 150)
-      }
-    }
-    if (window.speechSynthesis.getVoices().length) update()
-    else window.speechSynthesis.addEventListener('voiceschanged', update, { once: true })
   })
 }
 
 function voiceLabel(voice: SpeechSynthesisVoice): string {
-  const mark = voice.lang === 'en-GB' ? '🇬🇧 ' : voice.lang.toLowerCase().startsWith('en') ? '🇺🇸 ' : ''
-  return `${mark}${voice.name} (${voice.lang})`
+  return formatEnglishVoiceLabel(voice)
 }
 
 function setMode(mode: Mode) {
@@ -411,15 +370,16 @@ function submitOnEnter() {
   if (practiceActive.value && currentMode.value === 'dictate') handleSubmit()
 }
 
-onMounted(async () => {
-  await loadVoices()
+onMounted(() => {
   const cached = loadCache()
+  initVoices()
   if (cached && wordItems.value.length) {
     setStatus('💾 恢复缓存进度')
   }
 })
 
 onBeforeUnmount(() => {
+  stopVoiceObserver()
   cancelSpeechAndTimer()
 })
 </script>
@@ -473,7 +433,7 @@ onBeforeUnmount(() => {
             </div>
             <div class="interval-box">
               <span>⏱️ 间隔</span>
-              <input v-model.number="intervalSec" type="number" min="0.5" max="5" step="0.5" />
+              <input v-model.number="intervalSec" type="number" min="0.5" max="5" step="0.5" @input="persistData" />
               <span>秒</span>
             </div>
           </div>

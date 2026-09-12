@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ArrowRight } from '@element-plus/icons-vue'
 
 import { modules } from '@/modules'
 
@@ -31,11 +32,11 @@ function statusTagType(status: string): 'success' | 'warning' | 'info' {
       <div class="hero-inner">
         <div class="hero-title">
           IELTS 学习工具集
-          <el-tag size="small" type="warning" effect="dark">重构中 · {{ doneCount }}/{{ modules.length }}</el-tag>
+          <el-tag size="small" type="success" effect="dark">已迁移 · {{ doneCount }}/{{ modules.length }}</el-tag>
         </div>
         <p class="hero-desc">
-          将 7 个「Vue2 / Element UI / ECharts CDN」时代的单文件 HTML 页面，逐步重构为
-          <b>Vue 3 + Vite + TypeScript</b> 单一现代应用。旧页面与全部数据已在备份中完整保留，重构期间随时可对照回退。
+          8 个旧版单文件 HTML 学习工具已迁入
+          <b>Vue 3 + Vite + TypeScript</b> 单一应用。用户进度保存在本地，旧页面和原始数据保留在 legacy 归档中供二开对照。
         </p>
         <div class="stack">
           <el-tag v-for="s in ['Vue 3.5', 'Vite 8', 'TypeScript', 'Pinia', 'Vue Router 5', 'Element Plus', 'ECharts 6']" :key="s" size="small" effect="plain">{{ s }}</el-tag>

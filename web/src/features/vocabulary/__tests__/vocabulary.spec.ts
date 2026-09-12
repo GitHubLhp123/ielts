@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import legacyV4State from '../../../../test-fixtures/legacy/vocabulary-v4-state.json'
 import { library, READING_538_LOOKUP, LISTENING_179_LOOKUP, CORE_VOCAB_LOOKUP } from '../data/library'
 import { resolveSynonymGroups, canonicalizeSynonymSourceName } from '../data/synonyms'
 import { getWordSourceFlags } from '../data/sources'
@@ -253,16 +254,8 @@ describe('状态合并与水合（state-io）', () => {
     expect(library.groupsById[state.selectedGroupId]).toBeDefined()
   })
 
-  it('旧状体合并：越界设置被夹取、非法枚举回落、autoRunning 归 false', () => {
-    const raw = {
-      settings: { playbackRate: 9, intervalSeconds: -1, repeatCount: 0, muted: 'yes' },
-      practice: { mode: 'listen', autoRunning: true, quiz: { options: [1, 2] } },
-      activeTab: 'hidden',
-      difficultySortMode: 'bogus',
-      studyLog: [{ kind: 'mastered', wordKey: 'x', at: 'now' }, { nope: 1 }],
-      wordNotes: { k1: 'note', k2: 42 },
-    }
-    const state = hydrateState(mergeLoadedState(raw))
+  it('旧状态合并：越界设置被夹取、非法枚举回落、autoRunning 归 false', () => {
+    const state = hydrateState(mergeLoadedState(legacyV4State))
     expect(state.settings.playbackRate).toBe(2)
     expect(state.settings.intervalSeconds).toBe(0)
     expect(state.settings.repeatCount).toBe(1)
