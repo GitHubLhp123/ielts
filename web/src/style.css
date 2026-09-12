@@ -1,19 +1,50 @@
-html,
+:root {
+  --site-width: 1180px;
+  --color-canvas: #f8f7f4;
+  --color-ink: #111318;
+  --color-muted: #78766f;
+  --color-line: #deddd7;
+  --color-accent: #5867e7;
+  --color-soft-accent: #eeefff;
+  --shadow-float: 0 24px 70px rgba(24, 28, 45, 0.14);
+  --font-sans: Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --font-mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  color-scheme: light;
+}
+
+html {
+  height: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: 72px;
+}
+
 body,
 #app {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
+  min-width: 320px;
   margin: 0;
-  background-color: #f2f4f8;
-  color: #303133;
+  background: var(--color-canvas);
+  color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 a {
@@ -21,6 +52,23 @@ a {
   text-decoration: none;
 }
 
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid rgba(88, 103, 231, 0.34);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(88, 103, 231, 0.2);
+}
+
 .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
