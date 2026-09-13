@@ -21,6 +21,8 @@ import {
   ElSlider,
   ElSwitch,
   ElTag,
+  ElTabPane,
+  ElTabs,
 } from 'element-plus'
 
 import 'element-plus/es/components/base/style/css'
@@ -43,6 +45,8 @@ import 'element-plus/es/components/select/style/css'
 import 'element-plus/es/components/slider/style/css'
 import 'element-plus/es/components/switch/style/css'
 import 'element-plus/es/components/tag/style/css'
+import 'element-plus/es/components/tab-pane/style/css'
+import 'element-plus/es/components/tabs/style/css'
 import '@/style.css'
 
 import App from '@/App.vue'
@@ -73,6 +77,8 @@ for (const component of [
   ElSlider,
   ElSwitch,
   ElTag,
+  ElTabPane,
+  ElTabs,
 ]) {
   app.use(component)
 }

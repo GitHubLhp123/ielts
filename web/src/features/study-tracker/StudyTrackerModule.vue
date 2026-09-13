@@ -511,9 +511,9 @@ onBeforeUnmount(() => {
             <p>训练事实由系统自动汇总；这里用于补充每日评分、复盘和长期趋势。</p>
           </div>
           <div class="tracker-header-actions">
-            <button class="ep-mini-btn" type="button" @click="exportExcel">导出记录 Excel</button>
-            <button class="ep-mini-btn" type="button" @click="exportPdfReport('week')">生成周报 PDF</button>
-            <button class="ep-mini-btn" type="button" @click="exportPdfReport('month')">生成月报 PDF</button>
+            <el-button @click="exportExcel">导出 Excel</el-button>
+            <el-button @click="exportPdfReport('week')">生成周报</el-button>
+            <el-button @click="exportPdfReport('month')">生成月报</el-button>
             <RouterLink class="tracker-settings-link" to="/settings">完整备份在全局设置 →</RouterLink>
           </div>
         </header>
@@ -526,29 +526,10 @@ onBeforeUnmount(() => {
           <small>{{ storageStatus }}</small>
         </section>
 
-        <!-- Tabs -->
-        <section class="content-card">
-          <div class="native-tabs">
-            <button
-              v-for="tab in [
-                { key: 'overview', label: '总览' },
-                { key: 'table', label: '每日记录' },
-                { key: 'charts', label: '趋势统计' },
-                { key: 'review', label: '复盘' },
-                { key: 'accounting', label: '记账' },
-              ]"
-              :key="tab.key"
-              class="native-tab"
-              :class="{ active: activeTab === tab.key }"
-              type="button"
-              @click="activeTab = tab.key"
-            >
-              {{ tab.label }}
-            </button>
-          </div>
-
-          <!-- Overview -->
-          <div v-if="activeTab === 'overview'" class="tab-pane-block">
+        <section class="content-card tracker-workspace">
+          <el-tabs v-model="activeTab" class="tracker-tabs">
+            <el-tab-pane label="总览" name="overview">
+              <div class="tab-pane-block">
             <div class="overview-summary-grid">
               <div v-for="card in overviewCards" :key="card.label" class="stats-card overview-card">
                 <div class="stats-label">{{ card.label }}</div>
@@ -566,7 +547,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="overview-list">
                   <div v-for="item in pendingTodoItems.slice(0, 5)" :key="item.id" class="overview-list-item">
-                    <span class="ep-tag" :class="`type-${item.priority}`">{{ item.priority }}</span>
+                    <el-tag class="priority-tag" :class="`type-${item.priority}`" effect="light" size="small">{{ item.priority }}</el-tag>
                     <span>{{ item.text }}</span>
                   </div>
                   <div v-if="!pendingTodoItems.length" class="overview-empty">当前没有未完成 Todo，可以把精力转到复盘或记账。</div>
@@ -590,8 +571,13 @@ onBeforeUnmount(() => {
                 <div v-else class="overview-empty">暂无明显风险项目。</div>
                 <div class="reminder-mini">
                   <span class="dim">填写提醒</span>
-                  <input type="checkbox" :checked="!!state.reminderConfig?.enabled" @change="handleReminderToggle(($event.target as HTMLInputElement).checked)" />
-                  <input type="time" :value="state.reminderConfig?.time || '21:30'" @change="state.reminderConfig.time = ($event.target as HTMLInputElement).value; persistNow()" class="ep-input" style="width: 110px;" />
+                  <el-switch :model-value="!!state.reminderConfig?.enabled" @change="handleReminderToggle(Boolean($event))" />
+                  <el-input
+                    class="reminder-time"
+                    type="time"
+                    :model-value="state.reminderConfig?.time || '21:30'"
+                    @update:model-value="state.reminderConfig.time = String($event); persistNow()"
+                  />
                 </div>
               </div>
             </div>
@@ -605,7 +591,7 @@ onBeforeUnmount(() => {
               <div class="overview-list">
                 <template v-if="recentReviews.length">
                   <div v-for="review in recentReviews" :key="review.date" class="overview-list-item">
-                    <span class="ep-tag type-中">{{ review.date }}</span>
+                    <el-tag class="priority-tag type-中" effect="light" size="small">{{ review.date }}</el-tag>
                     <span>{{ review.preview }}</span>
                   </div>
                 </template>
@@ -619,20 +605,21 @@ onBeforeUnmount(() => {
                 <div v-else class="overview-empty">还没有支出记录。</div>
               </div>
             </div>
-          </div>
-
-          <!-- 学习记录表 -->
-          <StudyTable v-else-if="activeTab === 'table'" :state="state" />
-
-          <!-- 复盘展览表 -->
-          <StudyReview v-else-if="activeTab === 'review'" :state="state" />
-
-          <!-- 记账本 -->
-          <StudyAccounting v-else-if="activeTab === 'accounting'" :state="state" />
-
-          <!-- 学习统计 -->
-          <StudyCharts v-else-if="activeTab === 'charts'" :state="state" />
-
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="每日记录" name="table" lazy>
+              <StudyTable :state="state" />
+            </el-tab-pane>
+            <el-tab-pane label="趋势统计" name="charts" lazy>
+              <StudyCharts :state="state" />
+            </el-tab-pane>
+            <el-tab-pane label="复盘" name="review" lazy>
+              <StudyReview :state="state" />
+            </el-tab-pane>
+            <el-tab-pane label="记账" name="accounting" lazy>
+              <StudyAccounting :state="state" />
+            </el-tab-pane>
+          </el-tabs>
         </section>
       </div>
     </div>
@@ -640,87 +627,28 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* 原 CSS 未覆盖的 EP 等价控件补充样式 */
-.ep-input {
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  background: #fff;
-  font: inherit;
-  outline: none;
-  min-width: 0;
-}
-
-.ep-input:focus {
-  border-color: rgba(20, 115, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(20, 115, 255, 0.12);
-}
-
-.ep-mini-btn {
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  background: #fff;
-  border-radius: 9px;
-  padding: 5px 11px;
-  cursor: pointer;
-  font-size: 0.82rem;
-  color: #3b4a5a;
-}
-
-.ep-mini-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.ep-tag {
-  display: inline-block;
-  font-size: 0.72rem;
-  padding: 2px 9px;
-  border-radius: 999px;
-  background: #eef2f6;
-  color: #556171;
-}
-
-.ep-tag.type-高 {
+.priority-tag.type-高 {
+  border-color: rgba(215, 0, 21, 0.14);
   background: rgba(215, 0, 21, 0.1);
   color: #d70015;
 }
 
-.ep-tag.type-中 {
+.priority-tag.type-中 {
+  border-color: rgba(241, 181, 61, 0.18);
   background: rgba(241, 181, 61, 0.16);
   color: #b7791f;
 }
 
-.ep-tag.type-低 {
+.priority-tag.type-低 {
+  border-color: #e4e8ed;
   background: #eef2f6;
   color: #556171;
 }
 
-.ep-tag.type-长期 {
+.priority-tag.type-长期 {
+  border-color: rgba(97, 95, 255, 0.16);
   background: rgba(97, 95, 255, 0.12);
   color: #615fff;
-}
-
-.native-tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  flex-wrap: wrap;
-}
-
-.native-tab {
-  border: none;
-  background: none;
-  padding: 10px 16px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  color: #556171;
-  border-bottom: 2px solid transparent;
-}
-
-.native-tab.active {
-  color: #0a84ff;
-  border-bottom-color: #0a84ff;
-  font-weight: 600;
 }
 
 .tab-pane-block {
@@ -765,6 +693,10 @@ onBeforeUnmount(() => {
   margin-top: 8px;
 }
 
+.reminder-time {
+  width: 128px;
+}
+
 .overview-list-item {
   display: flex;
   gap: 10px;
@@ -776,26 +708,27 @@ onBeforeUnmount(() => {
 }
 
 .tracker-header {
-  margin-bottom: 14px;
-  padding: 30px 32px;
+  margin-bottom: 16px;
+  padding: 36px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 28px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 18px;
-  background: #fff;
+  border-radius: 22px;
+  background: radial-gradient(circle at 88% 0%, rgba(88, 103, 231, 0.42), transparent 34%), #11141c;
+  box-shadow: 0 20px 48px rgba(17, 20, 28, 0.13);
+  color: #fff;
 }
 
 :global(.study-tracker-app) {
   margin: 0;
   padding: 0;
-  background: #f5f5f2;
+  background: #f3f4f7;
 }
 
 :global(.study-tracker-app .page-shell) {
   min-height: auto;
-  padding: 28px;
+  padding: 36px 28px 56px;
 }
 
 :global(.study-tracker-app .container) {
@@ -804,7 +737,7 @@ onBeforeUnmount(() => {
 
 :global(.study-tracker-app .content-card) {
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 18px;
+  border-radius: 20px;
   background: #fff;
   box-shadow: none;
   backdrop-filter: none;
@@ -813,14 +746,21 @@ onBeforeUnmount(() => {
 :global(.study-tracker-app .stats-card) {
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 14px;
-  background: #f8f8f7;
+  background: #f8f9fb;
   box-shadow: none;
   backdrop-filter: none;
 }
 
+:global(.study-tracker-app .section-card) {
+  border-color: rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: none;
+}
+
 .tracker-kicker {
   margin: 0 0 9px;
-  color: #5867e7;
+  color: #9aa6ff;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 650;
@@ -837,7 +777,7 @@ onBeforeUnmount(() => {
 .tracker-header > div > p:last-child {
   max-width: 620px;
   margin: 14px 0 0;
-  color: #6e6e73;
+  color: rgba(255, 255, 255, 0.62);
   line-height: 1.7;
 }
 
@@ -851,26 +791,26 @@ onBeforeUnmount(() => {
 
 .tracker-settings-link {
   width: 100%;
-  color: #5867e7;
+  color: #c9ceff;
   font-size: 12px;
   font-weight: 650;
   text-align: right;
 }
 
 .tracker-automatic-summary {
-  margin-bottom: 14px;
-  padding: 18px 22px;
+  margin-bottom: 16px;
+  padding: 22px 24px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
   gap: 1px;
   align-items: center;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
+  border-radius: 18px;
   background: #fff;
 }
 
 .tracker-automatic-summary > div {
-  padding: 2px 18px;
+  padding: 4px 22px;
   display: grid;
   gap: 6px;
   border-left: 1px solid rgba(15, 23, 42, 0.08);
@@ -888,7 +828,46 @@ onBeforeUnmount(() => {
 }
 
 .tracker-automatic-summary strong {
-  font-size: 18px;
+  color: #191b22;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+
+:global(.tracker-workspace) {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.tracker-tabs :deep(.el-tabs__header) {
+  margin: 0;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+}
+
+.tracker-tabs :deep(.el-tabs__nav-wrap::after) {
+  display: none;
+}
+
+.tracker-tabs :deep(.el-tabs__item) {
+  height: 58px;
+  padding: 0 20px;
+  color: #6e6e73;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tracker-tabs :deep(.el-tabs__item.is-active) {
+  color: #5867e7;
+}
+
+.tracker-tabs :deep(.el-tabs__active-bar) {
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: #5867e7;
+}
+
+.tracker-tabs :deep(.el-tabs__content) {
+  padding: 10px 24px 24px;
 }
 
 @media (max-width: 860px) {
@@ -922,12 +901,33 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 560px) {
+  :global(.study-tracker-app .page-shell) {
+    padding: 18px 14px 40px;
+  }
+
   .tracker-header {
     padding: 22px;
   }
 
   .tracker-header-actions button {
     flex: 1;
+  }
+
+  .tracker-automatic-summary {
+    padding: 14px;
+  }
+
+  .tracker-tabs :deep(.el-tabs__header) {
+    padding: 0 12px;
+  }
+
+  .tracker-tabs :deep(.el-tabs__item) {
+    height: 52px;
+    padding: 0 14px;
+  }
+
+  .tracker-tabs :deep(.el-tabs__content) {
+    padding: 6px 12px 16px;
   }
 }
 </style>

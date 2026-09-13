@@ -59,7 +59,7 @@ export const modules: IeltsModule[] = [
     icon: DataAnalysis,
     status: 'done',
     notes:
-      '已收缩为记录与复盘模块：Todo 上移今日工作台，完整备份上移全局设置，页面接入跨模块训练摘要；学习记录表、复盘、记账、统计、提醒及 Excel/PDF 业务导出继续沿用 v4 数据。待继续拆分 Store、持久化和报告生成逻辑。',
+      '已收缩为记录与复盘模块：Todo 上移今日工作台，完整备份上移全局设置，页面接入跨模块训练摘要；Tab、表单、筛选、弹窗和操作控件已统一为 Element Plus，学习记录表、复盘、记账、统计、提醒及 Excel/PDF 业务导出继续沿用 v4 数据。待继续拆分 Store、持久化和报告生成逻辑。',
   },
   {
     id: 'pronunciation',

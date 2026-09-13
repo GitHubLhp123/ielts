@@ -282,8 +282,8 @@ onBeforeUnmount(() => {
           <div class="toolbar-note">分组模式：同组项目共图；单列模式：每个项目一张图（含目标虚线与低于目标红点）。</div>
         </div>
         <div class="toolbar-actions">
-          <button class="ep-mini-btn" :class="{ primary: chartDisplayMode === 'grouped' }" type="button" @click="chartDisplayMode = 'grouped'">分组图</button>
-          <button class="ep-mini-btn" :class="{ primary: chartDisplayMode === 'single' }" type="button" @click="chartDisplayMode = 'single'">单列图</button>
+          <el-button :type="chartDisplayMode === 'grouped' ? 'primary' : 'default'" @click="chartDisplayMode = 'grouped'">分组图</el-button>
+          <el-button :type="chartDisplayMode === 'single' ? 'primary' : 'default'" @click="chartDisplayMode = 'single'">单列图</el-button>
         </div>
       </div>
     </div>
@@ -306,7 +306,7 @@ onBeforeUnmount(() => {
     <div class="section-card chart-card">
       <div class="toolbar" style="display: flex; justify-content: space-between; align-items: center;">
         <div class="toolbar-note">选择月份查看当月综合强度</div>
-        <input v-model="heatmapMonth" class="ep-input" type="month" style="width: 150px;" />
+        <el-input v-model="heatmapMonth" class="month-input" type="month" />
       </div>
       <div ref="heatmapEl" class="heatmap-box"></div>
       <div v-if="!rows.some((r) => r.date.startsWith(heatmapMonth))" class="chart-empty">该月还没有学习记录</div>
@@ -363,19 +363,8 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
-.ep-mini-btn {
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  background: #fff;
-  border-radius: 9px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-size: 0.82rem;
-}
-
-.ep-mini-btn.primary {
-  color: #fff;
-  border: none;
-  background: linear-gradient(180deg, #2e90ff, #1677ff);
+.month-input {
+  width: 160px;
 }
 
 .ep-input {

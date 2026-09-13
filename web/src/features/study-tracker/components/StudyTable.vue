@@ -290,12 +290,12 @@ function groupMeta(groupId: string) {
   }
 }
 
-function onRangeStart(input: HTMLInputElement) {
-  dateRange.value = [input.value, dateRange.value[1] || '']
+function onRangeStart(value: string) {
+  dateRange.value = [value, dateRange.value[1] || '']
 }
 
-function onRangeEnd(input: HTMLInputElement) {
-  dateRange.value = [dateRange.value[0] || '', input.value]
+function onRangeEnd(value: string) {
+  dateRange.value = [dateRange.value[0] || '', value]
 }
 
 /* ---------- 分组 / 复盘栏位配置弹窗 ---------- */
@@ -315,15 +315,25 @@ function addGroup() {
   newGroupName.value = ''
 }
 
-function removeGroup(id: string) {
-  if (id === 'group-ungrouped') { alert('未分组不能删除'); return }
-  if (!window.confirm('删除分组会把其下项目移到未分组，继续吗？')) return
+async function removeGroup(id: string) {
+  if (id === 'group-ungrouped') { ElMessage.warning('未分组不能删除'); return }
+  const confirmed = await ElMessageBox.confirm('删除分组会把其下项目移到未分组，继续吗？', '删除分组', {
+    confirmButtonText: '确认删除',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).catch(() => false)
+  if (!confirmed) return
   st.value.groups = (st.value.groups ?? []).filter((g: any) => g.id !== id)
   for (const c of st.value.projectColumns ?? []) if (c.groupId === id) c.groupId = 'group-ungrouped'
 }
 
-function removeColumn(columnId: string) {
-  if (!window.confirm('删除项目会连同该列记录数据一起移除，继续吗？')) return
+async function removeColumn(columnId: string) {
+  const confirmed = await ElMessageBox.confirm('删除项目会连同该列记录数据一起移除，继续吗？', '删除项目', {
+    confirmButtonText: '确认删除',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).catch(() => false)
+  if (!confirmed) return
   st.value.projectColumns = (st.value.projectColumns ?? []).filter((c: any) => c.id !== columnId)
   for (const row of st.value.tableData ?? []) if (row.metrics) delete row.metrics[columnId]
 }
@@ -350,8 +360,13 @@ function addNoteField() {
   newNoteFieldName.value = ''
 }
 
-function removeNoteField(fieldId: string) {
-  if (!window.confirm('删除栏位会清空各行该栏内容，继续吗？')) return
+async function removeNoteField(fieldId: string) {
+  const confirmed = await ElMessageBox.confirm('删除栏位会清空各行该栏内容，继续吗？', '删除复盘栏位', {
+    confirmButtonText: '确认删除',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).catch(() => false)
+  if (!confirmed) return
   st.value.noteFields = (st.value.noteFields ?? []).filter((f: any) => f.id !== fieldId)
   for (const row of st.value.tableData ?? []) if (row.notes) delete row.notes[fieldId]
 }
@@ -414,47 +429,55 @@ function resetFilters() {
           <span>今日平均分 {{ todayAvgText() }}</span>
         </div>
         <div class="toolbar-actions">
-          <button class="ep-mini-btn" type="button" @click="syncTodayPlanToTodos">明日计划同步 Todo</button>
-                <button class="ep-mini-btn" type="button" @click="showGroupConfig = true">分组与组项目</button>
-                <button class="ep-mini-btn" type="button" @click="showNoteFieldsConfig = true">复盘栏位</button>
-          <button class="ep-mini-btn" type="button" @click="notesCollapsed = !notesCollapsed">
+          <el-button @click="syncTodayPlanToTodos">同步明日计划</el-button>
+          <el-button @click="showGroupConfig = true">配置项目</el-button>
+          <el-button @click="showNoteFieldsConfig = true">配置复盘栏</el-button>
+          <el-button @click="notesCollapsed = !notesCollapsed">
             {{ notesCollapsed ? '展开' : '折叠' }} 复盘栏
-          </button>
+          </el-button>
         </div>
       </div>
       <p class="table-guideline">得分规则：整数或一位小数；「/」表示未进行；留空表示未补齐。低于 {{ LOW_SCORE_THRESHOLD }} 分将计入低分风险。</p>
 
-      <div class="table-toolbar-meta" style="margin-top: 8px; gap: 6px; flex-wrap: wrap; display: flex; align-items: center;">
-        <label class="ep-mini-label">日期区间
-          <input class="ep-input" type="date" :value="dateRange[0] || ''" @change="onRangeStart(($event as InputEvent).target as HTMLInputElement)" />
-          ~
-          <input class="ep-input" type="date" :value="dateRange[1] || ''" @change="onRangeEnd(($event as InputEvent).target as HTMLInputElement)" />
-        </label>
-        <label class="ep-mini-label">关键词
-          <input v-model="keyword" class="ep-input" placeholder="日期/项目/复盘…" style="width: 170px;" />
-        </label>
-        <label class="ep-mini-label">分组
-          <select v-model="groupFilter" class="ep-input">
-            <option value="all">全部分组</option>
-            <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
-          </select>
-        </label>
-        <label class="ep-mini-label"><input type="checkbox" v-model="onlyLowScore" /> 仅看低于 {{ LOW_SCORE_THRESHOLD }}</label>
-        <label class="ep-mini-label"><input type="checkbox" v-model="onlyIncomplete" /> 仅看未补齐</label>
-        <select v-model="sortMode" class="ep-input">
-          <option value="date-asc">日期升序</option>
-          <option value="date-desc">日期降序</option>
-          <option value="duration-desc">时长降序</option>
-          <option value="average-desc">均分降序</option>
-          <option value="incomplete-first">未补齐优先</option>
-        </select>
-        <button class="ep-mini-btn" type="button" @click="resetFilters">重置筛选</button>
+      <div class="filter-bar">
+        <div class="filter-field date-range-field">
+          <span>日期区间</span>
+          <el-input class="date-filter" type="date" :model-value="dateRange[0] || ''" @update:model-value="onRangeStart(String($event))" />
+          <span>至</span>
+          <el-input class="date-filter" type="date" :model-value="dateRange[1] || ''" @update:model-value="onRangeEnd(String($event))" />
+        </div>
+        <div class="filter-field">
+          <span>关键词</span>
+          <el-input v-model="keyword" clearable placeholder="日期／项目／复盘" />
+        </div>
+        <div class="filter-field">
+          <span>分组</span>
+          <el-select v-model="groupFilter">
+            <el-option label="全部分组" value="all" />
+            <el-option v-for="group in groups" :key="group.id" :label="group.name" :value="group.id" />
+          </el-select>
+        </div>
+        <div class="filter-field">
+          <span>排序</span>
+          <el-select v-model="sortMode">
+            <el-option label="日期升序" value="date-asc" />
+            <el-option label="日期降序" value="date-desc" />
+            <el-option label="时长降序" value="duration-desc" />
+            <el-option label="均分降序" value="average-desc" />
+            <el-option label="未补齐优先" value="incomplete-first" />
+          </el-select>
+        </div>
+        <div class="filter-checks">
+          <el-checkbox v-model="onlyLowScore">低于 {{ LOW_SCORE_THRESHOLD }} 分</el-checkbox>
+          <el-checkbox v-model="onlyIncomplete">仅看未补齐</el-checkbox>
+        </div>
+        <el-button @click="resetFilters">重置</el-button>
       </div>
 
-      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
-        <button class="ep-mini-btn primary" type="button" @click="ensureTodayRecord">定位/补今天</button>
-        <button class="ep-mini-btn" type="button" @click="addBlankRow">新增空白行</button>
-        <button class="ep-mini-btn" type="button" @click="createTomorrowRecord">新增明天记录</button>
+      <div class="record-actions">
+        <el-button type="primary" @click="ensureTodayRecord">定位／补今天</el-button>
+        <el-button @click="addBlankRow">新增空白行</el-button>
+        <el-button @click="createTomorrowRecord">新增明天记录</el-button>
       </div>
     </div>
 
@@ -489,32 +512,32 @@ function resetFilters() {
             }"
           >
             <td class="date-col">
-              <input
+              <el-input
                 type="date"
-                class="ep-input date-input"
-                :value="row.date"
+                class="date-input"
+                :model-value="row.date"
                 :disabled="Boolean(row.date) && isPastDate(row.date)"
-                @change="onDateChange(row, ($event.target as HTMLInputElement).value)"
+                @update:model-value="onDateChange(row, String($event))"
               />
             </td>
             <td class="duration-col">
-              <input
+              <el-input
                 type="number"
                 min="0"
-                class="ep-input duration-input"
-                :value="row.durationMinutes ?? ''"
+                class="duration-input"
+                :model-value="row.durationMinutes ?? ''"
                 :disabled="row.date ? isPastDate(row.date) : false"
-                @input="onDurationInput(row, ($event.target as HTMLInputElement).value)"
+                @update:model-value="onDurationInput(row, $event)"
               />
             </td>
             <td v-for="column in activeColumns" :key="column.id" class="metric-cell">
               <template v-if="columns.some((c) => c.id === column.id)">
-                <input
-                  :class="['ep-input score-input', { 'score-danger': isNumericMetric(row.metrics[column.id]) && Number(row.metrics[column.id]) < LOW_SCORE_THRESHOLD }]"
+                <el-input
+                  :class="['score-input', { 'score-danger': isNumericMetric(row.metrics[column.id]) && Number(row.metrics[column.id]) < LOW_SCORE_THRESHOLD }]"
                   maxlength="5"
-                  :value="row.metrics[column.id] ?? ''"
+                  :model-value="row.metrics[column.id] ?? ''"
                   :disabled="row.date ? isPastDate(row.date) : false"
-                  @input="onMetricInput(row, column, ($event.target as HTMLInputElement).value)"
+                  @update:model-value="onMetricInput(row, column, String($event))"
                   @blur="onMetricBlur(row, column)"
                 />
               </template>
@@ -523,12 +546,14 @@ function resetFilters() {
               <template v-if="!notesCollapsed">
                 <div v-for="field in noteFields" :key="field.id" class="notes-editor-item">
                   <span class="notes-editor-label">{{ field.name }}</span>
-                  <textarea
-                    class="ep-input notes-textarea"
-                    :value="row.notes[field.id] ?? ''"
+                  <el-input
+                    class="notes-textarea"
+                    type="textarea"
+                    :rows="2"
+                    :model-value="row.notes[field.id] ?? ''"
                     :disabled="row.date ? isPastDate(row.date) : false"
-                    @input="onNoteInput(row, field.id, ($event.target as HTMLTextAreaElement).value)"
-                  ></textarea>
+                    @update:model-value="onNoteInput(row, field.id, String($event))"
+                  />
                 </div>
               </template>
               <template v-else>
@@ -545,8 +570,8 @@ function resetFilters() {
                 </template>
                 <template v-else>
                   <span class="dim">均分 {{ rowAvg(row) }} · 未补齐 {{ incompleteText(row) }}</span>
-                  <button class="ep-mini-btn" type="button" @click="copyRow(row)">复制</button>
-                  <button class="ep-mini-btn danger" type="button" @click="removeRow(row)">删除</button>
+                  <el-button size="small" @click="copyRow(row)">复制</el-button>
+                  <el-button size="small" type="danger" plain @click="removeRow(row)">删除</el-button>
                 </template>
               </div>
             </td>
@@ -558,79 +583,103 @@ function resetFilters() {
       </table>
     </div>
 
-    <!-- 配置弹窗 -->
-    <div v-if="showGroupConfig" class="modal-mask">
-      <div class="modal-card">
-        <div class="modal-head">
-          <strong>分组与组项目</strong>
-          <button class="ep-mini-btn" type="button" @click="showGroupConfig = false">✕</button>
-        </div>
-        <div class="modal-body">
+    <el-dialog v-model="showGroupConfig" title="分组与组项目" width="min(720px, calc(100vw - 32px))" append-to-body>
+        <div class="config-dialog-body">
           <div v-for="group in groups" :key="group.id" class="cfg-group">
             <div class="cfg-group-head">
-              <input v-model="group.name" class="ep-input" style="width: 140px;" />
-              <button v-if="group.id !== 'group-ungrouped'" class="ep-mini-btn danger" type="button" @click="removeGroup(group.id)">删除分组</button>
+              <el-input v-model="group.name" />
+              <el-button v-if="group.id !== 'group-ungrouped'" type="danger" plain @click="removeGroup(group.id)">删除分组</el-button>
             </div>
             <div v-for="column in columns.filter((c) => c.groupId === group.id)" :key="column.id" class="cfg-col-row">
-              <input v-model="column.name" class="ep-input" style="width: 110px;" />
-              <select v-model="column.groupId" class="ep-input" style="width: 110px;">
-                <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
-              </select>
-              <input v-model.number="column.targetValue" class="ep-input" type="number" min="0" max="100" style="width: 70px;" title="目标分" />
-              <button class="ep-mini-btn danger" type="button" @click="removeColumn(column.id)">删列</button>
+              <el-input v-model="column.name" />
+              <el-select v-model="column.groupId">
+                <el-option v-for="groupOption in groups" :key="groupOption.id" :label="groupOption.name" :value="groupOption.id" />
+              </el-select>
+              <el-input v-model.number="column.targetValue" type="number" min="0" max="100" title="目标分" />
+              <el-button type="danger" plain @click="removeColumn(column.id)">删除项目</el-button>
             </div>
           </div>
           <div class="cfg-add-row">
-            <input v-model="newGroupName" class="ep-input" placeholder="新分组名" style="width: 140px;" @keyup.enter="addGroup" />
-            <button class="ep-mini-btn" type="button" @click="addGroup">新增分组</button>
-            <input v-model="newColumnName" class="ep-input" placeholder="新项目名" style="width: 140px;" @keyup.enter="addColumn" />
-            <select v-model="newColumnGroup" class="ep-input" style="width: 120px;">
-              <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.name }}</option>
-            </select>
-            <button class="ep-mini-btn" type="button" @click="addColumn">新增项目</button>
+            <el-input v-model="newGroupName" placeholder="新分组名" @keyup.enter="addGroup" />
+            <el-button @click="addGroup">新增分组</el-button>
+            <el-input v-model="newColumnName" placeholder="新项目名" @keyup.enter="addColumn" />
+            <el-select v-model="newColumnGroup">
+              <el-option v-for="groupOption in groups" :key="groupOption.id" :label="groupOption.name" :value="groupOption.id" />
+            </el-select>
+            <el-button type="primary" @click="addColumn">新增项目</el-button>
           </div>
           <p class="dim">项目名与分组名可直接改名；目标分用于折线图虚线。</p>
         </div>
-      </div>
-    </div>
+    </el-dialog>
 
-    <div v-if="showNoteFieldsConfig" class="modal-mask">
-      <div class="modal-card">
-        <div class="modal-head">
-          <strong>复盘栏位</strong>
-          <button class="ep-mini-btn" type="button" @click="showNoteFieldsConfig = false">✕</button>
-        </div>
-        <div class="modal-body">
+    <el-dialog v-model="showNoteFieldsConfig" title="复盘栏位" width="min(560px, calc(100vw - 32px))" append-to-body>
+        <div class="config-dialog-body">
           <div v-for="field in noteFields" :key="field.id" class="cfg-col-row">
-            <input v-model="field.name" class="ep-input" style="width: 200px;" />
-            <button class="ep-mini-btn danger" type="button" @click="removeNoteField(field.id)">删除栏位</button>
+            <el-input v-model="field.name" />
+            <el-button type="danger" plain @click="removeNoteField(field.id)">删除栏位</el-button>
           </div>
           <div class="cfg-add-row">
-            <input v-model="newNoteFieldName" class="ep-input" placeholder="新栏位名，如：心情" style="width: 220px;" @keyup.enter="addNoteField" />
-            <button class="ep-mini-btn" type="button" @click="addNoteField">新增栏位</button>
+            <el-input v-model="newNoteFieldName" placeholder="新栏位名，如：心情" @keyup.enter="addNoteField" />
+            <el-button type="primary" @click="addNoteField">新增栏位</el-button>
           </div>
         </div>
-      </div>
-    </div>
+    </el-dialog>
   </div>
 </template>
 
 <style scoped>
-.ep-mini-label {
-  display: inline-flex;
-  align-items: center;
+.filter-bar {
+  margin-top: 18px;
+  padding-top: 16px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.35fr) minmax(170px, 0.9fr) minmax(150px, 0.7fr) minmax(150px, 0.7fr);
+  gap: 12px;
+  align-items: end;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.filter-field {
+  min-width: 0;
+  display: grid;
   gap: 6px;
-  font-size: 0.78rem;
-  color: var(--text-secondary, #556171);
-  white-space: nowrap;
+  color: #6e6e73;
+  font-size: 12px;
+}
+
+.date-range-field {
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.date-range-field > span:first-child {
+  grid-column: 1 / -1;
+}
+
+.date-filter {
+  min-width: 0;
+}
+
+.filter-checks,
+.record-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-checks {
+  grid-column: 1 / -2;
+}
+
+.record-actions {
+  margin-top: 14px;
 }
 
 .core-table-wrapper {
   overflow-x: auto;
-  background: rgba(255, 255, 255, 0.9);
+  background: #fff;
   border-radius: 14px;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  padding: 6px;
 }
 
 .core-table {
@@ -642,14 +691,14 @@ function resetFilters() {
 
 .core-table th,
 .core-table td {
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  padding: 6px 8px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 10px;
   text-align: center;
 }
 
 .core-table thead th {
-  background: linear-gradient(180deg, rgba(240, 246, 255, 0.9), rgba(234, 242, 255, 0.7));
-  color: #334155;
+  background: #f6f7f9;
+  color: #4e5663;
   font-weight: 600;
 }
 
@@ -672,11 +721,14 @@ function resetFilters() {
 
 .score-input {
   width: 76px;
-  text-align: center;
 }
 
-.score-danger {
+.score-danger :deep(.el-input__inner) {
   color: #d70015;
+}
+
+.score-input :deep(.el-input__inner) {
+  text-align: center;
 }
 
 .notes-textarea {
@@ -715,44 +767,18 @@ function resetFilters() {
   color: #98a2b3;
   padding: 18px;
 }
-.modal-mask {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 500;
-}
 
-.modal-card {
-  width: min(620px, 92vw);
-  max-height: 82vh;
-  overflow: auto;
-  background: #fff;
-  border-radius: 16px;
-  padding: 14px 16px;
-}
-
-.modal-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-body {
-  margin-top: 10px;
+.config-dialog-body {
   display: grid;
-  gap: 10px;
+  gap: 14px;
 }
 
 .cfg-group-head,
-.cfg-col-row,
 .cfg-add-row {
-  display: flex;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  flex-wrap: wrap;
 }
 
 .cfg-group-head {
@@ -760,8 +786,43 @@ function resetFilters() {
   margin-top: 4px;
 }
 
+.cfg-col-row {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(140px, 0.8fr) 100px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.cfg-add-row {
+  grid-template-columns: minmax(140px, 1fr) auto minmax(140px, 1fr) minmax(140px, 0.8fr) auto;
+}
+
 .cfg-group {
   border-bottom: 1px dashed rgba(15, 23, 42, 0.1);
-  padding-bottom: 8px;
+  padding-bottom: 14px;
+}
+
+@media (max-width: 920px) {
+  .filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-checks {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-bar,
+  .cfg-col-row,
+  .cfg-add-row {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-checks {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 </style>

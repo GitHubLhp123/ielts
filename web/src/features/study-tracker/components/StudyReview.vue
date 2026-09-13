@@ -44,13 +44,13 @@ const visibleRows = computed(() => {
   return [...result].sort((a, b) => a.date.localeCompare(b.date))
 })
 
-function onRangeStart(input: HTMLInputElement) {
-  const next = [input.value, dateRange.value[1] || '']
+function onRangeStart(value: string) {
+  const next = [value, dateRange.value[1] || '']
   st.value.reviewFilter.dateRange = next
 }
 
-function onRangeEnd(input: HTMLInputElement) {
-  const next = [dateRange.value[0] || '', input.value]
+function onRangeEnd(value: string) {
+  const next = [dateRange.value[0] || '', value]
   st.value.reviewFilter.dateRange = next
 }
 
@@ -75,16 +75,18 @@ function resetFilter() {
           <span>展示 {{ visibleRows.length }} 行</span>
         </div>
       </div>
-      <div class="table-toolbar-meta" style="margin-top: 10px; gap: 6px; flex-wrap: wrap; display: flex; align-items: center;">
-        <label class="ep-mini-label">日期区间
-          <input class="ep-input" type="date" :value="dateRange[0] || ''" @change="onRangeStart(($event as InputEvent).target as HTMLInputElement)" />
-          ~
-          <input class="ep-input" type="date" :value="dateRange[1] || ''" @change="onRangeEnd(($event as InputEvent).target as HTMLInputElement)" />
-        </label>
-        <label class="ep-mini-label">关键词
-          <input v-model="keyword" class="ep-input" placeholder="搜索复盘内容…" style="width: 220px;" />
-        </label>
-        <button class="ep-mini-btn" type="button" @click="resetFilter">重置筛选</button>
+      <div class="review-filter-bar">
+        <div class="review-filter-field date-range-field">
+          <span>日期区间</span>
+          <el-input type="date" :model-value="dateRange[0] || ''" @update:model-value="onRangeStart(String($event))" />
+          <span>至</span>
+          <el-input type="date" :model-value="dateRange[1] || ''" @update:model-value="onRangeEnd(String($event))" />
+        </div>
+        <div class="review-filter-field">
+          <span>关键词</span>
+          <el-input v-model="keyword" clearable placeholder="搜索复盘内容" />
+        </div>
+        <el-button @click="resetFilter">重置筛选</el-button>
       </div>
     </div>
 
@@ -115,21 +117,37 @@ function resetFilter() {
 </template>
 
 <style scoped>
-.ep-mini-label {
-  display: inline-flex;
-  align-items: center;
+.review-filter-bar {
+  margin-top: 18px;
+  padding-top: 16px;
+  display: grid;
+  grid-template-columns: minmax(300px, 1.3fr) minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.review-filter-field {
+  display: grid;
   gap: 6px;
-  font-size: 0.78rem;
-  color: var(--text-secondary, #556171);
-  white-space: nowrap;
+  color: #6e6e73;
+  font-size: 12px;
+}
+
+.date-range-field {
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.date-range-field > span:first-child {
+  grid-column: 1 / -1;
 }
 
 .core-table-wrapper {
   overflow-x: auto;
-  background: rgba(255, 255, 255, 0.9);
+  background: #fff;
   border-radius: 14px;
   border: 1px solid rgba(15, 23, 42, 0.08);
-  padding: 6px;
 }
 
 .core-table {
@@ -140,15 +158,15 @@ function resetFilter() {
 
 .core-table th,
 .core-table td {
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  padding: 8px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 12px;
   vertical-align: top;
   text-align: left;
 }
 
 .core-table thead th {
-  background: linear-gradient(180deg, rgba(240, 246, 255, 0.9), rgba(234, 242, 255, 0.7));
-  color: #334155;
+  background: #f6f7f9;
+  color: #4e5663;
   font-weight: 600;
 }
 
@@ -171,5 +189,11 @@ function resetFilter() {
 .dim {
   color: var(--text-secondary, #556171);
   font-size: 0.78rem;
+}
+
+@media (max-width: 680px) {
+  .review-filter-bar {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

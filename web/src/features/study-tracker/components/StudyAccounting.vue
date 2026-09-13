@@ -322,14 +322,15 @@ ensureDraftsForMonth(monthText.value)
           <div class="toolbar-note">新增类别会自动进入下拉；删除类别会清空关联记录/规则上的类别。</div>
         </div>
       </div>
-      <div class="category-manager" style="margin-top: 10px;">
-        <input v-model="newCategory" class="ep-input" placeholder="新类别名称" style="width: 200px;" @keyup.enter="addCategory" />
-        <button class="ep-mini-btn primary" type="button" @click="addCategory">新增类别</button>
-        <div class="ep-tag-row">
-          <span v-for="c in categories" :key="c" class="ep-tag cat-tag">
-            {{ c }}
-            <span class="cat-remove" @click="removeCategory(c)">✕</span>
-          </span>
+      <div class="category-manager">
+        <div class="category-create">
+          <el-input v-model="newCategory" clearable placeholder="新类别名称" @keyup.enter="addCategory" />
+          <el-button type="primary" @click="addCategory">新增类别</el-button>
+        </div>
+        <div class="category-tags">
+          <el-tag v-for="category in categories" :key="category" closable effect="plain" @close="removeCategory(category)">
+            {{ category }}
+          </el-tag>
           <span v-if="!categories.length" class="dim">暂无类别，使用下方录入会自动新建</span>
         </div>
       </div>
@@ -343,15 +344,14 @@ ensureDraftsForMonth(monthText.value)
           <div class="toolbar-note">日期取上方日历选中日（当前 {{ selectedDate }}）。</div>
         </div>
       </div>
-      <div class="accounting-form-row" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-        <input v-model.number="form.amount" class="ep-input" type="number" min="0" step="0.01" placeholder="金额" style="width: 110px;" />
-        <input v-model="form.item" class="ep-input" placeholder="事项" style="width: 170px;" />
-        <input v-model="form.category" class="ep-input" list="category-options" placeholder="类别" style="width: 150px;" />
-        <datalist id="category-options">
-          <option v-for="c in categories" :key="c" :value="c" />
-        </datalist>
-        <input v-model="form.reason" class="ep-input" placeholder="原因（可选）" style="width: 180px;" />
-        <button class="ep-mini-btn primary" type="button" @click="addEntry">记一笔</button>
+      <div class="accounting-form-row">
+        <el-input v-model.number="form.amount" type="number" min="0" step="0.01" placeholder="金额" />
+        <el-input v-model="form.item" placeholder="事项" />
+        <el-select v-model="form.category" filterable allow-create default-first-option clearable placeholder="类别">
+          <el-option v-for="category in categories" :key="category" :label="category" :value="category" />
+        </el-select>
+        <el-input v-model="form.reason" placeholder="原因（可选）" />
+        <el-button type="primary" @click="addEntry">记一笔</el-button>
       </div>
     </div>
 
@@ -378,27 +378,31 @@ ensureDraftsForMonth(monthText.value)
         </thead>
         <tbody>
           <tr v-for="entry in visibleEntries" :key="entry.id" :class="{ 'bk-draft': entry.isDraft }">
-            <td><input v-model="entry.time" class="ep-input bk-input" type="date" /></td>
-            <td><input v-model.number="entry.amount" class="ep-input bk-input" type="number" step="0.01" /></td>
-            <td><input v-model="entry.item" class="ep-input bk-input" placeholder="事项" /></td>
+            <td><el-input v-model="entry.time" class="bk-input date-entry" type="date" /></td>
+            <td><el-input v-model.number="entry.amount" class="bk-input amount-entry" type="number" step="0.01" /></td>
+            <td><el-input v-model="entry.item" class="bk-input" placeholder="事项" /></td>
             <td>
-              <input v-model="entry.category" class="ep-input bk-input" list="category-options" />
+              <el-select v-model="entry.category" class="bk-input" filterable allow-create default-first-option>
+                <el-option v-for="category in categories" :key="category" :label="category" :value="category" />
+              </el-select>
             </td>
-            <td><input v-model="entry.reason" class="ep-input bk-input" placeholder="原因" /></td>
+            <td><el-input v-model="entry.reason" class="bk-input" placeholder="原因" /></td>
             <td>
-              <span v-if="entry.isDraft" class="ep-tag type-低">草稿</span>
-              <span v-else class="ep-tag type-中">已确认</span>
+              <el-tag v-if="entry.isDraft" type="info" effect="light" size="small">草稿</el-tag>
+              <el-tag v-else type="success" effect="light" size="small">已确认</el-tag>
             </td>
             <td>
-              <button v-if="entry.isDraft" class="ep-mini-btn primary" type="button" @click="confirmDraft(entry)">确认</button>
-              <button class="ep-mini-btn danger" type="button" @click="removeEntry(entry)">删除</button>
+              <div class="entry-actions">
+                <el-button v-if="entry.isDraft" size="small" type="primary" @click="confirmDraft(entry)">确认</el-button>
+                <el-button size="small" type="danger" plain @click="removeEntry(entry)">删除</el-button>
+              </div>
             </td>
           </tr>
           <tr v-if="!visibleEntries.length"><td colspan="7" class="empty-row">还没有记账记录。</td></tr>
         </tbody>
       </table>
       <div style="margin-top: 8px; text-align: center;">
-        <button v-if="visibleEntries.length < entries.length" class="ep-mini-btn" type="button" @click="loadMore">加载更多（+10）</button>
+        <el-button v-if="visibleEntries.length < entries.length" @click="loadMore">加载更多（+10）</el-button>
       </div>
     </div>
 
@@ -410,14 +414,13 @@ ensureDraftsForMonth(monthText.value)
             <div class="toolbar-title">月历</div>
             <div class="toolbar-note">点击日期查看当日支出；底部为选中日明细。</div>
           </div>
-          <input v-model="monthText" class="ep-input" type="month" style="width: 150px;" />
+          <el-input v-model="monthText" class="month-input" type="month" />
         </div>
         <div class="calendar-grid">
           <span v-for="w in ['日', '一', '二', '三', '四', '五', '六']" :key="w" class="cal-week">周{{ w }}</span>
-          <button
+          <el-button
             v-for="cell in calendarDays"
             :key="cell.key"
-            type="button"
             class="cal-day"
             :class="{ selected: cell.isSelected, today: cell.isToday, outside: !cell.inMonth }"
             :disabled="!cell.inMonth"
@@ -427,7 +430,7 @@ ensureDraftsForMonth(monthText.value)
             <span v-if="cell.inMonth && cell.count" class="cal-day-spend">￥{{ cell.spend.toFixed(1) }}</span>
             <span v-else-if="cell.inMonth" class="cal-day-spend dim">—</span>
             <span v-if="cell.inMonth && cell.count" class="cal-day-count">{{ cell.count }} 笔</span>
-          </button>
+          </el-button>
         </div>
         <div class="dim" style="margin-top: 8px;">
           {{ monthText }} 合计 {{ currentMonthAmount.toFixed(2) }} 元 · {{ currentMonthCount }} 笔
@@ -441,21 +444,23 @@ ensureDraftsForMonth(monthText.value)
             <div class="toolbar-note">每月固定支出自动生成草稿（如房租/订阅）。</div>
           </div>
         </div>
-        <div class="accounting-form-row" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <div class="rule-form-row">
           <span class="dim">每月</span>
-          <input v-model.number="ruleForm.dayOfMonth" class="ep-input" type="number" min="1" max="28" style="width: 70px;" />
+          <el-input v-model.number="ruleForm.dayOfMonth" type="number" min="1" max="28" />
           <span class="dim">日</span>
-          <input v-model.number="ruleForm.amount" class="ep-input" type="number" step="0.01" placeholder="金额" style="width: 110px;" />
-          <input v-model="ruleForm.item" class="ep-input" placeholder="事项" style="width: 150px;" />
-          <input v-model="ruleForm.category" class="ep-input" list="category-options" placeholder="类别" style="width: 130px;" />
-          <button class="ep-mini-btn primary" type="button" @click="addRule">新增规则</button>
+          <el-input v-model.number="ruleForm.amount" type="number" step="0.01" placeholder="金额" />
+          <el-input v-model="ruleForm.item" placeholder="事项" />
+          <el-select v-model="ruleForm.category" filterable allow-create default-first-option clearable placeholder="类别">
+            <el-option v-for="category in categories" :key="category" :label="category" :value="category" />
+          </el-select>
+          <el-button type="primary" @click="addRule">新增规则</el-button>
         </div>
         <div v-if="rules.length" class="rule-list">
           <div v-for="rule in rules" :key="rule.id" class="rule-item">
             <span class="dim">每月 {{ rule.dayOfMonth }} 日</span>
             <strong>{{ rule.item }}</strong>
             <span class="dim">￥{{ Number(rule.amount || 0).toFixed(2) }} · {{ rule.category }}</span>
-            <button class="ep-mini-btn danger" type="button" @click="removeRule(rule)">删除</button>
+            <el-button size="small" type="danger" plain @click="removeRule(rule)">删除</el-button>
           </div>
         </div>
         <div v-else class="dim" style="margin-top: 8px;">暂无周期规则。</div>
@@ -477,82 +482,55 @@ ensureDraftsForMonth(monthText.value)
 }
 
 .section-card {
-  background: rgba(255, 255, 255, 0.92);
+  background: #fff;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 16px;
-  padding: 14px 16px;
+  padding: 18px;
 }
 
-.ep-mini-label,
 .dim {
   color: var(--text-secondary, #556171);
   font-size: 0.76rem;
 }
 
-.ep-input {
-  padding: 7px 9px;
-  border-radius: 9px;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  background: #fff;
-  font: inherit;
-  outline: none;
+.category-manager {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
 }
 
-.ep-input:focus {
-  border-color: rgba(20, 115, 255, 0.5);
-  box-shadow: 0 0 0 3px rgba(20, 115, 255, 0.1);
+.category-create {
+  max-width: 360px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
 }
 
-.ep-mini-btn {
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  background: #fff;
-  border-radius: 9px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-size: 0.82rem;
-}
-
-.ep-mini-btn.primary {
-  color: #fff;
-  border: none;
-  background: linear-gradient(180deg, #2e90ff, #1677ff);
-}
-
-.ep-mini-btn.danger {
-  color: #d70015;
-  border-color: rgba(215, 0, 21, 0.25);
-}
-
-.ep-tag-row {
+.category-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 8px;
 }
 
-.ep-tag {
-  display: inline-flex;
+.accounting-form-row {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(100px, 0.7fr) minmax(150px, 1.1fr) minmax(150px, 0.9fr) minmax(170px, 1.2fr) auto;
+  gap: 10px;
   align-items: center;
-  gap: 4px;
-  font-size: 0.75rem;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: #eef2f6;
-  color: #556171;
 }
 
-.ep-tag.type-高 { background: rgba(215, 0, 21, 0.1); color: #d70015; }
-.ep-tag.type-中 { background: rgba(241, 181, 61, 0.16); color: #b7791f; }
-.ep-tag.type-低 { background: #eef2f6; color: #556171; }
-
-.cat-remove {
-  cursor: pointer;
-  opacity: 0.6;
-  margin-left: 2px;
+.rule-form-row {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: auto 72px auto minmax(100px, 0.7fr) minmax(130px, 1fr) minmax(130px, 0.9fr) auto;
+  gap: 8px;
+  align-items: center;
 }
 
-.cat-remove:hover {
-  opacity: 1;
+.entry-actions {
+  display: flex;
+  gap: 6px;
 }
 
 .bk-table {
@@ -561,25 +539,38 @@ ensureDraftsForMonth(monthText.value)
 
 .core-table {
   width: 100%;
+  min-width: 940px;
   border-collapse: collapse;
   font-size: 0.8rem;
 }
 
+.section-card:has(.bk-table) {
+  overflow-x: auto;
+}
+
 .core-table th,
 .core-table td {
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  padding: 6px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+  padding: 8px;
 }
 
 .core-table thead th {
-  background: linear-gradient(180deg, rgba(240, 246, 255, 0.9), rgba(234, 242, 255, 0.7));
-  color: #334155;
+  background: #f6f7f9;
+  color: #4e5663;
   font-weight: 600;
 }
 
 .bk-input {
   width: 100%;
-  min-width: 70px;
+  min-width: 110px;
+}
+
+.date-entry {
+  min-width: 148px;
+}
+
+.amount-entry {
+  min-width: 92px;
 }
 
 .bk-draft > td {
@@ -613,6 +604,7 @@ ensureDraftsForMonth(monthText.value)
 }
 
 .cal-day {
+  margin-left: 0;
   border: 1px solid rgba(15, 23, 42, 0.07);
   background: #fff;
   border-radius: 9px;
@@ -622,6 +614,13 @@ ensureDraftsForMonth(monthText.value)
   display: grid;
   gap: 2px;
   align-content: start;
+  white-space: normal;
+}
+
+:deep(.cal-day > span) {
+  width: 100%;
+  display: grid;
+  gap: 2px;
 }
 
 .cal-day.outside {
@@ -669,9 +668,36 @@ ensureDraftsForMonth(monthText.value)
   font-size: 0.85rem;
 }
 
+.month-input {
+  width: 160px;
+}
+
 @media (max-width: 900px) {
   .accounting-lower {
     grid-template-columns: 1fr;
+  }
+
+  .accounting-form-row,
+  .rule-form-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .accounting-form-row,
+  .rule-form-row,
+  .category-create {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-grid {
+    gap: 3px;
+  }
+
+  .cal-day {
+    min-width: 0;
+    min-height: 52px;
+    padding: 4px 2px;
   }
 }
 </style>
