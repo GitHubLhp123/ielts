@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
  * 词汇学习模块外壳 —— 结构复刻 legacy study_words.html：
- * .vocab-app（渐变底）> .shell > [.page-tabs | backup-banner | page-section* | footer-card]
+ * .vocab-app（渐变底）> .shell > [.page-tabs | page-section* | footer-card]
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 
 import { useVocabularyStore } from './stores/vocabulary'
 import { library } from './data/library'
@@ -15,7 +15,6 @@ import DifficultPane from './components/DifficultPane.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
 
 const store = useVocabularyStore()
-const importFileInput = ref<HTMLInputElement | null>(null)
 
 const heroModeStat = computed(() => {
   if (!store.session) return '待选择'
@@ -27,21 +26,6 @@ const heroSelection = computed(() => store.session?.label ?? '请选择一个组
 const heroDatasetStat = computed(() => (store.session?.items.length ? String(store.session.items.length) : String(library.totalWords)))
 
 const savedBadgeVisible = computed(() => store.ui.savedFlash)
-const updatedBadgeText = computed(() => {
-  const last = store.data.backup.lastBackupAt
-  return last ? `上次备份 ${new Date(last).toLocaleDateString()}` : '尚未开始'
-})
-
-function triggerImport() {
-  importFileInput.value?.click()
-}
-
-async function onFilePicked(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (file) await store.importBackup(file)
-  input.value = ''
-}
 
 const editableTag = (target: EventTarget | null) => {
   const el = target as HTMLElement | null
@@ -95,7 +79,7 @@ function selectTab(tab: 'overview' | 'study' | 'difficult') {
 <template>
   <div class="vocab-app" v-loading="!store.ready">
     <div class="shell">
-      <!-- 顶栏：页签 + 状态 pills + 导入导出/设置 -->
+      <!-- 顶栏：页签 + 状态 pills + 局部设置 -->
       <section class="page-tabs glass">
         <div class="tab-row">
           <button class="tab-btn" :class="{ active: store.data.activeTab === 'overview' }" type="button" @click="selectTab('overview')">总览</button>
@@ -111,22 +95,8 @@ function selectTab(tab: 'overview' | 'study' | 'difficult') {
           </div>
           <div class="top-actions">
             <button class="top-settings-btn" type="button" aria-label="打开设置" @click="store.ui.modalSettings = true">⚙</button>
-            <button class="segment-btn" type="button" @click="triggerImport">导入记录</button>
-            <button class="control-btn primary" type="button" @click="store.exportBackup">导出记录</button>
-            <input ref="importFileInput" type="file" accept="application/json,.json" hidden @change="onFilePicked" />
+            <RouterLink class="segment-btn" to="/settings">全局备份</RouterLink>
           </div>
-        </div>
-      </section>
-
-      <!-- 备份提醒 -->
-      <section v-if="store.ui.hasBackupBanner" class="backup-banner glass">
-        <div>
-          <div class="section-label">Backup Reminder</div>
-          <div class="backup-banner-text">备份时间已超过 7 天，请先导出学习记录。</div>
-        </div>
-        <div class="backup-actions">
-          <button class="control-btn primary" type="button" @click="store.exportBackup">立即备份</button>
-          <button class="segment-btn" type="button" @click="triggerImport">导入备份</button>
         </div>
       </section>
 
@@ -138,12 +108,12 @@ function selectTab(tab: 'overview' | 'study' | 'difficult') {
       <!-- 页脚 -->
       <section class="footer-card glass">
         <p class="footer-copy">
-          学习计数、当前组位置、显示状态、播放设置、难词列表全部保存在浏览器。所有数据可随时导出备份 JSON。
+          学习计数、当前组位置、显示状态、播放设置和难词列表会自动保存在浏览器；完整备份统一在全局设置中管理。
         </p>
         <div class="pill-row">
           <span v-if="savedBadgeVisible" class="chip active">✓ 已保存到浏览器</span>
           <span v-else class="chip">已自动保存</span>
-          <span class="chip">{{ updatedBadgeText }}</span>
+          <RouterLink class="chip" to="/settings">打开全局设置</RouterLink>
         </div>
       </section>
     </div>

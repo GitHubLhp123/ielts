@@ -5,7 +5,8 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import { downloadJson, downloadText } from '@/shared/files/download'
+import { downloadText } from '@/shared/files/download'
+import { readLearningEvents, summarizeLearningEvents } from '@/shared/learning-events/events'
 import { readLocalStorageValue, writeLocalStorageValue } from '@/shared/storage/chunked-local-storage'
 
 import './styles/legacy-full.css'
@@ -15,15 +16,13 @@ import StudyAccounting from './components/StudyAccounting.vue'
 import StudyCharts from './components/StudyCharts.vue'
 import { DEFAULT_GROUPS, DEFAULT_PROJECT_COLUMNS, DEFAULT_NOTE_FIELDS, SAMPLE_ROWS } from './model/defaults'
 import { deserializeRow, normalizeRows, serializeRows, createEmptyRow, getTodayText, type StudyRow, type StudyColumn, type NoteField } from './model/tableModel'
-import { unwrapStudyTrackerBackup } from './persist/backup'
 
 const STORAGE_KEY = 'daily-learning-tracker-state-v4'
 const STORAGE_META_KEY = 'daily-learning-tracker-state-meta-v1'
-const TODO_PRIORITY_OPTIONS = ['高', '中', '低', '长期'] as const
 const TODO_PRIORITY_RANK: Record<string, number> = { 高: 0, 中: 1, 低: 2, 长期: 3 }
 const storageStatus = ref('本地自动保存')
 
-type TodoPriority = (typeof TODO_PRIORITY_OPTIONS)[number]
+type TodoPriority = '高' | '中' | '低' | '长期'
 
 interface TodoItem {
   id: string
@@ -151,112 +150,14 @@ function schedulePersist() {
 }
 
 /* ---------- Todo ---------- */
-const newTodoText = computed({
-  get: () => state.value.newTodoText as string,
-  set: (v: string) => {
-    state.value.newTodoText = v
-  },
-})
-const newTodoPriority = computed({
-  get: () => state.value.newTodoPriority as TodoPriority,
-  set: (v: TodoPriority) => {
-    state.value.newTodoPriority = v
-  },
-})
-
 const todoItems = computed(() => (state.value.todoItems ?? []) as TodoItem[])
-const completedTodoCount = computed(() => todoItems.value.filter((t) => t.done).length)
 const pendingTodoItems = computed(() =>
   todoItems.value
     .filter((t) => !t.done)
     .sort((a, b) => TODO_PRIORITY_RANK[a.priority] - TODO_PRIORITY_RANK[b.priority] || String(a.createdAt).localeCompare(String(b.createdAt))),
 )
-const completedTodoItems = computed(() =>
-  todoItems.value
-    .filter((t) => t.done)
-    .sort((a, b) => String(b.completedAt).localeCompare(String(a.completedAt))),
-)
-
-const todoEditingText = ref('')
-const todoEditingPriority = ref<TodoPriority>('中')
-const todoEditingId = ref('')
-const completedCollapsed = ref(false)
-
-function addTodo() {
-  const text = String(newTodoText.value).trim()
-  if (!text) return
-  const now = new Date().toISOString()
-  state.value.todoItems.push({
-    id: `todo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-    text,
-    priority: newTodoPriority.value,
-    done: false,
-    createdAt: now,
-    completedAt: '',
-  })
-  newTodoText.value = ''
-  schedulePersist()
-}
-
-function handleTodoToggle(item: TodoItem) {
-  item.completedAt = item.done ? new Date().toISOString() : ''
-  schedulePersist()
-}
-
-function removeTodo(id: string) {
-  state.value.todoItems = todoItems.value.filter((t) => t.id !== id)
-  schedulePersist()
-}
-
-function startTodoEdit(item: TodoItem) {
-  todoEditingId.value = item.id
-  todoEditingText.value = item.text
-  todoEditingPriority.value = item.priority
-}
-
-function saveTodoEdit(id: string) {
-  const item = todoItems.value.find((t) => t.id === id)
-  const text = String(todoEditingText.value).trim()
-  if (item && text) {
-    item.text = text
-    item.priority = todoEditingPriority.value
-  }
-  todoEditingId.value = ''
-  schedulePersist()
-}
-
-function cancelTodoEdit() {
-  todoEditingId.value = ''
-}
-
-const TAB_LABELS: Record<string, string> = {
-  table: '学习记录表',
-  charts: '学习统计',
-  review: '复盘信息展览表',
-  accounting: '记账本',
-  tips: '记录建议',
-}
-
-function tabLabelOf(key: string): string {
-  return TAB_LABELS[key] ?? key
-}
-
-function formatDateTime(value: string): string {
-  if (!value) return ''
-  const d = new Date(value)
-  if (!Number.isFinite(d.getTime())) return ''
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
 
 /* ---------- 导入导出 ---------- */
-function exportData() {
-  state.value.lastExportAt = new Date().toISOString()
-  const payload = { version: 4, exportedAt: new Date().toISOString(), state: buildPersistPayload() }
-  const day = new Date().toISOString().slice(0, 10)
-  downloadJson(`学习状态跟踪-完整数据-${day}.json`, payload)
-  persistNow()
-}
-
 function exportExcel() {
   const columns: any[] = state.value.projectColumns ?? []
   const noteFieldsArr: any[] = state.value.noteFields ?? []
@@ -399,39 +300,22 @@ async function exportPdfReport(period: 'week' | 'month') {
   persistNow()
 }
 
-function triggerDataImport() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'application/json,.json'
-  input.onchange = () => {
-    const file = input.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(String(reader.result))
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('bad')
-        state.value = { ...createInitialState() }
-        deepMergeState(unwrapStudyTrackerBackup(parsed))
-        persistNow()
-      } catch {
-        alert('导入失败：不是有效的状态文件')
-      }
-    }
-    reader.readAsText(file)
-  }
-  input.click()
-}
-
-const lastExportAtText = computed(() => (state.value.lastExportAt ? formatDateTime(state.value.lastExportAt) : ''))
-
+const TRACKER_TABS = ['overview', 'table', 'charts', 'review', 'accounting'] as const
 const activeTab = computed({
-  get: () => state.value.activeTab as string,
+  get: () => TRACKER_TABS.includes(state.value.activeTab as (typeof TRACKER_TABS)[number]) ? state.value.activeTab as string : 'overview',
   set: (v: string) => {
     state.value.activeTab = v
     schedulePersist()
   },
 })
+
+const learningEvents = ref(readLearningEvents())
+const learningSummary = computed(() => summarizeLearningEvents(learningEvents.value))
+
+function formatLearningDuration(seconds: number): string {
+  if (seconds > 0 && seconds < 60) return '<1 分钟'
+  return `${Math.round(seconds / 60)} 分钟`
+}
 
 
 /* ---------- Overview 数据 ---------- */
@@ -620,111 +504,26 @@ onBeforeUnmount(() => {
   <div class="study-tracker-app">
     <div id="app" class="page-shell">
       <div class="container">
-        <!-- Hero -->
-        <section class="hero-card">
-          <div class="hero-main">
-            <h1 class="hero-title">每日学习状态跟踪</h1>
-            <p class="hero-desc">按天记录学习与身心状态，统一查看记录、图表、复盘表和待办事项。页面会自动保存在本地，也支持导入导出。</p>
+        <header class="tracker-header">
+          <div>
+            <p class="tracker-kicker">RECORD & REVIEW</p>
+            <h1>记录与复盘</h1>
+            <p>训练事实由系统自动汇总；这里用于补充每日评分、复盘和长期趋势。</p>
           </div>
-          <div class="hero-side">
-            <div class="toolbar-note" style="text-align: right; max-width: 420px;">本页所有导入导出入口统一放在这里，包含整页数据、Excel 和周期 PDF（Excel/PDF 将随记录表轮次接入）。</div>
-            <div class="hero-actions">
-              <button class="ep-mini-btn" type="button" @click="exportData">⬇ 导出数据</button>
-              <button class="ep-mini-btn" type="button" @click="triggerDataImport">⬆ 导入数据</button>
-              <button class="ep-mini-btn" type="button" @click="exportExcel">📊 导出 Excel</button>
-              <button class="ep-mini-btn" type="button" @click="exportPdfReport('week')">📄 周报 PDF</button>
-              <button class="ep-mini-btn" type="button" @click="exportPdfReport('month')">📄 月报 PDF</button>
-            </div>
-            <div class="hero-tags">
-              <span class="hero-tag">{{ storageStatus }}</span>
-              <span class="hero-tag">动态列配置</span>
-              <span class="hero-tag">复盘展览表</span>
-              <span class="hero-tag">统一数据导入导出</span>
-            </div>
+          <div class="tracker-header-actions">
+            <button class="ep-mini-btn" type="button" @click="exportExcel">导出记录 Excel</button>
+            <button class="ep-mini-btn" type="button" @click="exportPdfReport('week')">生成周报 PDF</button>
+            <button class="ep-mini-btn" type="button" @click="exportPdfReport('month')">生成月报 PDF</button>
+            <RouterLink class="tracker-settings-link" to="/settings">完整备份在全局设置 →</RouterLink>
           </div>
-        </section>
+        </header>
 
-        <!-- Todo -->
-        <section class="content-card top-todo-card">
-          <div class="todo-toolbar">
-            <div>
-              <div class="toolbar-title">Todo List</div>
-              <div class="toolbar-note">固定放在页面顶部，支持直接录入、编辑、勾选完成。已完成任务会保留并折叠，不会删除，仍会跟随整页数据一起持久化。</div>
-            </div>
-            <div class="toolbar-actions">
-              <span v-if="lastExportAtText" class="ep-tag-info">上次备份 {{ lastExportAtText }}</span>
-            </div>
-          </div>
-          <div class="todo-input-row">
-            <input v-model="newTodoText" class="ep-input" placeholder="直接填写待办内容，按回车或点击新增" @keyup.enter="addTodo" />
-            <select v-model="newTodoPriority" class="todo-priority-select ep-input" aria-label="优先级">
-              <option v-for="p in TODO_PRIORITY_OPTIONS" :key="p" :value="p">{{ p }}</option>
-            </select>
-            <button class="ep-btn-primary" type="button" @click="addTodo">新增待办</button>
-          </div>
-          <div class="todo-summary">共 {{ todoItems.length }} 条，已完成 {{ completedTodoCount }} 条，未完成 {{ pendingTodoItems.length }} 条。</div>
-
-          <div v-if="pendingTodoItems.length" class="todo-list" style="margin-top: 14px;">
-            <div v-for="item in pendingTodoItems" :key="item.id" class="todo-item">
-              <div class="todo-main">
-                <input type="checkbox" class="ep-checkbox" :checked="item.done" @change="handleTodoToggle(item)" />
-                <div class="todo-content">
-                  <template v-if="todoEditingId === item.id">
-                    <input v-model="todoEditingText" class="ep-input todo-edit-input" @keyup.enter="saveTodoEdit(item.id)" @keyup.esc="cancelTodoEdit" />
-                    <select v-model="todoEditingPriority" class="ep-input" style="margin-top: 6px;">
-                      <option v-for="p in TODO_PRIORITY_OPTIONS" :key="p" :value="p">{{ p }}</option>
-                    </select>
-                  </template>
-                  <template v-else>
-                    <div class="todo-text">{{ item.text }}</div>
-                    <div class="todo-meta">
-                      <span class="ep-tag" :class="`type-${item.priority}`">{{ item.priority }}</span>
-                      <span class="todo-priority-tag">优先级</span>
-                      创建于 {{ formatDateTime(item.createdAt) }}
-                    </div>
-                  </template>
-                </div>
-              </div>
-              <div class="todo-actions">
-                <template v-if="todoEditingId === item.id">
-                  <button class="ep-mini-btn primary" type="button" @click="saveTodoEdit(item.id)">保存</button>
-                  <button class="ep-mini-btn" type="button" @click="cancelTodoEdit">取消</button>
-                </template>
-                <template v-else>
-                  <button class="ep-mini-btn" type="button" @click="startTodoEdit(item)">✎ 编辑</button>
-                </template>
-                <button class="ep-mini-btn danger" type="button" @click="removeTodo(item.id)">🗑 删除</button>
-              </div>
-            </div>
-          </div>
-          <div v-else class="todo-empty">当前没有未完成 Todo，可以直接新增今天的执行动作。</div>
-
-          <div v-if="completedTodoItems.length" class="todo-completed-panel">
-            <button class="ep-mini-btn" type="button" @click="completedCollapsed = !completedCollapsed">
-              {{ completedCollapsed ? '展开' : '折叠' }} 已完成（{{ completedTodoItems.length }}）
-            </button>
-            <div v-if="!completedCollapsed" class="todo-list" style="margin-top: 8px;">
-              <div v-for="item in completedTodoItems" :key="item.id" class="todo-item is-done">
-                <div class="todo-main">
-                  <input type="checkbox" class="ep-checkbox" :checked="item.done" @change="handleTodoToggle(item)" />
-                  <div class="todo-content">
-                    <div class="todo-text">{{ item.text }}</div>
-                    <div class="todo-meta">
-                      <span class="ep-tag" :class="`type-${item.priority}`">{{ item.priority }}</span>
-                      <span class="todo-priority-tag">优先级</span>
-                      创建于 {{ formatDateTime(item.createdAt) }}
-                      <template v-if="item.completedAt"> · 完成于 {{ formatDateTime(item.completedAt) }}</template>
-                    </div>
-                  </div>
-                </div>
-                <div class="todo-actions">
-                  <button class="ep-mini-btn" type="button" @click="startTodoEdit(item)">✎ 编辑</button>
-                  <button class="ep-mini-btn danger" type="button" @click="removeTodo(item.id)">🗑 删除</button>
-                </div>
-              </div>
-            </div>
-            <div class="todo-meta" style="margin-top: 6px;">已完成保留</div>
-          </div>
+        <section class="tracker-automatic-summary" aria-label="自动采集摘要">
+          <div><span>今日自动训练</span><strong>{{ formatLearningDuration(learningSummary.todayDurationSeconds) }}</strong></div>
+          <div><span>今日完成轮次</span><strong>{{ learningSummary.todayCompletedSessions }}</strong></div>
+          <div><span>近 7 天错词</span><strong>{{ learningSummary.recentMistakeCount }}</strong></div>
+          <div><span>待完成计划</span><strong>{{ pendingTodoItems.length }}</strong></div>
+          <small>{{ storageStatus }}</small>
         </section>
 
         <!-- Tabs -->
@@ -732,12 +531,11 @@ onBeforeUnmount(() => {
           <div class="native-tabs">
             <button
               v-for="tab in [
-                { key: 'overview', label: 'Overview' },
-                { key: 'table', label: '学习记录表' },
-                { key: 'charts', label: '学习统计' },
-                { key: 'review', label: '复盘信息展览表' },
-                { key: 'accounting', label: '记账本' },
-                { key: 'tips', label: '记录建议' },
+                { key: 'overview', label: '总览' },
+                { key: 'table', label: '每日记录' },
+                { key: 'charts', label: '趋势统计' },
+                { key: 'review', label: '复盘' },
+                { key: 'accounting', label: '记账' },
               ]"
               :key="tab.key"
               class="native-tab"
@@ -763,7 +561,7 @@ onBeforeUnmount(() => {
                 <div class="toolbar">
                   <div>
                     <div class="toolbar-title">今日动作面板</div>
-                    <div class="toolbar-note">来自顶部 Todo 的未完成项。</div>
+                    <div class="toolbar-note">来自今日工作台的未完成计划。</div>
                   </div>
                 </div>
                 <div class="overview-list">
@@ -835,40 +633,6 @@ onBeforeUnmount(() => {
           <!-- 学习统计 -->
           <StudyCharts v-else-if="activeTab === 'charts'" :state="state" />
 
-          <!-- 记录建议 -->
-          <template v-else-if="activeTab === 'tips'">
-            <div class="tab-pane-block tips-layout">
-              <div class="tips-card">
-                <div class="toolbar-title">记录建议</div>
-                <ul class="tips-list">
-                  <li>每天打开页面先看一眼「今日动作」，把 Todo 里未完成的先落地。</li>
-                  <li>得分尽量当天填：超过 24 小时回忆会失真，历史日期也会自动锁定。</li>
-                  <li>低于 60 分的项目第二天优先安排，连续偏低会出现在风险提醒里。</li>
-                </ul>
-              </div>
-              <div class="tips-card">
-                <div class="toolbar-title">使用框架</div>
-                <ul class="tips-list">
-                  <li>记录：<b>时长（分钟）</b> + 各项目<b>得分（0–100，/ 表示未进行）</b>。</li>
-                  <li>复盘：每天写<b>总结 / 弱项 / 明日计划</b>；明日计划可一键拆成 Todo。</li>
-                  <li>周报 / 月报：导出 PDF 前会先按周期汇总均分、时长与类别支出。</li>
-                  <li>定期用顶部「导出数据」做整页备份（推荐每周一次）。</li>
-                </ul>
-              </div>
-            </div>
-          </template>
-
-          <!-- 其余 Tab：分轮实现 -->
-          <div v-else class="tab-pane-block">
-            <div class="section-card table-toolbar-card">
-              <div class="toolbar">
-                <div>
-                  <div class="toolbar-title">{{ tabLabelOf(activeTab) }}</div>
-                  <div class="toolbar-note">该区块将在后续移植轮次实现（见 web/docs/study-tracker/PORT-NOTES.md）。</div>
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
       </div>
     </div>
@@ -892,16 +656,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 0 3px rgba(20, 115, 255, 0.12);
 }
 
-.ep-btn-primary {
-  border: none;
-  border-radius: 10px;
-  padding: 9px 16px;
-  color: #fff;
-  cursor: pointer;
-  background: linear-gradient(180deg, #2e90ff, #1677ff);
-  font-weight: 600;
-}
-
 .ep-mini-btn {
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: #fff;
@@ -912,26 +666,9 @@ onBeforeUnmount(() => {
   color: #3b4a5a;
 }
 
-.ep-mini-btn.primary {
-  color: #1677ff;
-  border-color: rgba(22, 119, 255, 0.4);
-}
-
-.ep-mini-btn.danger {
-  color: #d70015;
-  border-color: rgba(215, 0, 21, 0.25);
-}
-
 .ep-mini-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.ep-checkbox {
-  width: 17px;
-  height: 17px;
-  accent-color: #1677ff;
-  flex: none;
 }
 
 .ep-tag {
@@ -963,20 +700,6 @@ onBeforeUnmount(() => {
   color: #615fff;
 }
 
-.ep-tag-info {
-  display: inline-block;
-  font-size: 0.72rem;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: #eef5ff;
-  color: #0a84ff;
-}
-
-.todo-priority-select {
-  width: 130px;
-  flex: none;
-}
-
 .native-tabs {
   display: flex;
   gap: 4px;
@@ -1004,33 +727,6 @@ onBeforeUnmount(() => {
   padding-top: 14px;
 }
 
-.todo-edit-input {
-  width: 60%;
-}
-
-.todo-item.is-done .todo-text {
-  text-decoration: line-through;
-  color: #98a2b3;
-}
-.tips-layout {
-  display: grid;
-  gap: 12px;
-}
-
-.tips-card {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  padding: 16px 18px;
-}
-
-.tips-list {
-  margin: 10px 0 0;
-  padding-left: 20px;
-  line-height: 1.9;
-  color: #44546a;
-  font-size: 0.9rem;
-}
 .trend-lines {
   display: grid;
   gap: 6px;
@@ -1077,5 +773,161 @@ onBeforeUnmount(() => {
 
 .overview-finance-list {
   justify-content: space-between;
+}
+
+.tracker-header {
+  margin-bottom: 14px;
+  padding: 30px 32px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: #fff;
+}
+
+:global(.study-tracker-app) {
+  margin: 0;
+  padding: 0;
+  background: #f5f5f2;
+}
+
+:global(.study-tracker-app .page-shell) {
+  min-height: auto;
+  padding: 28px;
+}
+
+:global(.study-tracker-app .container) {
+  max-width: 1180px;
+}
+
+:global(.study-tracker-app .content-card) {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+:global(.study-tracker-app .stats-card) {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: #f8f8f7;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.tracker-kicker {
+  margin: 0 0 9px;
+  color: #5867e7;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+}
+
+.tracker-header h1 {
+  margin: 0;
+  font-size: clamp(34px, 5vw, 54px);
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.tracker-header > div > p:last-child {
+  max-width: 620px;
+  margin: 14px 0 0;
+  color: #6e6e73;
+  line-height: 1.7;
+}
+
+.tracker-header-actions {
+  max-width: 430px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tracker-settings-link {
+  width: 100%;
+  color: #5867e7;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: right;
+}
+
+.tracker-automatic-summary {
+  margin-bottom: 14px;
+  padding: 18px 22px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 1px;
+  align-items: center;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.tracker-automatic-summary > div {
+  padding: 2px 18px;
+  display: grid;
+  gap: 6px;
+  border-left: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.tracker-automatic-summary > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.tracker-automatic-summary span,
+.tracker-automatic-summary small {
+  color: #6e6e73;
+  font-size: 11px;
+}
+
+.tracker-automatic-summary strong {
+  font-size: 18px;
+}
+
+@media (max-width: 860px) {
+  .tracker-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tracker-header-actions {
+    max-width: none;
+    justify-content: flex-start;
+  }
+
+  .tracker-settings-link {
+    text-align: left;
+  }
+
+  .tracker-automatic-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tracker-automatic-summary > div,
+  .tracker-automatic-summary > div:first-child {
+    padding: 10px;
+    border-left: 0;
+  }
+
+  .tracker-automatic-summary small {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .tracker-header {
+    padding: 22px;
+  }
+
+  .tracker-header-actions button {
+    flex: 1;
+  }
 }
 </style>

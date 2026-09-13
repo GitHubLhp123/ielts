@@ -52,3 +52,14 @@ export async function idbSet(key: string, value: unknown): Promise<void> {
     tx.onabort = () => reject(tx.error || new Error('indexeddb_put_aborted'))
   })
 }
+
+export async function idbDelete(key: string): Promise<void> {
+  const db = await openIdb()
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite')
+    tx.objectStore(IDB_STORE).delete(key)
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error || new Error('indexeddb_delete_failed'))
+    tx.onabort = () => reject(tx.error || new Error('indexeddb_delete_aborted'))
+  })
+}

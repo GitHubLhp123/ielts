@@ -19,15 +19,24 @@
 cd web
 npm install
 npm run dev        # http://127.0.0.1:5173
-npm run test       # 单元测试（84 项）
+npm run test       # 单元测试（95 项）
 npm run build      # vue-tsc 类型检查 + 产物
 ```
 
-## 模块清单（首页可点开，共 8 个）
+## 一级入口
+
+| 路由 | 用途 |
+|---|---|
+| `/` | 今日学习工作台：Todo、继续训练、学习动态与能力入口 |
+| `/plans` | 学习路径：串联输入、训练、复习和复盘 |
+| `/tools` | 全部训练：按听力、词汇、记录等目的组织 8 个模块 |
+| `/settings` | 全局设置：应用完整备份的导入、导出与恢复预览 |
+
+## 训练模块（共 8 个）
 
 | 路由 | 模块 | legacy 源（legacy/ 内） | 状态 |
 |---|---|---|---|
-| `/study-tracker` | 学习状态跟踪 | `daily-status/学习状态跟踪.html` | ✅ 已完成 |
+| `/study-tracker` | 记录与复盘 | `daily-status/学习状态跟踪.html` | ✅ 已完成 |
 | `/vocabulary` | 词汇学习 | `words/study_words.html` | ✅ 已完成 |
 | `/pronunciation` | 单词精听器 | `dictionary/发音.html` | ✅ 已完成 |
 | `/dictation` | 单词听写 | `dictionary/发音和听写.html` | ✅ 已完成 |
@@ -36,7 +45,7 @@ npm run build      # vue-tsc 类型检查 + 产物
 | `/audio-player` | 音频顺序播放器 | `audio-playlist-player/音频顺序播放器.html` | ✅ 已完成（核心） |
 | `/corpus-dictation` | 语料库章节听写 | `listening-word/王璐语料库_源码.html` | ✅ 已完成 |
 
-模块注册表（路由/菜单/首页统一来源）：`web/src/modules.ts`；
+训练模块注册表（模块路由与全部训练页的数据源）：`web/src/modules.ts`；
 架构/分层/数据链路/移植工具说明：`web/docs/ARCHITECTURE.md`。
 
 ## 目录结构
@@ -46,7 +55,10 @@ web/                 新版前端（Vue 3 + Vite + TS + Element Plus + ECharts�
   scripts/           数据与样式工具：sync-vocab-data / sync-corpus-data / scope-legacy-css
   src/modules.ts     ★ 模块注册表
   src/features/*     8 个业务模块（按复杂度逐步落地分层）
+  src/shared/backup  应用级备份信封、模块 Provider 与回滚
+  src/shared/learning-events  跨模块学习事件与摘要
   src/data/*         由 sync 脚本生成的数据产物（词库/同义词/语料章节/音频索引）
+  src/views/*        今日、学习路径、全部训练和全局设置
   src/views/modules/* 路由薄壳
   docs/              ★ 架构文档 + 各模块 legacy 规格/移植决策/parity 清单
 legacy/              旧版归档
@@ -77,14 +89,17 @@ cd web && node scripts/scope-legacy-css.mjs <html> <scopeClass> <out.css>
 
 ## 特点
 - 数据/进度/备份均存本地（沿用 legacy 的 localStorage / IndexedDB 键，旧数据直接兼容）。
-- 持久化键与备份信封版本与旧版一致（可迁回或与旧页面对照）。
+- 应用完整备份使用版本化全局信封；既有模块快照和存储键保持兼容。
 - `localStorage` 大记录超过 200,000 字符时自动分块，兼容旧版未分块值，并在写入失败时保留上一版数据。
-- 导出支持：整页 JSON、Excel(.xls)、周/月报 PDF 等（随模块差异）。
+- 完整 JSON 导入导出统一在全局设置；Excel、PDF、CSV 等业务结果导出保留在模块内。
+- 语料听写、词汇掌握、今日工作台和记录复盘通过共享学习事件形成首条闭环。
 - 学习数据 100% 本地，无账号体系。
 
 ## 文档索引
 - 项目规范与进度：`CLAUDE.md`、`ROADMAP.md`
 - 架构与开发：`web/docs/ARCHITECTURE.md`、`web/README.md`
+- 产品整合方案：`web/docs/PRODUCT-INTEGRATION-PLAN.md`
+- 下一版本计划：`web/docs/V0.2-PLAN.md`
 - 二开回归与数据契约：`web/docs/BASELINE.md`
 - 各模块移植规格与决策：`web/docs/<module>/`（legacy-DATA-UI / legacy-ENGINE / PORT-NOTES / PARITY-CHECKLIST）
 - 遗留说明：audio 系统词库增强方案 `web/docs/audio-player/ENHANCER-PLAN.md`

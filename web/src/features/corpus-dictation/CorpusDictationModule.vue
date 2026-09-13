@@ -6,19 +6,19 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessageBox } from 'element-plus'
 
-import { downloadJson, downloadText } from '@/shared/files/download'
+import { downloadText } from '@/shared/files/download'
+import {
+  appendLearningEvent,
+  createLearningEventId,
+  type LearningEvent,
+} from '@/shared/learning-events/events'
 
 import './styles/legacy-full.css'
 import { chapterEntries, resolveWordMeta, matchAnyChapter, buildAudioUrl } from './data/corpus'
 import {
   useCorpusStore,
   entryKey,
-  sanitizeSettings,
-  sanitizeMistakeBook,
-  sanitizeWordStats,
-  sanitizeChapterStats,
 } from './stores/corpus'
-import type { Settings } from './stores/corpus'
 
 type TabKey = 'practice' | 'mistakes' | 'stats'
 type PracticeMode = 'dictation' | 'listen'
@@ -81,6 +81,8 @@ const currentWordIndex = computed(() =>
 )
 
 let timerHandle: ReturnType<typeof setTimeout> | null = null
+let learningSessionId = ''
+let learningSessionStartedAt = 0
 
 /* ---------- 解析与建条目 ---------- */
 function parseWords(raw: string): string[] {
@@ -225,10 +227,32 @@ async function moveToNextWord() {
 }
 
 function finishSession() {
+  const completedAt = new Date().toISOString()
+  const total = isListen.value ? entries.value.length : mastered.value.length + roundMistakes.value.length + pending.value.length
+  const correct = isListen.value ? 0 : mastered.value.length
+  const chapterId = currentMeta.value?.chapterId ?? chapterSelect.value
   if (!isListen.value && fullChapterPractice.value) {
-    const total = mastered.value.length + roundMistakes.value.length + pending.value.length
-    store.recordChapterRun(currentMeta.value?.chapterId ?? chapterSelect.value, total, mastered.value.length)
+    store.recordChapterRun(chapterId, total, correct)
   }
+  if (learningSessionId) {
+    appendLearningEventSafely({
+      moduleId: 'corpus-dictation',
+      type: 'session_completed',
+      occurredAt: completedAt,
+      sessionId: learningSessionId,
+      title: chapterOptions.value.find((chapter) => chapter.id === chapterId)?.title ?? '语料库听写',
+      durationSeconds: Math.max(1, Math.round((Date.now() - learningSessionStartedAt) / 1000)),
+      metrics: {
+        total,
+        correct,
+        mistakes: roundMistakes.value.length,
+        accuracy: total && !isListen.value ? (correct / total) * 100 : 0,
+      },
+      references: { chapterId, mode: isListen.value ? 'listen' : 'dictation' },
+    })
+  }
+  learningSessionId = ''
+  learningSessionStartedAt = 0
   sessionStarted.value = false
   isFinished.value = true
   isPaused.value = false
@@ -257,6 +281,18 @@ function startPractice() {
     setFeedback('当前没有待练单词。', 'error')
     return
   }
+  const startedAt = new Date().toISOString()
+  learningSessionStartedAt = Date.now()
+  learningSessionId = createLearningEventId('corpus-dictation-session', startedAt)
+  appendLearningEventSafely({
+    moduleId: 'corpus-dictation',
+    type: 'session_started',
+    occurredAt: startedAt,
+    sessionId: learningSessionId,
+    title: chapterOptions.value.find((chapter) => chapter.id === chapterSelect.value)?.title ?? '自定义语料听写',
+    metrics: { plannedWords: pending.value.length },
+    references: { chapterId: chapterSelect.value, mode: isListen.value ? 'listen' : 'dictation' },
+  })
   cacheStatus.value = '开始练习。'
   void moveToNextWord()
 }
@@ -308,6 +344,17 @@ function finishAsMistake(_answer: string, message: string) {
   const entry = entries.value.find((e) => e.id === currentWord.value)
   if (!entry) return
   store.recordAttempt(entry.meta.chapterId, entry.word, entry.meta.chapterTitle, false)
+  appendLearningEventSafely({
+    moduleId: 'corpus-dictation',
+    type: 'mistake_added',
+    sessionId: learningSessionId || undefined,
+    title: entry.word,
+    references: {
+      word: entry.word,
+      chapterId: entry.meta.chapterId,
+      chapterTitle: entry.meta.chapterTitle,
+    },
+  })
   if (!roundMistakes.value.some((e) => e.id === currentWord.value)) {
     roundMistakes.value.push(entry)
   }
@@ -344,7 +391,7 @@ function goToPreviousManually() {
 }
 
 function restartWrongWords() {
-  if (!roundMistakes.value.length) {
+  if (!isFinished.value || !roundMistakes.value.length) {
     setFeedback('本轮还没有错误单词。', 'warning')
     return
   }
@@ -355,6 +402,18 @@ function restartWrongWords() {
   roundMistakes.value = []
   sessionStarted.value = false
   isFinished.value = false
+  const startedAt = new Date().toISOString()
+  learningSessionStartedAt = Date.now()
+  learningSessionId = createLearningEventId('corpus-dictation-session', startedAt)
+  appendLearningEventSafely({
+    moduleId: 'corpus-dictation',
+    type: 'session_started',
+    occurredAt: startedAt,
+    sessionId: learningSessionId,
+    title: '语料错词重练',
+    metrics: { plannedWords: pending.value.length },
+    references: { chapterId: wrong[0]?.meta.chapterId ?? '', mode: 'dictation' },
+  })
   void moveToNextWord()
 }
 
@@ -377,6 +436,16 @@ function replayCurrent() {
 function setFeedback(text: string, type: 'success' | 'error' | 'warning' | '') {
   feedbackText.value = text
   feedbackType.value = type
+}
+
+function appendLearningEventSafely(
+  event: Omit<LearningEvent, 'id' | 'occurredAt'> & Partial<Pick<LearningEvent, 'id' | 'occurredAt'>>,
+) {
+  try {
+    appendLearningEvent(event)
+  } catch {
+    cacheStatus.value = '练习数据已保存，但学习中心动态写入失败。'
+  }
 }
 
 function clearTimer() {
@@ -568,79 +637,6 @@ function exportSelectedMistakeCsv() {
   downloadText('错词本导出.csv', '\ufeff' + rows.join('\n'), 'text/csv;charset=utf-8')
 }
 
-/* ---------- 备份导入导出（v2，兼容 v1） ---------- */
-function exportBackup() {
-  const payload = {
-    version: 2,
-    exportedAt: new Date().toISOString(),
-    settings: store.settings,
-    mistakeBook: store.mistakeBook,
-    wordStats: store.wordStats,
-    chapterStats: store.chapterStats,
-  }
-  downloadJson(`语料库听写备份-${new Date().toISOString().slice(0, 10)}.json`, payload)
-}
-
-const importFileEl = ref<HTMLInputElement | null>(null)
-const importPreview = ref('')
-const importPreviewList = ref<string[]>([])
-let pendingImport: any = null
-
-function triggerImport() {
-  importFileEl.value?.click()
-}
-
-async function onImportFile(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = ''
-  if (!file) return
-  try {
-    const text = await file.text()
-    const data = JSON.parse(text)
-    if (!data || typeof data !== 'object') throw new Error('bad')
-    pendingImport = data
-    const settings = data.settings || {}
-    const mistakeCount = Object.keys(data.mistakeBook || {}).length
-    const wordCount = Object.keys(data.wordStats || {}).length
-    const chapterCount = Object.keys(data.chapterStats || {}).length
-    importPreviewList.value = [
-      `设置 ${settings.lastChapter ? '（含章节选择）' : ''}`,
-      `错词本 ${mistakeCount} 条`,
-      `词统计 ${wordCount} 条`,
-      `章节统计 ${chapterCount} 组`,
-    ]
-    importPreview.value = `将覆盖当前本地数据（版本 ${data.version ?? '1'}${data.version === 2 ? '' : '，将按 v1 兼容导入'}）。`
-  } catch {
-    importPreview.value = '文件解析失败：不是有效的备份 JSON。'
-  }
-}
-
-function confirmImport() {
-  if (!pendingImport) return
-  const src = pendingImport
-  if (src.settings && typeof src.settings === 'object') store.settings = sanitizeSettingsRef(src.settings)
-  if (src.mistakeBook && typeof src.mistakeBook === 'object') store.mistakeBook = sanitizeMistakeBookRef(src.mistakeBook)
-  if (src.wordStats && typeof src.wordStats === 'object') store.wordStats = sanitizeWordStats(src.wordStats)
-  if (src.chapterStats && typeof src.chapterStats === 'object') store.chapterStats = sanitizeChapterStats(src.chapterStats)
-  store.persistSettings()
-  store.persistMistakeBook()
-  store.persistWordStats()
-  store.persistChapterStats()
-  importPreview.value = ''
-  importPreviewList.value = []
-  pendingImport = null
-  ElMessageBox.alert('导入完成', '完成', { confirmButtonText: '好的' })
-}
-
-function sanitizeSettingsRef(raw: unknown): Settings {
-  return sanitizeSettings(raw)
-}
-
-function sanitizeMistakeBookRef(raw: unknown) {
-  return sanitizeMistakeBook(raw)
-}
-
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   if (chapterOptions.value.length) {
@@ -711,19 +707,9 @@ onBeforeUnmount(() => {
               <div v-if="store.storageError" class="status-bar error">{{ store.storageError }}</div>
               <div class="tool-grid">
                 <div class="tool-card">
-                  <div><h3>备份与迁移</h3><p>导出或导入学习记录（设置/错词/词统计/章节统计，兼容 v1）。</p></div>
+                  <div><h3>完整备份</h3><p>设置、错词和统计已纳入应用完整备份；音频缓存不进入备份文件。</p></div>
                   <div class="action-grid">
-                    <button class="ghost" type="button" @click="exportBackup">导出学习记录</button>
-                    <button class="ghost" type="button" @click="triggerImport">导入学习记录</button>
-                  </div>
-                  <input ref="importFileEl" type="file" accept="application/json,.json" hidden @change="onImportFile" />
-                  <div v-if="importPreview" class="import-preview">
-                    <div><h4>导入预览</h4><p>{{ importPreview }}</p></div>
-                    <ul><li v-for="line in importPreviewList" :key="line">{{ line }}</li></ul>
-                    <div class="mini-actions">
-                      <button class="ghost" type="button" @click="confirmImport">确认导入</button>
-                      <button class="ghost" type="button" @click="importPreview = ''; importPreviewList = []; pendingImport = null">取消</button>
-                    </div>
+                    <RouterLink class="ghost" to="/settings">前往全局设置</RouterLink>
                   </div>
                 </div>
               </div>
@@ -754,7 +740,7 @@ onBeforeUnmount(() => {
                 <button class="ghost" type="button" :disabled="!waitingForAnswer" @click="revealCurrentWord">显示单词</button>
                 <button class="ghost" type="button" :disabled="!sessionStarted || isFinished" @click="goToPreviousManually">上一个</button>
                 <button class="ghost" type="button" :disabled="!sessionStarted || isFinished || !currentResolved" @click="goToNextManually">下一题</button>
-                <button class="ghost" type="button" :disabled="!roundMistakes.length" @click="restartWrongWords">只练错词</button>
+                <button class="ghost" type="button" :disabled="!isFinished || !roundMistakes.length" @click="restartWrongWords">只练错词</button>
               </div>
               <div class="feedback">
                 <span class="feedback-text" :class="feedbackType ? `feedback-text--${feedbackType}` : ''">{{ feedbackText }}</span>

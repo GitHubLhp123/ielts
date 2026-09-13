@@ -1,8 +1,8 @@
 /**
  * 模块注册表：新路由 ⇄ 旧单文件 HTML 的一一映射。
  *
- * 这是重构的“单一事实来源”：
- * - 侧边栏菜单、首页卡片和路由均由这里驱动；
+ * 这是业务模块的“单一事实来源”：
+ * - 模块路由与“全部训练”页面由这里驱动；
  * - legacy 字段保留旧版归档路径，用于行为、数据与样式对照。
  */
 import type { Component } from 'vue'
@@ -43,23 +43,23 @@ export interface IeltsModule {
 export const modules: IeltsModule[] = [
   {
     id: 'study-tracker',
-    title: '学习状态跟踪',
-    subtitle: '记录 / 复盘 / Todo / 记账',
+    title: '记录与复盘',
+    subtitle: '每日记录 / 趋势 / 复盘 / 记账',
     legacy: ['legacy/daily-status/学习状态跟踪.html'],
     summary:
-      '每日学习记录与复盘工具：学习记录表、Todo、复盘、记账本，周/月统计与热力图，支持 JSON/Excel/PDF 导入导出。',
+      '汇总训练结果并补充每日评分、复盘与记账，提供周/月统计、热力图和业务报告导出。',
     features: [
       '学习记录表：日期、时长、分项指标、复盘字段',
-      'Todo 管理：优先级、状态排序、明日计划同步',
+      '读取跨模块训练时长、完成轮次和近期错词摘要',
       '记账本：分类、周期规则、图表、日历联动',
       'Overview 总览：周均、本月、风险项、提醒状态',
-      'JSON / Excel / PDF 导入导出',
+      'Excel 记录与 PDF 周月报导出',
       '统计图与学习热力图',
     ],
     icon: DataAnalysis,
     status: 'done',
     notes:
-      '已完成主体迁移：Hero/JSON 导入导出/Todo/学习记录表（动态列编辑、分组与栏位配置、历史锁定、明日计划同步）/复盘展览表/记账本（日历与周期草稿）/学习统计（ECharts 热力图与趋势）/桌面提醒/Excel(.xls)/PDF 周月报。原样式容器化为 .study-tracker-app，持久化沿用 v4 key。待打磨：列宽拖拽与单元格间距调节；主组件和导出逻辑仍需在二开阶段继续拆分。',
+      '已收缩为记录与复盘模块：Todo 上移今日工作台，完整备份上移全局设置，页面接入跨模块训练摘要；学习记录表、复盘、记账、统计、提醒及 Excel/PDF 业务导出继续沿用 v4 数据。待继续拆分 Store、持久化和报告生成逻辑。',
   },
   {
     id: 'pronunciation',
@@ -91,18 +91,18 @@ export const modules: IeltsModule[] = [
     subtitle: '章节词库 · 错词本',
     legacy: ['legacy/listening-word/王璐语料库_源码.html'],
     summary:
-      '章节化语料听写训练：章节词库匹配、听写/听音模式、错词本、词级与章节统计、备份导入导出、IndexedDB 音频缓存。',
+      '章节化语料听写训练：章节词库匹配、听写/听音模式、错词本、词级与章节统计、训练事件与 IndexedDB 音频缓存。',
     features: [
       '章节词库匹配与练习队列管理',
       '听写模式 / 听音模式',
       '错词本、词级统计、章节统计',
-      '备份导入导出',
+      '纳入应用完整备份（全局设置）',
       'localStorage + IndexedDB 音频缓存',
     ],
     icon: Headset,
     status: 'done',
     notes:
-      '已完成主体重构：听写/听音引擎（判分全等、错词 +3 等）、练习队列与三列表、错词本（筛选/批量选择/CSV）、章节统计 SVG、备份 v2 导入导出（v1 兼容）。数据：88 章 9366 词（sync-corpus-data.mjs）。规范：web/docs/corpus-dictation/。待打磨：chapter8 本地音频路径、listen_navigation 鼠标预留分支、备份提醒与缓存开关 UI。',
+      '已完成主体重构：听写/听音引擎（判分全等、错词 +3 等）、练习队列与三列表、错词本（筛选/批量选择/CSV）、章节统计 SVG；v2／v1 备份由全局设置兼容导入。数据：88 章 9366 词（sync-corpus-data.mjs）。规范：web/docs/corpus-dictation/。待打磨：chapter8 本地音频路径、listen_navigation 鼠标预留分支与缓存开关 UI。',
   },
   {
     id: 'listen-dictation',
@@ -136,7 +136,7 @@ export const modules: IeltsModule[] = [
       '难词复习：阶段、到期、失败次数',
       '同义词与关联词展示',
       '学习统计与热力图',
-      '备份导入导出与本地状态持久化',
+      '本地状态持久化并纳入应用完整备份',
     ],
     icon: Notebook,
     status: 'done',

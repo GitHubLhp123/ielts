@@ -8,7 +8,6 @@ import { useVocabularyStore } from '../stores/vocabulary'
 import { availableSynonymSourceNames } from '../data/synonyms'
 
 const store = useVocabularyStore()
-const fileInput = ref<HTMLInputElement | null>(null)
 
 /** 同义词源启用的运行期选择状态（null = 全部启用） */
 const sourceSelection = ref<string[] | null>(null)
@@ -48,16 +47,6 @@ function clearAll() {
   void store.save(true)
 }
 
-function triggerImport() {
-  fileInput.value?.click()
-}
-
-async function onFilePicked(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (file) await store.importBackup(file)
-  input.value = ''
-}
 </script>
 
 <template>
@@ -105,17 +94,9 @@ async function onFilePicked(event: Event) {
         <el-switch v-model="store.data.settings.showListeningCorpus" @change="store.updateSetting('showListeningCorpus', $event)" />
         <span class="hint">语料词源与相关句子（语料数据将在后续版本接入）</span>
       </el-form-item>
-
       <el-divider content-position="left">数据备份</el-divider>
-      <el-form-item label="导出">
-        <el-button size="small" @click="store.exportBackup">导出备份 JSON</el-button>
-      </el-form-item>
-      <el-form-item label="导入">
-        <el-button size="small" @click="triggerImport">从备份 JSON 导入</el-button>
-        <input ref="fileInput" type="file" accept="application/json,.json" hidden @change="onFilePicked" />
-      </el-form-item>
-      <el-form-item label="备份时间">
-        <span class="dim">{{ store.data.backup.lastBackupAt ? new Date(store.data.backup.lastBackupAt).toLocaleString() : '从未备份' }}</span>
+      <el-form-item label="完整备份">
+        <RouterLink class="global-settings-link" to="/settings" @click="open = false">前往全局设置管理导入导出 →</RouterLink>
       </el-form-item>
     </el-form>
   </el-dialog>
@@ -139,8 +120,9 @@ async function onFilePicked(event: Event) {
   margin-bottom: 6px;
 }
 
-.dim {
-  color: #909399;
+.global-settings-link {
+  color: var(--el-color-primary);
   font-size: 12px;
+  font-weight: 600;
 }
 </style>

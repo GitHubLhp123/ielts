@@ -14,7 +14,25 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-      meta: { title: '总览' },
+      meta: { title: '今日' },
+    },
+    {
+      path: '/plans',
+      name: 'plans',
+      component: () => import('@/views/PlansView.vue'),
+      meta: { title: '学习路径' },
+    },
+    {
+      path: '/tools',
+      name: 'tools',
+      component: () => import('@/views/ToolsView.vue'),
+      meta: { title: '全部训练' },
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('@/views/SettingsView.vue'),
+      meta: { title: '全局设置' },
     },
     ...modules.map((m) => ({
       path: `/${m.id}`,
@@ -33,7 +51,7 @@ router.beforeEach((to) => {
 
 router.afterEach((to) => {
   const title = typeof to.meta.title === 'string' ? to.meta.title : ''
-  document.title = title && title !== '总览' ? `${title} · IELTS Dev` : 'IELTS Dev · 本地优先学习工具集'
+  document.title = title && title !== '今日' ? `${title} · IELTS Dev` : 'IELTS Dev · 今日学习工作台'
 })
 
 export default router

@@ -283,7 +283,7 @@ function queuePositionText(entry: { active: boolean; learned: boolean }) {
         </div>
         <div class="meta-stack">
           <div class="status-line" aria-live="polite">{{ store.ui.statusText || '请选择一个章节分组开始练习。' }}</div>
-          <div class="small-text">{{ store.data.backup.lastBackupAt ? `上次备份 ${new Date(store.data.backup.lastBackupAt).toLocaleDateString()}` : '尚无备份记录' }}</div>
+          <div class="small-text">完整备份统一在全局设置中管理</div>
         </div>
       </div>
       <div class="chapter-grid chapter-grid-top" style="margin-top: 14px;">

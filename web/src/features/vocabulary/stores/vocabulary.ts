@@ -8,7 +8,7 @@
 import { defineStore } from 'pinia'
 import { watch } from 'vue'
 
-import { downloadJson } from '@/shared/files/download'
+import { appendLearningEvent } from '@/shared/learning-events/events'
 
 import { CORE_VOCAB_LOOKUP, LISTENING_179_LOOKUP, READING_538_LOOKUP, library } from '../data/library'
 import { getCorpusWordLookup, loadCorpus } from '../data/corpus'
@@ -17,11 +17,11 @@ import { buildQuizOptions } from '../domain/quiz'
 import { scheduleReview, levelAfterAdjust } from '../domain/review'
 import { createStoredWordSnapshot } from '../model/snapshot'
 import { appendStudyLog, syncMasteryStudyLog } from '../model/studyLog'
-import { loadStateAsync, saveStateToBackend, mergeLoadedState, hydrateState } from '../persist/state-io'
+import { loadStateAsync, saveStateToBackend } from '../persist/state-io'
 import { createDefaultState } from '../persist/defaults'
 import { SESSION_MODE_LABELS, PRESET_SOURCE_LABELS, MODE_LABELS } from '../constants'
 import type { PresetSourceType } from '../constants'
-import { clone, clampIndex, mod, normalizeLexeme } from '../utils'
+import { clampIndex, mod, normalizeLexeme } from '../utils'
 import { getPlaybackToken, invalidatePlayback, playAudio } from '../lib/audio'
 
 import type {
@@ -40,7 +40,6 @@ export interface VocabularyUiState {
   queueCollapsed: boolean
   modalSettings: boolean
   savedFlash: boolean
-  hasBackupBanner: boolean
 }
 
 function createUi(): VocabularyUiState {
@@ -50,7 +49,6 @@ function createUi(): VocabularyUiState {
     queueCollapsed: false,
     modalSettings: false,
     savedFlash: false,
-    hasBackupBanner: false,
   }
 }
 
@@ -98,7 +96,6 @@ export const useVocabularyStore = defineStore('vocabulary', {
       )
       this.ready = true
       this.setInitialSession()
-      this.refreshBackupBanner()
     },
 
     setStatus(message: string, isError = false) {
@@ -496,13 +493,13 @@ export const useVocabularyStore = defineStore('vocabulary', {
 
     toggleWordMastered(key: string) {
       const stat = this.data.wordStats[key]
+      const word = library.allWords.find((item) => item.key === key)
       const now = new Date().toISOString()
       const next = !(stat?.mastered ?? false)
       if (stat) {
         stat.mastered = next
         stat.masteredAt = next ? now : ''
       } else {
-        const word = library.allWords.find((w) => w.key === key)
         if (!word) return
         this.data.wordStats[key] = { ...createStoredWordSnapshot(word), count: 0, lastStudiedAt: '', mastered: next, masteredAt: next ? now : '' }
       }
@@ -512,6 +509,23 @@ export const useVocabularyStore = defineStore('vocabulary', {
         difficult.masteredAt = next ? now : ''
       }
       this.data.studyLog = syncMasteryStudyLog(this.data.studyLog, key, next ? now : '')
+      if (next) {
+        try {
+          appendLearningEvent({
+            moduleId: 'vocabulary',
+            type: 'word_mastered',
+            occurredAt: now,
+            title: stat?.word ?? word?.word ?? key,
+            references: {
+              wordKey: key,
+              word: stat?.word ?? word?.word ?? '',
+              chapter: stat?.chapter ?? word?.chapter ?? '',
+            },
+          })
+        } catch {
+          this.setStatus('单词状态已保存，但学习中心动态写入失败', true)
+        }
+      }
       void this.save(true)
       this.setStatus(next ? '已标记为已学会' : '已取消已学会')
     },
@@ -712,45 +726,6 @@ export const useVocabularyStore = defineStore('vocabulary', {
       if (saveTab) void this.save(false)
     },
 
-    /* ========== 备份 ========== */
-    refreshBackupBanner() {
-      const last = this.data.backup.lastBackupAt
-      if (!last) {
-        this.ui.hasBackupBanner = false
-        return
-      }
-      this.ui.hasBackupBanner = Date.now() - new Date(last).getTime() > 7 * 24 * 60 * 60 * 1000
-    },
-
-    exportBackup() {
-      this.data.backup.lastBackupAt = new Date().toISOString()
-      const payload = { app: 'apple-word-trainer-v4', exportedAt: new Date().toISOString(), state: clone(this.data) }
-      const day = new Date().toISOString().slice(0, 10)
-      downloadJson(`word-trainer-backup-${day}.json`, payload)
-      void this.save(true)
-      this.refreshBackupBanner()
-      this.setStatus('备份已导出')
-    },
-
-    async importBackup(file: File) {
-      try {
-        const text = await file.text()
-        const parsed: unknown = JSON.parse(text)
-        const incoming: unknown =
-          parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'state' in parsed
-            ? (parsed as { state: unknown }).state
-            : parsed
-        this.data = hydrateState(mergeLoadedState(incoming))
-        this.data.backup.lastImportAt = new Date().toISOString()
-        void this.save(true)
-        this.setInitialSession()
-        this.refreshBackupBanner()
-        this.setStatus('备份导入成功')
-      } catch (error) {
-        this.setStatus('备份导入失败：不是有效的备份文件', true)
-        void error
-      }
-    },
   },
 })
 

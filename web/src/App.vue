@@ -2,31 +2,13 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-import { modules } from '@/modules'
-
 const route = useRoute()
 const mobileOpen = ref(false)
-const toolMenu = ref<HTMLDetailsElement | null>(null)
 
-const isHome = computed(() => route.path === '/')
-const currentModule = computed(() => modules.find((module) => `/${module.id}` === route.path))
-const primaryModules = ['study-tracker', 'vocabulary', 'corpus-dictation']
-  .map((id) => modules.find((module) => module.id === id))
-  .filter((module) => module !== undefined)
-const moduleIndex = computed(() => {
-  const index = modules.findIndex((module) => module.id === currentModule.value?.id)
-  return index >= 0 ? String(index + 1).padStart(2, '0') : '00'
-})
+const isWorkspacePage = computed(() => ['/', '/plans', '/tools', '/settings'].includes(route.path))
 
 function closeNavigation() {
   mobileOpen.value = false
-  if (toolMenu.value) toolMenu.value.open = false
-}
-
-function closeToolMenuOnOutsidePress(event: PointerEvent) {
-  if (event.target instanceof Node && toolMenu.value?.open && !toolMenu.value.contains(event.target)) {
-    toolMenu.value.open = false
-  }
 }
 
 function closeMenusOnEscape(event: KeyboardEvent) {
@@ -34,12 +16,10 @@ function closeMenusOnEscape(event: KeyboardEvent) {
 }
 
 onMounted(() => {
-  document.addEventListener('pointerdown', closeToolMenuOnOutsidePress)
   document.addEventListener('keydown', closeMenusOnEscape)
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', closeToolMenuOnOutsidePress)
   document.removeEventListener('keydown', closeMenusOnEscape)
 })
 
@@ -72,52 +52,16 @@ watch(() => route.path, closeNavigation)
 
         <div id="site-navigation" class="navigation" :class="{ 'is-open': mobileOpen }">
           <nav class="primary-nav" aria-label="主导航">
-            <RouterLink to="/" exact-active-class="is-active" @click="closeNavigation">总览</RouterLink>
-            <RouterLink
-              v-for="module in primaryModules"
-              :key="module.id"
-              :to="`/${module.id}`"
-              active-class="is-active"
-              @click="closeNavigation"
-            >
-              {{ module.title }}
-            </RouterLink>
+            <RouterLink to="/" exact-active-class="is-active" @click="closeNavigation">今日</RouterLink>
+            <RouterLink to="/plans" active-class="is-active" @click="closeNavigation">学习路径</RouterLink>
+            <RouterLink to="/tools" active-class="is-active" @click="closeNavigation">全部训练</RouterLink>
+            <RouterLink class="settings-link" to="/settings" active-class="is-active" @click="closeNavigation">全局设置</RouterLink>
           </nav>
-
-          <details ref="toolMenu" class="tool-menu">
-            <summary>全部工具 <span>{{ modules.length }}</span></summary>
-            <div class="tool-panel">
-              <RouterLink
-                v-for="(module, index) in modules"
-                :key="module.id"
-                :to="`/${module.id}`"
-                active-class="is-active"
-                @click="closeNavigation"
-              >
-                <span class="tool-number">{{ String(index + 1).padStart(2, '0') }}</span>
-                <span>
-                  <strong>{{ module.title }}</strong>
-                  <small>{{ module.subtitle }}</small>
-                </span>
-              </RouterLink>
-            </div>
-          </details>
         </div>
       </div>
     </header>
 
-    <section v-if="!isHome && currentModule" class="route-masthead">
-      <div class="route-masthead-inner">
-        <div>
-          <p class="section-kicker">MODULE / {{ moduleIndex }}</p>
-          <h1>{{ currentModule.title }}</h1>
-          <p>{{ currentModule.subtitle }}</p>
-        </div>
-        <RouterLink class="back-home" to="/"><span aria-hidden="true">←</span> 返回学习中心</RouterLink>
-      </div>
-    </section>
-
-    <main class="site-main" :class="{ 'is-home': isHome }">
+    <main class="site-main" :class="{ 'is-workspace': isWorkspacePage }">
       <RouterView />
     </main>
 
@@ -125,9 +69,9 @@ watch(() => route.path, closeNavigation)
       <div class="footer-inner">
         <span>© 2026 IELTS DEV · LOCAL-FIRST LEARNING SYSTEM</span>
         <nav aria-label="页脚导航">
-          <RouterLink to="/">学习中心</RouterLink>
-          <RouterLink to="/study-tracker">学习记录</RouterLink>
-          <RouterLink to="/vocabulary">词汇学习</RouterLink>
+          <RouterLink to="/">今日</RouterLink>
+          <RouterLink to="/tools">全部训练</RouterLink>
+          <RouterLink to="/settings">全局设置</RouterLink>
         </nav>
       </div>
     </footer>
@@ -249,158 +193,25 @@ watch(() => route.path, closeNavigation)
   transform: scaleX(1);
 }
 
-.tool-menu {
-  position: relative;
-}
-
-.tool-menu summary {
-  min-width: 108px;
+.primary-nav a.settings-link {
+  margin-left: 4px;
   padding: 10px 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  border-radius: 999px;
-  background: var(--color-ink);
-  box-shadow: 0 8px 22px rgba(17, 19, 24, 0.16);
-  color: #fff;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 650;
-  list-style: none;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: #fff;
 }
 
-.tool-menu summary::-webkit-details-marker {
+.primary-nav a.settings-link::after {
   display: none;
 }
 
-.tool-menu summary span {
-  display: grid;
-  min-width: 19px;
-  height: 19px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--color-accent);
-  font-family: var(--font-mono);
-  font-size: 9px;
-}
-
-.tool-panel {
-  position: absolute;
-  top: calc(100% + 12px);
-  right: 0;
-  width: min(520px, calc(100vw - 32px));
-  padding: 10px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px;
-  border: 1px solid var(--color-line);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: var(--shadow-float);
-}
-
-.tool-panel a {
-  min-width: 0;
-  padding: 12px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  border-radius: 12px;
-  transition: background-color 160ms ease;
-}
-
-.tool-panel a:hover,
-.tool-panel a.is-active {
+.primary-nav a.settings-link.is-active {
+  border-color: rgba(88, 103, 231, 0.35);
   background: var(--color-soft-accent);
-}
-
-.tool-number {
-  padding-top: 2px;
-  color: var(--color-accent);
-  font-family: var(--font-mono);
-  font-size: 10px;
-}
-
-.tool-panel a > span:last-child {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.tool-panel strong,
-.tool-panel small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tool-panel strong {
-  color: var(--color-ink);
-  font-size: 13px;
-}
-
-.tool-panel small {
-  color: var(--color-muted);
-  font-size: 10px;
 }
 
 .nav-toggle {
   display: none;
-}
-
-.route-masthead {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: radial-gradient(circle at 78% 0%, rgba(83, 105, 255, 0.28), transparent 32%), #0d1018;
-  color: #fff;
-}
-
-.route-masthead-inner {
-  width: min(calc(100% - 48px), var(--site-width));
-  min-height: 132px;
-  margin: 0 auto;
-  padding: 26px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 40px;
-}
-
-.section-kicker {
-  margin: 0 0 9px;
-  color: #8997ff;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
-}
-
-.route-masthead h1 {
-  margin: 0;
-  font-size: clamp(26px, 3vw, 36px);
-  letter-spacing: -0.05em;
-}
-
-.route-masthead p:last-child {
-  margin: 6px 0 0;
-  color: rgba(255, 255, 255, 0.54);
-  font-size: 12px;
-}
-
-.back-home {
-  padding: 10px 15px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  color: rgba(255, 255, 255, 0.84);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.back-home:hover {
-  border-color: rgba(255, 255, 255, 0.42);
-  color: #fff;
 }
 
 .site-main {
@@ -410,7 +221,7 @@ watch(() => route.path, closeNavigation)
   background: #eef2f7;
 }
 
-.site-main.is-home {
+.site-main.is-workspace {
   padding: 0;
   background: var(--color-canvas);
 }
@@ -443,19 +254,18 @@ watch(() => route.path, closeNavigation)
   color: var(--color-ink);
 }
 
-@media (max-width: 960px) {
+@media (max-width: 760px) {
   .primary-nav {
     display: none;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 760px) {
   .site-header {
     height: 64px;
   }
 
   .header-inner,
-  .route-masthead-inner,
   .footer-inner {
     width: min(calc(100% - 32px), var(--site-width));
   }
@@ -505,7 +315,7 @@ watch(() => route.path, closeNavigation)
     padding: 16px;
     display: none;
     border-bottom: 1px solid var(--color-line);
-    background: rgba(248, 247, 244, 0.98);
+    background: #f8f7f4;
     box-shadow: 0 18px 30px rgba(17, 19, 24, 0.08);
   }
 
@@ -531,40 +341,8 @@ watch(() => route.path, closeNavigation)
     background: var(--color-soft-accent);
   }
 
-  .tool-menu summary {
-    width: 100%;
-    justify-content: space-between;
-    border-radius: 11px;
-  }
-
-  .tool-panel {
-    position: static;
-    width: 100%;
-    max-height: 50vh;
-    margin-top: 8px;
-    grid-template-columns: 1fr;
-    overflow-y: auto;
-    box-shadow: none;
-  }
-
-  .route-masthead-inner {
-    min-height: 126px;
-    padding: 24px 0;
-    align-items: center;
-    flex-direction: row;
-    gap: 16px;
-  }
-
-  .back-home {
-    width: 38px;
-    height: 38px;
-    padding: 0;
-    justify-content: center;
-    font-size: 0;
-  }
-
-  .back-home span {
-    font-size: 14px;
+  .primary-nav a.settings-link {
+    margin-left: 0;
   }
 
   .site-main {
