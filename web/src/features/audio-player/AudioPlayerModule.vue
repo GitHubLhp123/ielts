@@ -7,6 +7,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import './styles/legacy-full.css'
+import '@/styles/editorial-modules.css'
 import {
   clampRate,
   clampRepeats,

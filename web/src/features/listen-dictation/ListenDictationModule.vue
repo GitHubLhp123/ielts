@@ -17,6 +17,7 @@ import {
 } from '@/shared/storage/chunked-local-storage'
 
 import './styles/legacy-full.css'
+import '@/styles/editorial-modules.css'
 import { buildListenDictationCache, parseListenDictationCache } from './model/cache'
 import type { ListenTtsSource, ListenWordItem as WordItem } from './model/cache'
 import { nextSequentialIndex, nextWrappedIndex, parseListenWordList, previousWrappedIndex } from './model/words'

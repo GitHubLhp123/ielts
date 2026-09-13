@@ -71,9 +71,22 @@ const steps = computed(() => [
 
 <style scoped>
 .plans-page {
-  width: min(calc(100% - 48px), 1040px);
+  width: min(calc(100% - 48px), var(--site-width));
   margin: 0 auto;
-  padding: 58px 0 88px;
+  padding: 40px 0 96px;
+}
+
+.plans-page header {
+  min-height: 380px;
+  padding: clamp(38px, 6vw, 72px);
+  display: flex;
+  justify-content: flex-end;
+  flex-direction: column;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 86% 10%, rgba(104, 112, 235, 0.48), transparent 34%),
+    var(--color-night);
+  color: #fff;
 }
 
 .plans-page header > p,
@@ -89,7 +102,7 @@ const steps = computed(() => [
 .plans-page header h1 {
   max-width: 780px;
   margin: 0;
-  font-size: clamp(40px, 6vw, 68px);
+  font-size: clamp(48px, 6.7vw, 82px);
   letter-spacing: -0.06em;
   line-height: 1;
 }
@@ -97,19 +110,20 @@ const steps = computed(() => [
 .plans-page header > span {
   display: block;
   margin-top: 20px;
-  color: var(--color-muted);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .plan-overview {
-  margin: 42px 0 18px;
-  padding: 24px 26px;
+  margin: 22px 0 0;
+  padding: 28px 30px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  border-radius: 18px;
-  background: #11141c;
-  color: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: 14px 14px 0 0;
+  background: var(--color-surface);
+  color: var(--color-ink);
 }
 
 .plan-overview h2 {
@@ -118,7 +132,7 @@ const steps = computed(() => [
 }
 
 .plan-overview span {
-  color: rgba(255,255,255,.56);
+  color: var(--color-muted);
   font-size: 13px;
 }
 
@@ -128,8 +142,10 @@ const steps = computed(() => [
 }
 
 .plan-steps {
-  display: grid;
-  gap: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
 }
 
 .plan-steps article {
@@ -139,9 +155,13 @@ const steps = computed(() => [
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 20px;
   align-items: center;
-  border: 1px solid var(--color-line);
-  border-radius: 16px;
-  background: #fff;
+  border: 0;
+  border-top: 1px solid var(--color-line);
+  background: var(--color-surface);
+}
+
+.plan-steps article:first-child {
+  border-top: 0;
 }
 
 .plan-index {
@@ -186,13 +206,18 @@ const steps = computed(() => [
 }
 
 .plan-steps article.is-complete {
-  border-color: #c9e7d8;
+  background: #f3f6f0;
 }
 
 @media (max-width: 680px) {
   .plans-page {
     width: min(calc(100% - 28px), 1040px);
-    padding-top: 36px;
+    padding-top: 18px;
+  }
+
+  .plans-page header {
+    min-height: 430px;
+    padding: 30px 24px;
   }
 
   .plan-steps article {

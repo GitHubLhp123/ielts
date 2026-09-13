@@ -52,9 +52,22 @@ const groups = [
 
 <style scoped>
 .tools-page {
-  width: min(calc(100% - 48px), 1120px);
+  width: min(calc(100% - 48px), var(--site-width));
   margin: 0 auto;
-  padding: 58px 0 88px;
+  padding: 40px 0 96px;
+}
+
+.tools-page header {
+  min-height: 380px;
+  padding: clamp(38px, 6vw, 72px);
+  display: flex;
+  justify-content: flex-end;
+  flex-direction: column;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 86% 10%, rgba(104, 112, 235, 0.48), transparent 34%),
+    var(--color-night);
+  color: #fff;
 }
 
 .tools-page header > p,
@@ -70,7 +83,7 @@ const groups = [
 .tools-page header h1 {
   max-width: 800px;
   margin: 0;
-  font-size: clamp(40px, 6vw, 68px);
+  font-size: clamp(48px, 6.7vw, 82px);
   letter-spacing: -.06em;
   line-height: 1;
 }
@@ -78,16 +91,16 @@ const groups = [
 .tools-page header > span {
   display: block;
   margin-top: 20px;
-  color: var(--color-muted);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .tool-group {
-  padding: 36px 0;
+  padding: 52px 0;
   border-top: 1px solid var(--color-line);
 }
 
 .tools-page header + .tool-group {
-  margin-top: 46px;
+  margin-top: 28px;
 }
 
 .tool-group-heading {
@@ -112,7 +125,11 @@ const groups = [
 .tool-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  background: var(--color-line);
 }
 
 .tool-grid > a {
@@ -122,15 +139,13 @@ const groups = [
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 13px;
   align-items: center;
-  border: 1px solid var(--color-line);
-  border-radius: 14px;
-  background: #fff;
-  transition: border-color 160ms ease, transform 160ms ease;
+  border: 0;
+  background: var(--color-surface);
+  transition: background-color 160ms ease;
 }
 
 .tool-grid > a:hover {
-  border-color: #b9bdec;
-  transform: translateY(-2px);
+  background: #f0efe9;
 }
 
 .tool-icon {
@@ -161,7 +176,12 @@ const groups = [
 @media (max-width: 720px) {
   .tools-page {
     width: min(calc(100% - 28px), 1120px);
-    padding-top: 36px;
+    padding-top: 18px;
+  }
+
+  .tools-page header {
+    min-height: 430px;
+    padding: 30px 24px;
   }
 
   .tool-group-heading,

@@ -17,6 +17,7 @@ import { cancelSpeech, isEnglishVoice, observeSpeechVoices } from '@/shared/spee
 import { readLocalStorageValue, writeLocalStorageValue } from '@/shared/storage/chunked-local-storage'
 
 import './styles/legacy-full.css'
+import '@/styles/editorial-modules.css'
 import { parseSynonymGroups } from './model/groups'
 
 const NOTES_KEY = 'ielts_notes_v4'

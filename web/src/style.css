@@ -1,25 +1,30 @@
 :root {
-  --site-width: 1180px;
-  --color-canvas: #f8f7f4;
-  --color-ink: #111318;
-  --color-muted: #78766f;
-  --color-line: #deddd7;
-  --color-accent: #5867e7;
-  --color-soft-accent: #eeefff;
-  --shadow-float: 0 24px 70px rgba(24, 28, 45, 0.14);
+  --site-width: 1200px;
+  --color-canvas: #f4f2ed;
+  --color-surface: #fcfbf8;
+  --color-ink: #0b0d12;
+  --color-muted: #73716c;
+  --color-line: #d8d5ce;
+  --color-line-strong: #c5c1b8;
+  --color-accent: #6870eb;
+  --color-accent-strong: #5059d6;
+  --color-soft-accent: #eceeff;
+  --color-night: #0a0d14;
+  --color-night-muted: #9b9eaa;
+  --shadow-float: 0 24px 70px rgba(10, 13, 20, 0.12);
   --font-sans: Inter, "SF Pro Display", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
-  --el-color-primary: #5867e7;
-  --el-color-primary-rgb: 88, 103, 231;
-  --el-color-primary-light-3: #8a95ee;
-  --el-color-primary-light-5: #abb3f3;
-  --el-color-primary-light-7: #cdd1f8;
-  --el-color-primary-light-8: #dee1fa;
-  --el-color-primary-light-9: #eef0fd;
-  --el-color-primary-dark-2: #4652b8;
+  --el-color-primary: #6870eb;
+  --el-color-primary-rgb: 104, 112, 235;
+  --el-color-primary-light-3: #959bf2;
+  --el-color-primary-light-5: #b3b7f5;
+  --el-color-primary-light-7: #d1d4f9;
+  --el-color-primary-light-8: #e0e2fb;
+  --el-color-primary-light-9: #f0f1fd;
+  --el-color-primary-dark-2: #535abe;
   --el-font-family: var(--font-sans);
-  --el-border-radius-base: 8px;
-  --el-border-radius-small: 6px;
+  --el-border-radius-base: 7px;
+  --el-border-radius-small: 5px;
   font-family: var(--font-sans);
   font-synthesis: none;
   color-scheme: light;
@@ -45,6 +50,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+button,
+a,
+input,
+select,
+textarea {
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, opacity 160ms ease, transform 160ms ease;
+}
+
 *,
 *::before,
 *::after {
@@ -66,12 +79,32 @@ a {
 a:focus-visible,
 button:focus-visible,
 summary:focus-visible {
-  outline: 3px solid rgba(88, 103, 231, 0.34);
+  outline: 3px solid rgba(104, 112, 235, 0.34);
   outline-offset: 3px;
 }
 
 ::selection {
-  background: rgba(88, 103, 231, 0.2);
+  background: rgba(104, 112, 235, 0.22);
+}
+
+.el-button {
+  font-weight: 650;
+}
+
+.el-button:not(.is-circle) {
+  min-height: 38px;
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  box-shadow: 0 0 0 1px var(--color-line) inset;
+}
+
+.el-dialog {
+  --el-dialog-border-radius: 14px;
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-float);
 }
 
 .mono {

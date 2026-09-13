@@ -10,6 +10,7 @@ import { readLearningEvents, summarizeLearningEvents } from '@/shared/learning-e
 import { readLocalStorageValue, writeLocalStorageValue } from '@/shared/storage/chunked-local-storage'
 
 import './styles/legacy-full.css'
+import '@/styles/editorial-modules.css'
 import StudyTable from './components/StudyTable.vue'
 import StudyReview from './components/StudyReview.vue'
 import StudyAccounting from './components/StudyAccounting.vue'

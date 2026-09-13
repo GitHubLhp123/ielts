@@ -8,6 +8,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { cancelSpeech, formatEnglishVoiceLabel, observeSpeechVoices } from '@/shared/speech/voices'
 
 import './styles/legacy-full.css'
+import '@/styles/editorial-modules.css'
 import { parseWordList } from './model/words'
 
 const wordListInput = ref(

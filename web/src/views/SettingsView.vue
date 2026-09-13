@@ -220,18 +220,27 @@ async function confirmImport() {
 
 <style scoped>
 .settings-page {
-  width: min(calc(100% - 40px), 1120px);
+  width: min(calc(100% - 48px), var(--site-width));
   margin: 0 auto;
-  padding: 56px 0 84px;
+  padding: 40px 0 96px;
 }
 
 .settings-heading {
-  margin-bottom: 36px;
+  min-height: 340px;
+  margin-bottom: 28px;
+  padding: clamp(38px, 6vw, 72px);
+  display: flex;
+  align-items: flex-end;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 86% 10%, rgba(104, 112, 235, 0.48), transparent 34%),
+    var(--color-night);
+  color: #fff;
 }
 
 .settings-heading h1 {
   margin: 0;
-  font-size: clamp(38px, 5vw, 64px);
+  font-size: clamp(48px, 6.7vw, 82px);
   letter-spacing: -0.055em;
   line-height: 1;
 }
@@ -239,7 +248,7 @@ async function confirmImport() {
 .settings-heading > div > p:last-child {
   max-width: 680px;
   margin: 18px 0 0;
-  color: var(--color-muted);
+  color: rgba(255, 255, 255, 0.55);
   line-height: 1.8;
 }
 
@@ -269,7 +278,7 @@ async function confirmImport() {
 .settings-nav button {
   padding: 11px 13px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 7px;
   background: transparent;
   color: var(--color-muted);
   cursor: pointer;
@@ -280,8 +289,8 @@ async function confirmImport() {
 
 .settings-nav button:hover,
 .settings-nav button.is-active {
-  background: var(--color-soft-accent);
-  color: var(--color-ink);
+  background: var(--color-night);
+  color: #fff;
 }
 
 .settings-content {
@@ -290,10 +299,10 @@ async function confirmImport() {
 }
 
 .settings-section {
-  padding: 26px;
+  padding: 30px;
   border: 1px solid var(--color-line);
-  border-radius: 18px;
-  background: #fff;
+  border-radius: 14px;
+  background: var(--color-surface);
 }
 
 .settings-section-head,
@@ -366,8 +375,8 @@ async function confirmImport() {
   padding: 0 15px;
   flex: none;
   border: 1px solid var(--color-line);
-  border-radius: 9px;
-  background: #fff;
+  border-radius: 7px;
+  background: var(--color-surface);
   color: var(--color-ink);
   cursor: pointer;
   font-size: 13px;
@@ -389,8 +398,9 @@ async function confirmImport() {
 
 .import-preview {
   padding: 20px;
-  border-radius: 14px;
-  background: #f6f7fb;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: #f3f2ee;
 }
 
 .import-preview-head > span {
@@ -472,7 +482,12 @@ async function confirmImport() {
 @media (max-width: 760px) {
   .settings-page {
     width: min(calc(100% - 28px), 1120px);
-    padding-top: 36px;
+    padding-top: 18px;
+  }
+
+  .settings-heading {
+    min-height: 400px;
+    padding: 30px 24px;
   }
 
   .settings-layout {

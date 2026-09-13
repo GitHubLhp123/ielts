@@ -12,6 +12,7 @@ import {
 } from '@/shared/storage/chunked-local-storage'
 
 import './styles/legacy-full.css'
+import '@/styles/editorial-modules.css'
 import { firstPendingWord, isCorrectAnswer, parseUniqueWordList } from './domain/practice'
 import { buildDictationCache, parseDictationCache } from './model/cache'
 import type { DictationMode as Mode, DictationWordItem } from './model/cache'

@@ -14,6 +14,7 @@ import {
 } from '@/shared/learning-events/events'
 
 import './styles/legacy-full.css'
+import '@/styles/editorial-modules.css'
 import { chapterEntries, resolveWordMeta, matchAnyChapter, buildAudioUrl } from './data/corpus'
 import {
   useCorpusStore,

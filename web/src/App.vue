@@ -91,10 +91,10 @@ watch(() => route.path, closeNavigation)
   position: sticky;
   z-index: 100;
   top: 0;
-  height: 72px;
+  height: 70px;
   border-bottom: 1px solid var(--color-line);
-  background: rgba(248, 247, 244, 0.92);
-  backdrop-filter: blur(18px);
+  background: rgba(252, 251, 248, 0.94);
+  backdrop-filter: blur(16px);
 }
 
 .header-inner {
@@ -115,13 +115,13 @@ watch(() => route.path, closeNavigation)
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  border-radius: 11px;
-  background: linear-gradient(145deg, #5675ff, #7869ef);
-  box-shadow: 0 9px 24px rgba(82, 101, 238, 0.28);
+  border-radius: 9px;
+  background: linear-gradient(145deg, #5d68ee, #7a68ea);
+  box-shadow: 0 8px 18px rgba(80, 89, 214, 0.2);
   color: #fff;
   font-family: var(--font-mono);
   font-size: 12px;
@@ -136,7 +136,7 @@ watch(() => route.path, closeNavigation)
 .brand-copy strong {
   color: var(--color-ink);
   font-size: 13px;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.24em;
 }
 
 .brand-copy small {
@@ -196,9 +196,10 @@ watch(() => route.path, closeNavigation)
 .primary-nav a.settings-link {
   margin-left: 4px;
   padding: 10px 15px;
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
-  background: #fff;
+  border: 1px solid var(--color-night);
+  border-radius: 999px;
+  background: var(--color-night);
+  color: #fff;
 }
 
 .primary-nav a.settings-link::after {
@@ -206,8 +207,9 @@ watch(() => route.path, closeNavigation)
 }
 
 .primary-nav a.settings-link.is-active {
-  border-color: rgba(88, 103, 231, 0.35);
-  background: var(--color-soft-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
 }
 
 .nav-toggle {
@@ -218,7 +220,7 @@ watch(() => route.path, closeNavigation)
   width: 100%;
   flex: 1;
   padding: 24px;
-  background: #eef2f7;
+  background: var(--color-canvas);
 }
 
 .site-main.is-workspace {
@@ -227,8 +229,8 @@ watch(() => route.path, closeNavigation)
 }
 
 .site-footer {
-  border-top: 1px solid var(--color-line);
-  background: var(--color-canvas);
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--color-night);
 }
 
 .footer-inner {
@@ -239,7 +241,7 @@ watch(() => route.path, closeNavigation)
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  color: var(--color-muted);
+  color: rgba(255, 255, 255, 0.46);
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.11em;
@@ -251,7 +253,7 @@ watch(() => route.path, closeNavigation)
 }
 
 .footer-inner a:hover {
-  color: var(--color-ink);
+  color: #fff;
 }
 
 @media (max-width: 760px) {
@@ -315,7 +317,7 @@ watch(() => route.path, closeNavigation)
     padding: 16px;
     display: none;
     border-bottom: 1px solid var(--color-line);
-    background: #f8f7f4;
+    background: var(--color-surface);
     box-shadow: 0 18px 30px rgba(17, 19, 24, 0.08);
   }
 
@@ -343,6 +345,7 @@ watch(() => route.path, closeNavigation)
 
   .primary-nav a.settings-link {
     margin-left: 0;
+    color: #fff;
   }
 
   .site-main {
@@ -357,6 +360,10 @@ watch(() => route.path, closeNavigation)
 
   .footer-inner nav {
     flex-wrap: wrap;
+  }
+
+  .footer-inner nav a {
+    color: rgba(255, 255, 255, 0.72);
   }
 }
 </style>
